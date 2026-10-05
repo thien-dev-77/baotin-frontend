@@ -4,7 +4,7 @@ import Image from "next/image";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertCircle, ArrowLeft, Check, Plus, Trash2 } from "lucide-react";
 import { Button, Field, QuantityStepper } from "@/components/ui";
 import { useAdmin } from "@/components/admin/admin-provider";
@@ -13,6 +13,7 @@ import { AdminSalesProducts } from "@/components/admin/admin-sales-products";
 import { orderBlocker, previewDate, type AdminOrder } from "@/lib/admin-preview";
 import { blankSalesDraft, draftItems, salesDeliveries, salesPayments, salesSources, type SalesDetails } from "@/lib/admin-sales";
 import { money } from "@/lib/catalog";
+import { api, apiMode } from "@/lib/api-client";
 
 export function AdminSalesOrder({ id }: { id?: string }) {
   const { orders, branch } = useAdmin();
@@ -37,9 +38,20 @@ function SalesOrderForm({ order }: { order?: AdminOrder }) {
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [quote, setQuote] = useState<{ key: string; items: AdminOrder["items"]; subtotal: number; shipping: number; discount: number; total: number } | null>(null);
+  const [quoteError, setQuoteError] = useState("");
+  const quoteKey = JSON.stringify({ ...draft, branch, id: order?.id });
+  useEffect(() => {
+    if (!apiMode) return;
+    let active = true; setQuoteError("");
+    const timer = setTimeout(() => { void api<Omit<NonNullable<typeof quote>, "key">>("/admin/orders/quote", { method: "POST", body: quoteKey }).then(result => { if (active) setQuote({ ...result, key: quoteKey }); }).catch(cause => { if (active) { setQuote(null); setQuoteError(cause.message); } }); }, 300);
+    return () => { active = false; clearTimeout(timer); };
+  }, [quoteKey]);
   const customer = customers.find((item) => item.id === draft.customerId);
-  const items = draftItems(draft, customer, products, order);
-  const total = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+  const currentQuote = quote?.key === quoteKey ? quote : null;
+  const items = currentQuote?.items || draftItems(draft, customer, products, order);
+  const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+  const total = currentQuote?.total ?? subtotal;
   const credit = draft.details.payment === "Công nợ B2B";
   const candidate: AdminOrder = { id: order?.id || "", branch, date: previewDate, source: draft.source, customerId: customer?.id || null, customerName: customer?.name || draft.details.recipient, channel: customer ? "B2B" : "B2C", items, total, credit, status: "Chờ xác nhận" };
   const blocker = items.length ? orderBlocker(candidate, customers, approvals, products) : "";
@@ -55,10 +67,10 @@ function SalesOrderForm({ order }: { order?: AdminOrder }) {
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (saving) return;
-    const result = await saveSalesOrder(draft, order?.id, reason);
-    if (result.error) { setError(result.error); return; }
+    if (apiMode && !currentQuote) return;
     setSaving(true);
-    router.push(`/admin/orders?order=${result.id}`);
+    try { const result = await saveSalesOrder(draft, order?.id, reason, currentQuote?.total); if (result.error) setError(result.error); else router.push(`/admin/orders?order=${result.id}`); }
+    finally { setSaving(false); }
   }
   return <>
     <AdminHeading title={order ? `Sửa đơn ${order.id}` : "Tạo đơn hộ khách"} subtitle={`${branch} · Inside Sales`}><Link href="/admin/orders" className="bt-button-secondary"><ArrowLeft size={16} />Về đơn hàng</Link></AdminHeading>
@@ -99,11 +111,11 @@ function SalesOrderForm({ order }: { order?: AdminOrder }) {
       </div>
       <aside aria-label="Tổng kết đơn hàng" className="min-w-0 border-t border-border bg-section/50 p-4 sm:p-5 xl:border-l xl:border-t-0">
         <div className="xl:sticky xl:top-5"><h2 className="text-base font-semibold text-primary">Tổng kết đơn hàng</h2><dl className="mt-5 space-y-3 text-sm"><div className="flex justify-between gap-3"><dt className="text-text-secondary">Số mã hàng</dt><dd>{items.length}</dd></div><div className="flex justify-between gap-3"><dt className="text-text-secondary">Số lượng</dt><dd>{items.reduce((sum, item) => sum + item.quantity, 0)}</dd></div><div className="flex flex-wrap justify-between gap-2 border-t border-border pt-4 font-semibold text-primary"><dt>Tiền hàng</dt><dd className="tabular-nums">{money(total)}</dd></div></dl>
-          <p className="mt-3 text-xs leading-5 text-text-secondary">Phí vận chuyển và thuế chưa được tính. Giá và tồn kho là dữ liệu mẫu.</p>
+          {apiMode ? <div className="mt-3 space-y-2 text-sm"><div className="flex justify-between"><span>Phí giao hàng</span><span>{money(currentQuote?.shipping || 0)}</span></div><div className="flex justify-between"><span>Giảm giá</span><span>-{money(currentQuote?.discount || 0)}</span></div><div className="flex justify-between border-t border-border pt-2 font-semibold"><span>Tổng thanh toán</span><span>{money(total)}</span></div>{!currentQuote && <p role={quoteError ? "alert" : "status"} className={quoteError ? "text-danger" : "text-text-muted"}>{quoteError || "Đang tính lại giá..."}</p>}</div> : <p className="mt-3 text-xs leading-5 text-text-secondary">Phí vận chuyển và thuế chưa được tính. Giá và tồn kho là dữ liệu mẫu.</p>}
           {customer && <dl className="mt-5 space-y-2 border-t border-border pt-4 text-xs text-text-secondary"><div className="flex justify-between gap-2"><dt>Hạn mức</dt><dd className="tabular-nums">{money(customer.limit)}</dd></div><div className="flex justify-between gap-2"><dt>Công nợ hiện tại</dt><dd className="tabular-nums">{money(customer.debt)}</dd></div><div className="flex justify-between gap-2"><dt>Quá hạn</dt><dd className="tabular-nums">{money(customer.overdue)}</dd></div></dl>}
           {blocker && <div role="status" className="mt-5 flex gap-2 border-l-2 border-amber-400 bg-amber-50 p-3 text-xs leading-5 text-amber-900"><AlertCircle size={16} className="mt-0.5 shrink-0" /><div>{blocker}<p className="mt-1">Đơn có thể lưu chờ xử lý, chưa được chuyển kho.</p></div></div>}
           {error && <p role="alert" className="mt-4 text-sm leading-5 text-danger">{error}</p>}
-          <div className="mt-5"><AdminStatus value="Chờ xác nhận" /></div><Button type="submit" disabled={saving} className="mt-3 w-full"><Check size={16} />{saving ? "Đang lưu..." : order ? "Lưu thay đổi" : "Tạo đơn chờ xác nhận"}</Button>
+          <div className="mt-5"><AdminStatus value="Chờ xác nhận" /></div><Button type="submit" disabled={saving || apiMode && !currentQuote} className="mt-3 w-full"><Check size={16} />{saving ? "Đang lưu..." : order ? "Lưu thay đổi" : "Tạo đơn chờ xác nhận"}</Button>
         </div>
       </aside>
     </form>

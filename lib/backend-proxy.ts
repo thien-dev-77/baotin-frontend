@@ -1,7 +1,7 @@
 const requestHeaders = ["accept", "content-type", "cookie", "origin", "x-baotin-client", "idempotency-key", "if-none-match", "if-modified-since", "range", "if-range"];
 const responseHeaders = ["content-type", "etag", "last-modified", "content-disposition", "content-range", "accept-ranges", "retry-after", "vary"];
 
-export type BackendRouteContext = { params: { path: string[] } };
+export type BackendRouteContext = { params: Promise<{ path: string[] }> };
 
 export async function proxyBackend(request: Request, path: string[], kind: "api" | "media"): Promise<Response> {
   if (!path.length || path.some((part) => !part || part === "." || part === ".." || /[\\/\0]/.test(part))) {

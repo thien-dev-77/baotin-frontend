@@ -1,2 +1,2 @@
 import { OrderDetailView } from "@/components/order-views";
-export default function OrderPage({ params }: { params: { id: string } }) { return <OrderDetailView id={params.id} standalone />; }
+export default async function OrderPage({ params }: { params: Promise<{ id: string }> }) { return <OrderDetailView id={(await params).id} standalone />; }

@@ -8,10 +8,10 @@ import { money, priceFor, type Product } from "@/lib/catalog";
 import { ShoppingCart } from "lucide-react";
 import { useState } from "react";
 
-export function ProductBundle({ products }: { products: Product[] }) {
+export function ProductBundle({ products: initialProducts }: { products: Product[] }) {
   const { customer, add, products: catalog } = useCommerce();
-  const [selected, setSelected] = useState<string[]>(() => products.map((product) => product.id));
-  products = products.map((product) => catalog.find((item) => item.id === product.id)).filter((item): item is Product => Boolean(item));
+  const [selected, setSelected] = useState<string[]>(() => initialProducts.map((product) => product.id));
+  const products = initialProducts.map((product) => catalog.find((item) => item.id === product.id)).filter((item): item is Product => Boolean(item));
 
   const toggleSelection = (id: string) => {
     setSelected((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);

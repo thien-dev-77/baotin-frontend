@@ -86,7 +86,7 @@ function useAdminState() {
     return "";
   }
 
-  function saveSalesOrder(draft: SalesDraft, id?: string, reason = ""): { id?: string; error?: string } {
+  function saveSalesOrder(draft: SalesDraft, id?: string, reason = "", _expectedTotal?: number): { id?: string; error?: string } {
     const previous = id ? orders.find((item) => item.id === id) : undefined;
     if (id && (!previous || previous.branch !== branch || previous.status !== "Chờ xác nhận" || previous.approvalId || previous.customerId !== (draft.customerId || null) || previous.source !== draft.source)) return { error: "Chỉ sửa đơn chờ xác nhận của chi nhánh, chưa gắn yêu cầu duyệt." };
     if (id && !reason.trim()) return { error: "Nhập lý do sửa đơn." };
@@ -183,7 +183,7 @@ function useAdminState() {
 type MockValue = ReturnType<typeof useAdminState>;
 type ActionKey = "createReceipt" | "reconcileReceipt" | "voidReceipt" | "setPaymentDueDate" | "saveSalesOrder" | "createApproval" | "advanceOrder" | "cancelOrder" | "decideApproval" | "setCustomerStatus" | "setPublished" | "setPicked" | "reportShortage" | "resolveShortage" | "reset";
 type Awaitable<T> = T extends (...args: infer A) => infer R ? (...args: A) => R | Promise<R | ([R] extends [void] ? string : never)> : T;
-export type AdminValue = Omit<{ [K in keyof MockValue]: K extends ActionKey ? Awaitable<MockValue[K]> : MockValue[K] }, keyof ApiAdminState | "scopedOrders" | "scopedApprovals" | "warehouseOrders"> & ApiAdminState & { scopedOrders: ApiAdminState["orders"]; scopedApprovals: ApiAdminState["approvals"]; warehouseOrders: ApiAdminState["orders"] };
+export type AdminValue = Omit<{ [K in keyof MockValue]: K extends ActionKey ? Awaitable<MockValue[K]> : MockValue[K] }, keyof ApiAdminState | "scopedOrders" | "scopedApprovals" | "warehouseOrders"> & ApiAdminState & { scopedOrders: ApiAdminState["orders"]; scopedApprovals: ApiAdminState["approvals"]; warehouseOrders: ApiAdminState["orders"]; resourceRevision?: number };
 export const AdminContext = createContext<AdminValue | null>(null);
 export function AdminProvider({ children }: { children: React.ReactNode }) {
   return apiMode ? <ApiAdminProvider>{children}</ApiAdminProvider> : <PreviewAdminProvider>{children}</PreviewAdminProvider>;

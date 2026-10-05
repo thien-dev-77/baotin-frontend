@@ -10,6 +10,7 @@ import { isWarehouseOrder } from "@/lib/admin-warehouse";
 import type { ApiAdminState } from "@/lib/api-types";
 import type { Branch } from "@/lib/types";
 import { AdminContext, type AdminValue } from "./admin-provider";
+import { PasswordInput } from "../password-form";
 
 const empty: ApiAdminState = { products: [], customers: [], orders: [], approvals: [], warehouse: {}, receipts: [], paymentDueDates: {}, today: "" };
 
@@ -19,11 +20,12 @@ export function ApiAdminProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [branch, setBranch] = useState<Branch>("Quy Nhơn");
   const [days, setDays] = useState(7);
+  const [resourceRevision, setResourceRevision] = useState(0);
   const [error, setError] = useState("");
   const saving = useRef(false);
   const staff = sessionUser && sessionUser.role !== "b2b";
   const reload = useCallback(async () => {
-    try { setState(await api<ApiAdminState>("/admin/state")); setError(""); setReady(true); }
+    try { setState(await api<ApiAdminState>("/admin/state")); setResourceRevision(version => version + 1); setError(""); setReady(true); }
     catch (error) { setError(error instanceof Error ? error.message : "Không thể tải dashboard."); }
   }, []);
   useEffect(() => {
@@ -42,7 +44,7 @@ export function ApiAdminProvider({ children }: { children: React.ReactNode }) {
     try {
       const expectedRevision = state.orders.find((order) => order.id === orderId)?.revision;
       const result = await api<{ id: string; state: ApiAdminState }>("/admin/commands", { method: "POST", body: JSON.stringify({ action, id, branch, payload, expectedRevision }) });
-      setState(result.state); notice("Đã lưu thay đổi.");
+      setState(result.state); setResourceRevision(version => version + 1); notice("Đã lưu thay đổi.");
       if (action === "publish-product") void reloadCatalog().catch((error) => notice(error.message));
       return { id: result.id };
     } catch (error) {
@@ -55,12 +57,12 @@ export function ApiAdminProvider({ children }: { children: React.ReactNode }) {
   date.setUTCDate(date.getUTCDate() - days + 1);
   const since = date.toISOString().slice(0, 10);
   const value: AdminValue = {
-    ...state, ready, branch, setBranch, days, setDays, allowedBranches: sessionUser?.branches || [],
+    ...state, products: state.products.map(product => ({ ...product, stock: state.stockByBranch?.[branch]?.[product.id] ?? product.stock })), ready, branch, setBranch, days, setDays, resourceRevision, allowedBranches: sessionUser?.branches || [],
     scopedOrders: state.orders.filter((order) => order.branch === branch && order.date >= since),
     scopedCustomers: state.customers.filter((customer) => customer.branch === branch),
     scopedApprovals: state.approvals.filter((approval) => approval.branch === branch).reverse(),
     warehouseOrders: state.orders.filter((order) => order.branch === branch && isWarehouseOrder(order)),
-    saveSalesOrder: (draft, id, reason = "") => command("save-order", id, { ...draft, reason }),
+    saveSalesOrder: (draft, id, reason = "", expectedTotal) => command("save-order", id, { ...draft, reason, expectedTotal }),
     createApproval: (id, draft) => command("create-approval", id, draft),
     createReceipt: (draft) => command("create-receipt", undefined, draft, draft.orderId),
     reconcileReceipt: async (id, amount, reference, note) => (await command("reconcile-receipt", id, { amount, reference, note })).error || "",
@@ -90,5 +92,5 @@ function StaffLogin() {
     try { await loginWithPassword(String(data.get("identity")), String(data.get("password"))); }
     catch (error) { setError(error instanceof Error ? error.message : "Đăng nhập không thành công."); }
     finally { setBusy(false); }
-  }}><Field label="Email nhân viên" required><input className="bt-input" type="email" name="identity" autoComplete="username" required /></Field><Field label="Mật khẩu" required><input className="bt-input" type="password" name="password" autoComplete="current-password" required minLength={8} /></Field>{error && <p role="alert" className="text-sm text-danger">{error}</p>}<Button type="submit" disabled={busy} className="w-full"><LogIn size={17} />{busy ? "Đang đăng nhập..." : "Đăng nhập"}</Button></form><Link className="mt-6 block text-sm text-blue-brand" href="/">Về website bán hàng</Link></main>;
+  }}><Field label="Email nhân viên" required><input className="bt-input" type="email" name="identity" autoComplete="username" required /></Field><PasswordInput name="password" label="Mật khẩu" current />{error && <p role="alert" className="text-sm text-danger">{error}</p>}<Button type="submit" disabled={busy} className="w-full"><LogIn size={17} />{busy ? "Đang đăng nhập..." : "Đăng nhập"}</Button></form><Link className="mt-4 block text-sm text-blue-brand" href="/forgot-password">Quên mật khẩu?</Link><Link className="mt-6 block text-sm text-blue-brand" href="/">Về website bán hàng</Link></main>;
 }

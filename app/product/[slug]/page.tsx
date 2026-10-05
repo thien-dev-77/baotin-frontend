@@ -1,2 +1,2 @@
 import { redirect } from "next/navigation";
-export default function ProductAlias({ params }: { params: { slug: string } }) { redirect(`/products/${params.slug}`); }
+export default async function ProductAlias({ params }: { params: Promise<{ slug: string }> }) { redirect(`/products/${(await params).slug}`); }

@@ -49,7 +49,8 @@ Dang nhap, gia B2B, cong no, don hang va form lien he hien dung du lieu mau/loca
 | `/policies/:slug` | Noi dung chinh sach mau, can doanh nghiep duyet |
 | `/404`, route khong ton tai | Not found, ve trang chu/xem san pham |
 
-Co `app/loading.tsx`, `app/error.tsx` va empty states theo tung luong.
+Next 16: public catalog khong co root loading boundary de HTML hien thi ca khi
+JavaScript tat. Co account/admin loading, `app/error.tsx` va empty states theo luong.
 
 ## Component va du lieu
 

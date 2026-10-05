@@ -63,6 +63,14 @@ try {
   await expect(adminPage.locator("#admin-content")).toHaveAttribute("aria-busy", "false");
   await adminPage.goto(`${base}/admin/orders?order=${id}`);
   await expect(adminPage.locator("dialog[open]")).toContainText(id);
+  await adminPage.getByRole("button", { name: "Đóng", exact: true }).click();
+  await adminPage.goto(`${base}/admin/orders/${id}/edit`);
+  await field(adminPage, "Số lượng LED-12V-8W").fill("2");
+  await field(adminPage, "Lý do sửa đơn").fill("Connected QA website edit");
+  await expect(adminPage.getByRole("button", { name: "Lưu thay đổi", exact: true })).toBeEnabled();
+  await adminPage.getByRole("button", { name: "Lưu thay đổi", exact: true }).click();
+  await expect(adminPage).toHaveURL(`${base}/admin/orders?order=${id}`);
+  await expect(adminPage.locator("dialog[open]")).toContainText(id);
   await adminPage.getByRole("button", { name: "Xác nhận đơn", exact: true }).click();
   await expect(adminPage.locator("dialog[open]")).toContainText("Chờ soạn hàng");
   await page.goto(`${base}/account/orders/${id}`);
@@ -89,7 +97,7 @@ try {
     await mobile.close(); console.log(`PASS connected UI ${width}px: images, layout, product detail`);
   }
   await context.close(); expect(issues).toEqual([]);
-  console.log("PASS UI checkout -> Sales -> account reload, JWT HttpOnly, upload control, accounting");
+  console.log("PASS UI checkout -> website edit/requote -> Sales -> account reload, JWT HttpOnly, upload control, accounting");
 } finally {
   await browser.close();
   await sql.query(`DELETE FROM "${schema}".audit_events WHERE "resourceId"=ANY($1)`, [createdOrders]);

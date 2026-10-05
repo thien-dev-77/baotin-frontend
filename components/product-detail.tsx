@@ -13,9 +13,9 @@ import { getProductRecommendations, getProductSpecifications, initialProductRevi
 import { useEffect, useRef, useState } from "react";
 import { useCommerce } from "@/components/commerce-provider";
 
-export function ProductDetail({ product }: { product: Product }) {
+export function ProductDetail({ product: initialProduct }: { product: Product }) {
   const { products } = useCommerce();
-  product = products.find((item) => item.id === product.id) || product;
+  const product = products.find((item) => item.id === initialProduct.id) || initialProduct;
   const detailRef = useRef<HTMLElement>(null);
   const [tab, setTab] = useState("Mô tả sản phẩm");
   const [reviews, setReviews] = useState<ProductReview[]>(initialProductReviews);

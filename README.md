@@ -4,6 +4,8 @@ Repo nay chi chua Next.js frontend, TypeScript, Tailwind, Inter va Lucide.
 Backend NestJS/TypeORM/JWT va media duoc quan ly rieng tai
 [baotin-backend](https://github.com/thien-dev-77/baotin-backend).
 Xem [Backend Integration](docs/backend-integration.md) cho contract API.
+Ban cap nhat uu tien 1-6: [Operations UI](docs/operations-rollout.md).
+Next.js 16.3.8, React 19.3.0; dung Node LTS >=22.13.
 
 ```txt
 app/       Next.js App Router
@@ -113,8 +115,10 @@ Production can persistent media volume o BE va HTTPS cookies.
 - [Ban giao UI va ke hoach API](docs/api-handoff.md)
 - [Thu tien va doi chieu](docs/accounting-preview.md)
 
-**Gioi han:** du lieu mock persisted, auth/orders/admin da noi API; chua dong bo
-KiotViet, bang gia thuc, stock ledger, credit ledger hay bank payment.
+**Gioi han:** du lieu mock persisted; da co bang gia customer/group/branch,
+stock/credit ledger, reservations, account management/recovery va website edit/requote.
+KiotViet connector can credentials va acceptance; SMTP can cau hinh de gui that.
+Chua co auto Kiot stock/debt/status sync hay bank/refund.
 Khong cong bo du lieu seed/secrets. Tai lieu media ghi ro anh minh hoa va
-dieu kien xac minh truoc production. Next.js 14 hien co audit high/critical,
-can upgrade va regression-test truoc deploy production.
+dieu kien xac minh truoc production. Runtime audit FE/BE hien 0 vulnerabilities;
+FE full audit con 7 high dev tools/braces chua co ban fix. Khong audit force downgrade.

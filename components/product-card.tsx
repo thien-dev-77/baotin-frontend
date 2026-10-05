@@ -13,8 +13,9 @@ export function PriceDisplay({ product, compact = false }: { product: Product; c
   const price = priceFor(product, customer);
   return <div className="min-w-0"><div className={`flex flex-wrap items-baseline gap-x-1 ${compact ? "text-base" : "text-lg"} font-bold ${product.oldPrice ? "text-danger" : "text-primary"}`}><span className="bt-price-amount">{money(price)}</span><span className="text-xs font-normal text-text-secondary">/{product.unit}</span></div>{product.oldPrice && <del className="text-xs text-text-muted">{money(product.oldPrice)}</del>}{isB2b ? <p className="mt-1 text-[11px] font-medium text-success">Giá B2B</p> : customer ? <p className="mt-1 text-[11px] text-text-muted">Chờ kích hoạt B2B</p> : <Link href="/login" className="mt-1 block text-[11px] leading-4 text-blue-brand hover:underline">Đăng nhập B2B để xem giá</Link>}</div>;
 }
-export function ProductCard({ product, list = false }: { product: Product; list?: boolean }) {
+export function ProductCard({ product: initialProduct, list = false }: { product: Product; list?: boolean }) {
   const { favorites, toggleFavorite, products } = useCommerce();
+  let product = initialProduct;
   if (apiMode) {
     const current = products.find((item) => item.id === product.id);
     if (!current) return null;

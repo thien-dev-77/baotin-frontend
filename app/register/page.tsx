@@ -1,2 +1,2 @@
 import { AuthView } from "@/components/auth-view";
-export default function RegisterPage({ searchParams }: { searchParams: { next?: string } }) { return <AuthView register next={searchParams.next} />; }
+export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) { return <AuthView register next={(await searchParams).next} />; }

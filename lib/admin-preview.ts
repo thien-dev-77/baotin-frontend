@@ -115,7 +115,7 @@ export function readAdminOverrides(raw: string): AdminPreviewOverrides {
 }
 
 export function downloadAdminCsv(name: string, rows: (string | number)[][]) {
-  const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/^[=+@-]/, "'$&").replace(/"/g, '""')}"`).join(",")).join("\r\n");
+  const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/^[\t\r\n ]*[=+@-]/, "'$&").replace(/"/g, '""')}"`).join(",")).join("\r\n");
   const url = URL.createObjectURL(new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }));
   const link = document.createElement("a");
   link.href = url;

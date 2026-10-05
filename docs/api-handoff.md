@@ -1,5 +1,10 @@
 # Ban giao UI va lap ke hoach API
 
+**Hien trang 05/10/2026:** doc [Operations UI](operations-rollout.md) va
+[Backend Integration](backend-integration.md) truoc. Bang gia, ledger, accounts,
+website edit/requote da co UI/API; KiotViet connector co code, cho credentials.
+Phan preview ben duoi la tai lieu lich su, khong phai danh sach thieu hien tai.
+
 Cap nhat: 04/10/2026. Tai lieu song, can cap nhat sau moi luong UI duoc duyet.
 
 **Cap nhat giai doan:** nguoi dung da yeu cau backend. NestJS/TypeORM/JWT,
