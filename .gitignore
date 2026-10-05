@@ -1,0 +1,19 @@
+node_modules/
+.next/
+.next-*/
+out/
+dist/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+*.log
+.DS_Store
+.history/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+# Backend is maintained in thien-dev-77/baotin-b2b-be, not this FE repository.
+/backend/
