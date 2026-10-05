@@ -3,7 +3,7 @@
 Cap nhat 04/10/2026. Stack theo yeu cau: NestJS, TypeScript, TypeORM
 synchronize, Supabase PostgreSQL, JWT; seed mock cu va luu anh tren backend.
 Giu giao dien frontend. Tai lieu nay thay hien trang preview trong api-handoff.md.
-Tu 05/10/2026, source backend nam trong repo baotin-b2b-be; repo baotin-b2b-fe
+Tu 05/10/2026, source backend nam trong repo baotin-backend; repo baotin-frontend
 chua app/, components/, lib/, scripts/, tests/ va docs/design ngay tai goc;
 khong con thu muc frontend/ hay npm wrapper. Trong repo BE, src/, media/,
 scripts/, seed/, certs/, test/ va package.json nam tai GOC repo, khong con
@@ -26,7 +26,7 @@ host khi da dung Session pooler. .env.local cua BE va PostgreSQL
 127.0.0.1:5441/baotin_dev van giu rieng cho integration tests.
 Doc: https://supabase.com/docs/guides/database/connecting-to-postgres
 
-Chay backend tai goc repo theo https://github.com/thien-dev-77/baotin-b2b-be/blob/main/README.md.
+Chay backend tai goc repo theo https://github.com/thien-dev-77/baotin-backend/blob/main/README.md.
 Tai goc repo FE, .env.local theo .env.example:
 NEXT_PUBLIC_API_MODE=true, BACKEND_URL=http://127.0.0.1:4000.
 Root `npm run dev -- --port 3010`; API localhost:4000/api/health.
@@ -59,7 +59,7 @@ Commands validate references va transaction tren server.
 
 63 SKU, 8 categories, 7 B2B customers, 18 orders, 3 approvals export tu
 lib/catalog.ts va lib/admin-preview.ts o goc repo FE bang
-`FRONTEND_DIR=../baotin-b2b-fe npm run fixtures` tai goc BE.
+`FRONTEND_DIR=../baotin-frontend npm run fixtures` tai goc BE.
 INSERT ON CONFLICT DO NOTHING, khong overwrite khi restart,
 khong lay localStorage lam seed; seed bi cam o production.
 Seed orders bo sung **pickup details minh hoa** tu contact fixture va note
@@ -165,7 +165,7 @@ idempotency/revision, checkout->Sales->warehouse->account, approval/receipt,
 publication/upload/logout. Chi local DB, cleanup ban ghi test.
 `npm run test:connected`: Playwright desktop/tablet/mobile, checkout/Sales/account
 reload, images, HTTPOnly cookie, accounting/upload control. Screenshots /tmp.
-Tai goc repo FE, dung `QA_BACKEND_DIR=../baotin-b2b-be npm run test:connected`.
+Tai goc repo FE, dung `QA_BACKEND_DIR=../baotin-backend npm run test:connected`.
 Mac dinh tim repo BE ben canh FE; workspace cu can set QA_BACKEND_DIR toi
 thu muc backend thuc te.
 Hai bo test ghi/xoa du lieu va chi duoc chay voi API `dev:local` + database

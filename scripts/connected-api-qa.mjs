@@ -4,7 +4,7 @@ import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-const backendDir = process.env.QA_BACKEND_DIR ? resolve(process.env.QA_BACKEND_DIR) : fileURLToPath(new URL("../../baotin-b2b-be/", import.meta.url));
+const backendDir = process.env.QA_BACKEND_DIR ? resolve(process.env.QA_BACKEND_DIR) : fileURLToPath(new URL("../../baotin-backend/", import.meta.url));
 if (!existsSync(join(backendDir, "package.json")) || !existsSync(join(backendDir, ".env.local"))) throw new Error("Set QA_BACKEND_DIR to the separate backend directory with local test configuration.");
 const backendRequire = createRequire(join(backendDir, "package.json"));
 backendRequire("dotenv").config({ path: join(backendDir, ".env.local"), quiet: true });

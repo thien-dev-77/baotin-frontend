@@ -5,7 +5,7 @@
 Ban Next.js + TypeScript + Tailwind de duyet giao dien va thao tac truoc khi lam backend.
 Tu 05/10/2026, App Router va toan bo Next.js nam ngay tai goc repo FE;
 khong con frontend/ hay npm wrapper. Backend da noi API va quan ly rieng
-trong repo baotin-b2b-be; doc [backend-integration.md](backend-integration.md).
+trong repo baotin-backend; doc [backend-integration.md](backend-integration.md).
 Phan duoi la ban giao preview truoc tich hop. Cac duong dan code tuong doi
 voi goc repo FE, lenh npm chay tai goc.
 Visual reference: `design/839a8103-bf56-4a25-8271-87e3a8a6a0a8.png` va `design/trangchitiet.png`.

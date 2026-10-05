@@ -19,7 +19,7 @@ Nguoi dung uu tien hoan thien giao dien truoc; khong tu chuyen giai doan.
 
 Cau truc repo FE tu 05/10/2026: Next.js ngay tai goc repo (app/, components/,
 lib/, scripts/, package.json), types/rules ngay trong lib/; khong con frontend/.
-Backend nam rieng tai https://github.com/thien-dev-77/baotin-b2b-be.
+Backend nam rieng tai https://github.com/thien-dev-77/baotin-backend.
 Types BE trong src/types/, business rules trong src/admin/rules/; hai repo
 khong import source cua nhau. Doc [code-structure.md](code-structure.md).
 Cac duong dan code trong tai lieu nay tuong doi voi goc repo FE; tai lieu va

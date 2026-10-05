@@ -2,7 +2,7 @@
 
 Repo nay chi chua Next.js frontend, TypeScript, Tailwind, Inter va Lucide.
 Backend NestJS/TypeORM/JWT va media duoc quan ly rieng tai
-[baotin-b2b-be](https://github.com/thien-dev-77/baotin-b2b-be).
+[baotin-backend](https://github.com/thien-dev-77/baotin-backend).
 Xem [Backend Integration](docs/backend-integration.md) cho contract API.
 
 ```txt
@@ -28,7 +28,7 @@ Website: http://localhost:3010. Quan tri: http://localhost:3010/admin.
 Thu tien va doi chieu: http://localhost:3010/admin/accounting.
 Frontend env: NEXT_PUBLIC_API_MODE=true, BACKEND_URL=http://127.0.0.1:4000.
 Chay API tu repo backend theo
-[backend README](https://github.com/thien-dev-77/baotin-b2b-be/blob/main/README.md).
+[backend README](https://github.com/thien-dev-77/baotin-backend/blob/main/README.md).
 Backend can chay cho API va anh: Next proxy /api/backend/* -> /api/*,
 /images/* -> /media/images/* va /media/* -> /media/*.
 DATABASE_URL, JWT_SECRET va SEED_PASSWORD chi o backend, khong o frontend env.
@@ -53,7 +53,7 @@ Connected browser QA can repo backend rieng. Chay tu goc repo FE:
 
 ```sh
 # Chi local DB + dev:local API; KHONG chay voi API Supabase
-QA_BACKEND_DIR=../baotin-b2b-be npm run test:connected
+QA_BACKEND_DIR=../baotin-backend npm run test:connected
 # Cac QA ben duoi chi cho NEXT_PUBLIC_API_MODE=false
 QA_BASE_URL=http://localhost:3010 npm run test:accounting
 QA_BASE_URL=http://localhost:3010 npm run test:admin
@@ -64,7 +64,7 @@ QA_BASE_URL=http://localhost:3010 npm run test:ui
 ```
 
 QA_BACKEND_DIR tro toi goc repo BE co package.json, dependencies va
-.env.local cua DB test. Mac dinh tim repo baotin-b2b-be ben canh repo FE;
+.env.local cua DB test. Mac dinh tim repo baotin-backend ben canh repo FE;
 workspace cu can truyen QA_BACKEND_DIR toi thu muc backend thuc te.
 API/unit tests backend chay trong repo BE, khong co script backend o root FE.
 Anh van can media server cua BE. QA browser can server dang chay va Chromium

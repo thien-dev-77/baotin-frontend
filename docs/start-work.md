@@ -5,9 +5,9 @@ Muc tieu la tao MVP co the van hanh thu tai chi nhanh Quy Nhon trong 90 ngay.
 
 ## Cap nhat thu tu trien khai
 
-Cap nhat 05/10/2026: Next.js nam ngay tai goc repo baotin-b2b-fe, khong con
+Cap nhat 05/10/2026: Next.js nam ngay tai goc repo baotin-frontend, khong con
 frontend/ hay npm wrapper. Backend NestJS/TypeORM/JWT da ket noi Supabase va
-seed mock, quan ly rieng trong repo baotin-b2b-be. Doc
+seed mock, quan ly rieng trong repo baotin-backend. Doc
 [backend-integration.md](backend-integration.md) cho hien trang API va cach chay.
 Roadmap ben duoi giu lich su giai doan frontend-first, khong phai hien trang API.
 
@@ -62,10 +62,10 @@ Database va ha tang:
 Kien truc hai repo hien tai (lenh npm chay tai goc tung repo):
 
 ```txt
-baotin-b2b-fe/
+baotin-frontend/
   app/, components/, lib/, scripts/, tests/
   docs/, design/, package.json
-baotin-b2b-be/
+baotin-backend/
   src/, media/, seed/, scripts/, test/
   docs/, certs/, package.json
 ```
