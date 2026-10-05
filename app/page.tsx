@@ -12,6 +12,7 @@ import {
 import { ArrowRight, MessageCircle } from "lucide-react";
 import { categoryCatalog as categories, guideCatalog as guides } from "@/lib/catalog";
 import Link from "next/link";
+import Image from "next/image";
 import { lockGroups, lockProducts } from "@/lib/lock-catalog";
 
 export default function HomePage() {
@@ -90,9 +91,14 @@ function CategorySection() {
             className="group w-[126px] shrink-0 overflow-hidden rounded-lg border border-border bg-white shadow-card transition hover:-translate-y-0.5 hover:border-[#bbd5f0] hover:shadow-card-hover md:w-auto"
           >
               <div className="aspect-[1.35/1] overflow-hidden bg-section">
-              <img
+              <Image
                 src={category.image}
+                data-image-src={category.image}
                 alt={category.name}
+                width={640}
+                height={480}
+                sizes={category.slug === "led-tu-ke" ? "(min-width: 1024px) 500px, (min-width: 768px) 78.2vw, 395px" : "(min-width: 1024px) 160px, (min-width: 768px) 25vw, 126px"}
+                quality={85}
                 className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]"
               />
             </div>
@@ -123,9 +129,14 @@ function SolutionSection() {
               className="group min-w-[220px] overflow-hidden rounded-lg border border-border bg-white shadow-card transition hover:-translate-y-0.5 hover:border-[#bbd5f0] hover:shadow-card-hover lg:min-w-0"
             >
               <div className="aspect-[16/7] overflow-hidden bg-section-blue">
-                <img
+                <Image
                   src={solution.image}
+                  data-image-src={solution.image}
                   alt={solution.title}
+                  width={640}
+                  height={280}
+                  sizes="(min-width: 1280px) 240px, (min-width: 1024px) 20vw, 220px"
+                  quality={85}
                   className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]"
                 />
               </div>
@@ -174,9 +185,14 @@ function BuyingGuides() {
             href={`/guides/${guide.slug}`}
             className="flex h-[82px] items-center gap-2.5 rounded-lg border border-border bg-[#f8fafd] p-2 shadow-card transition hover:-translate-y-0.5 hover:border-[#bbd5f0] hover:shadow-card-hover"
           >
-            <img
+            <Image
               src={guide.image}
+              data-image-src={guide.image}
               alt={guide.title}
+              width={62}
+              height={62}
+              sizes="62px"
+              quality={85}
               className="h-[62px] w-[62px] shrink-0 rounded-md object-cover"
             />
             <div className="min-w-0">

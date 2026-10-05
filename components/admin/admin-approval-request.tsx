@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -56,8 +58,7 @@ function ApprovalRequestForm({ initialOrder, initialType }: { initialOrder: stri
           {order && type === "Giá đặc biệt" && <ul className="divide-y divide-border">{order.items.map((line) => {
             const product = products.find((item) => item.id === line.productId)!;
             return <li key={line.productId} className="grid grid-cols-[44px_minmax(0,1fr)] gap-3 py-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={product.image} alt={product.name} width={44} height={44} className="h-11 w-11 rounded object-contain" />
+              <Image src={product.image} alt={product.name} width={44} height={44} className="h-11 w-11 rounded object-contain" quality={85} sizes="44px" data-image-src={product.image} />
               <div className="min-w-0"><p className="text-sm font-medium leading-5 text-primary">{product.name}</p><p className="mt-1 text-xs text-text-muted">{product.code} · {line.quantity} {product.unit}</p></div>
               <div className="col-span-2 grid grid-cols-2 items-end gap-3 sm:col-start-2"><div><p className="mb-1.5 text-xs text-text-secondary">Giá hiện tại</p><p className="flex min-h-10 items-center text-sm font-semibold tabular-nums text-primary">{money(line.unitPrice)}/{product.unit}</p></div><Field label="Giá đề nghị (VNĐ)"><input aria-label={`Giá đề nghị ${product.code}`} type="number" inputMode="numeric" min={1} max={line.unitPrice} step={1} required disabled={!!blocker} value={prices[line.productId] ?? line.unitPrice} onChange={(event) => { setPrices((state) => ({ ...state, [line.productId]: Number(event.target.value) })); setError(""); }} className="bt-input tabular-nums" /></Field></div>
             </li>;

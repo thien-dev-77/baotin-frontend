@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import Link from "next/link";
 import { useAdmin } from "@/components/admin/admin-provider";
 import { type AdminOrder } from "@/lib/admin-preview";
@@ -16,8 +18,7 @@ export function AdminOrderItems({ order, showPrices = true }: { order: AdminOrde
     {order.items.map((line) => {
       const product = products.find((item) => item.id === line.productId);
       return <li key={line.productId} className="flex items-start gap-3 py-3">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={product?.image} alt={product?.name || line.productId} width={56} height={56} className="h-14 w-14 shrink-0 rounded border border-border object-cover" />
+        {product && <Image src={product.image} alt={product?.name || line.productId} width={56} height={56} className="h-14 w-14 shrink-0 rounded border border-border object-cover" quality={85} sizes="56px" data-image-src={product.image} />}
         <div className="min-w-0 flex-1">
           <Link href={`/products/${product?.slug}`} className="text-sm font-medium text-primary hover:text-blue-brand">{product?.name || line.productId}</Link>
           <p className="mt-1 break-words text-xs text-text-muted">{line.productId} · Tồn mẫu: {product?.stock || 0}</p>

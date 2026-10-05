@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { ProductCard } from "@/components/product-card";
 import type { Product } from "@/lib/catalog";
 import Link from "next/link";
@@ -14,7 +15,7 @@ export function CategoryProductSection({ title, caption, href, products }: { tit
           <span className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-white">Xem danh mục<ArrowRight size={15} aria-hidden="true" /></span>
         </div>
         <div className="bt-category-product-banner-image">
-          <img src={products[0].image} alt={title} loading="lazy" className="h-full w-full object-contain" width={640} height={360} />
+          <Image src={products[0].image} alt={title} loading="lazy" className="h-full w-full object-contain" width={640} height={360} quality={85} sizes="(min-width: 1024px) 50vw, 100vw" data-image-src={products[0].image} />
         </div>
       </Link>
       <div className="mt-[40px] bt-category-product-row scrollbar-hide" tabIndex={0} role="region" aria-label={`Sản phẩm ${title}`}>

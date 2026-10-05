@@ -4,13 +4,25 @@ import { heroSlides } from "@/lib/home-data";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
+import Image from "next/image";
+
+function slideSizes(width: number, height: number) {
+  // Panorama covers a taller frame: account for cropped pixels when choosing srcset.
+  const scale = (width / height) / (16 / 7);
+  return `(min-width: 1024px) ${Math.ceil(408 * width / height)}px, (min-width: 640px) calc(${100 * scale}vw - ${32 * scale}px), calc(${100 * scale}vw - ${24 * scale}px)`;
+}
 
 export function HeroVisual() {
   const [active, setActive] = useState(0);
+  const [visited, setVisited] = useState([0]);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const swiped = useRef(false);
   const slide = heroSlides[active];
-  const goTo = (direction: number) => setActive((current) => (current + direction + heroSlides.length) % heroSlides.length);
+  const selectSlide = (index: number) => {
+    setVisited((current) => current.includes(index) ? current : [...current, index]);
+    setActive(index);
+  };
+  const goTo = (direction: number) => selectSlide((active + direction + heroSlides.length) % heroSlides.length);
 
   return <section className="bt-home-hero-banner" aria-label="Ảnh giải pháp nội thất Bảo Tín" aria-roledescription="Trình chiếu"
     onKeyDown={(event) => {
@@ -37,12 +49,12 @@ export function HeroVisual() {
       }}
       onPointerCancel={() => { touchStart.current = null; }}
       onClick={(event) => { if (swiped.current) { event.preventDefault(); swiped.current = false; } }}>
-      {heroSlides.map((item, index) => <img key={item.image} src={item.image} alt={item.alt} aria-hidden={active !== index} data-active={active === index} fetchPriority={index === 0 ? "high" : "low"} draggable={false} className="bt-home-hero-image" />)}
+      {heroSlides.map((item, index) => visited.includes(index) && <Image key={item.image} src={item.image} data-image-src={item.image} alt={item.alt} fill sizes={slideSizes(item.width, item.height)} quality={90} priority={index === 0} aria-hidden={active !== index} data-active={active === index} draggable={false} className="bt-home-hero-image" />)}
     </Link>
     <button type="button" className="bt-home-hero-arrow bt-home-hero-prev" aria-label="Ảnh trước" title="Ảnh trước" onClick={() => goTo(-1)}><ChevronLeft size={19} aria-hidden="true" /></button>
     <button type="button" className="bt-home-hero-arrow bt-home-hero-next" aria-label="Ảnh tiếp theo" title="Ảnh tiếp theo" onClick={() => goTo(1)}><ChevronRight size={19} aria-hidden="true" /></button>
     <div className="bt-home-hero-controls">
-      {heroSlides.map((item, index) => <button key={item.image} type="button" aria-label={`Chọn slide ${index + 1}`} title={`Slide ${index + 1}`} aria-pressed={active === index} onClick={() => setActive(index)}><span /></button>)}
+      {heroSlides.map((item, index) => <button key={item.image} type="button" aria-label={`Chọn slide ${index + 1}`} title={`Slide ${index + 1}`} aria-pressed={active === index} onClick={() => selectSlide(index)}><span /></button>)}
     </div>
     <p className="sr-only" aria-live="polite" aria-atomic="true">Ảnh {active + 1} / {heroSlides.length}: {slide.alt}</p>
   </section>;

@@ -109,18 +109,18 @@ try {
       const photo = gallery.locator('img[fetchpriority="high"]');
       const firstPhoto = "/images/catalog/hinge-detail.png";
       const secondPhoto = "/images/catalog/hinge-hd.jpg";
-      await expect(photo).toHaveAttribute("src", firstPhoto);
+      await expect(photo).toHaveAttribute("data-image-src", firstPhoto);
       await gallery.getByRole("button", { name: "Ảnh tiếp theo", exact: true }).click();
-      await expect(photo).toHaveAttribute("src", secondPhoto);
+      await expect(photo).toHaveAttribute("data-image-src", secondPhoto);
       await gallery.getByRole("button", { name: "Ảnh tiếp theo", exact: true }).click();
-      await expect(photo).toHaveAttribute("src", firstPhoto);
+      await expect(photo).toHaveAttribute("data-image-src", firstPhoto);
       await gallery.getByRole("button", { name: "Ảnh trước", exact: true }).click();
-      await expect(photo).toHaveAttribute("src", secondPhoto);
+      await expect(photo).toHaveAttribute("data-image-src", secondPhoto);
       await gallery.getByRole("button", { name: "Xem ảnh 1", exact: true }).click();
       await gallery.getByRole("button", { name: "Xem ảnh 2", exact: true }).click();
       await expect(gallery.getByRole("button", { name: "Xem ảnh 2", exact: true })).toHaveAttribute("aria-pressed", "true");
       await gallery.getByRole("button", { name: "Phóng to ảnh", exact: true }).click();
-      await expect(page.getByRole("dialog").locator("img")).toHaveAttribute("src", secondPhoto);
+      await expect(page.getByRole("dialog").locator("img")).toHaveAttribute("data-image-src", secondPhoto);
       await page.getByRole("dialog").screenshot({ path: `${directory}/${width}-zoom.png` });
       await page.keyboard.press("Escape");
       await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -181,7 +181,7 @@ try {
       await expect(page.getByRole("tabpanel").getByText(/Đối chiếu mã hàng/)).toBeVisible();
 
       await expect(quantity).toHaveValue("2");
-      await expect(photo).toHaveAttribute("src", secondPhoto);
+      await expect(photo).toHaveAttribute("data-image-src", secondPhoto);
       await expect(checkboxes.nth(0)).toBeChecked();
       await expect(checkboxes.nth(1)).toBeChecked();
       await expect(checkboxes.nth(2)).not.toBeChecked();

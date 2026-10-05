@@ -31,6 +31,11 @@ Tai goc repo FE, .env.local theo .env.example:
 NEXT_PUBLIC_API_MODE=true, BACKEND_URL=http://127.0.0.1:4000.
 Root `npm run dev -- --port 3010`; API localhost:4000/api/health.
 Next proxy /api/backend/* -> /api/* va images/media. Khong public DB/JWT env.
+Proxy la Node Route Handlers tai app/api/backend, app/images va app/media,
+server fetch toi BACKEND_URL. Khong con external rewrites trong next.config.
+Giu multipart, Origin/CSRF va Set-Cookie; API private/no-store, JSON rong/null
+hoac HTML tu upstream tra 502. Khong forward content-length/content-encoding
+cua response decoded, tranh mat body JSON/anh tren hosting proxy.
 Backend hien bind 127.0.0.1, deploy container can cau hinh bind/proxy rieng.
 API_MODE=false la preview cu; anh van can media server cua BE. Khong tu fallback
 mock khi API loi; doi NEXT_PUBLIC_* can restart/rebuild frontend.
@@ -44,6 +49,7 @@ mock khi API loi; doi NEXT_PUBLIC_* can restart/rebuild frontend.
 - BE src/types/: types cua backend; src/admin/rules/: business rules.
 - BE src/catalog/pricing.ts: seed pricing tren server; hai repo khong import nhau.
 - FE lib/api-client.ts: fetch same-origin, cookie, errors.
+- FE lib/backend-proxy.ts: API/media proxy, cookies, safe paths, timeout.
 - FE lib/server-api.ts: catalog/product SSR, hidden SKU 404.
 - FE lib/commerce-api.ts: validate catalog/session responses, strip private prices.
 - FE components/admin/api-admin-provider.tsx: state va commands API.
@@ -152,13 +158,18 @@ Ngay admin va receipts lay server time Asia/Ho_Chi_Minh, khong previewDate.
 ## Media
 
 Anh goc da chuyen frontend/public/images -> media/images trong repo BE, relative
-URL /images/* duoc Next rewrite. Upload /media/uploads/UUID.webp, URL luu
+URL /images/* duoc Next Route Handler proxy. Upload /media/uploads/UUID.webp, URL luu
 Product.image/gallery, binary luu disk backend, khong luu PostgreSQL.
 Max5MB JPEG/PNG/WebP, Sharp validate bytes max20MP, rotate, resize<=2000px,
 encodeWebP; bo filename client, khong SVG. Admin products co upload control.
 media/images version trong Git; uploads ignored. Can persistent volume va
 backup cung DB, khong dung ephemeral serverless filesystem. Chua delete/reorder
 gallery API; anh cu giu trong gallery. Mock assets chua verify moi SKU.
+
+FE dung next/image voi sharp, sizes cho card/gallery/banner. Mac dinh lazy,
+priority chi cho hero dau va gallery chinh; slide chua xem chua mount.
+/_next/image toi uu source tu Route Handler /images hoac /media, binary
+van luu o backend. Clear CDN cache sau redeploy neu /images/* van 422.
 
 ## Kiem Thu Va Gioi Han
 

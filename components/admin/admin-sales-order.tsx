@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
@@ -76,8 +78,7 @@ function SalesOrderForm({ order }: { order?: AdminOrder }) {
           <ul className="divide-y divide-border">{items.map((line) => {
             const product = products.find((item) => item.id === line.productId)!;
             return <li key={line.productId} className="flex flex-wrap items-center gap-3 py-4" aria-label={`Dòng sản phẩm ${product.code}`}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={product.image} alt={product.name} width={56} height={56} className="h-14 w-14 shrink-0 rounded object-contain" />
+              <Image src={product.image} alt={product.name} width={56} height={56} className="h-14 w-14 shrink-0 rounded object-contain" quality={85} sizes="56px" data-image-src={product.image} />
               <div className="min-w-0 flex-1"><p className="text-sm font-medium leading-5 text-primary">{product.name}</p><p className="mt-1 text-xs text-text-muted">{product.code} · Tồn {product.stock} {product.unit}</p><p className="mt-1 text-xs text-text-secondary">{money(line.unitPrice)}/{product.unit}</p></div>
               <div className="flex w-full items-center justify-end gap-3 sm:w-auto sm:flex-wrap"><QuantityStepper label={`Số lượng ${product.code}`} value={line.quantity} onChange={(quantity) => setDraft((state) => ({ ...state, items: state.items.map((item) => item.productId === line.productId ? { ...item, quantity } : item) }))} /><span className="min-w-[88px] text-right text-sm font-semibold tabular-nums text-primary">{money(line.quantity * line.unitPrice)}</span><button type="button" aria-label={`Xóa ${product.code}`} title={`Xóa ${product.code}`} className="bt-icon-button shrink-0 hover:!text-danger" onClick={() => setDraft((state) => ({ ...state, items: state.items.filter((item) => item.productId !== line.productId) }))}><Trash2 size={17} /></button></div>
             </li>;

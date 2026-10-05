@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "test:domain": "playwright test tests/domain.spec.ts tests/commerce-api.spec.ts --workers=1",
+    "test:domain": "playwright test tests/domain.spec.ts tests/commerce-api.spec.ts tests/backend-proxy.spec.ts --workers=1",
     "test:ssr": "playwright test tests/ssr.spec.ts --workers=1",
     "test:connected": "node scripts/connected-api-qa.mjs",
     "dev": "next dev",
@@ -29,7 +29,8 @@
     "lucide-react": "^0.468.0",
     "next": "^14.2.5",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

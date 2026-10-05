@@ -31,6 +31,10 @@ Chay API tu repo backend theo
 [backend README](https://github.com/thien-dev-77/baotin-backend/blob/main/README.md).
 Backend can chay cho API va anh: Next proxy /api/backend/* -> /api/*,
 /images/* -> /media/images/* va /media/* -> /media/*.
+Proxy dung Route Handlers + server fetch, khong dung external rewrites.
+lib/backend-proxy.ts giu JSON, HTTP status, multipart va cookies; bo header
+compression/content-length tu upstream. API luon private/no-store de CDN
+khong cache response rong hoac session; upstream null/HTML/rong tra 502 JSON.
 DATABASE_URL, JWT_SECRET va SEED_PASSWORD chi o backend, khong o frontend env.
 
 API mode render catalog cong khai tren server cho home, category, search va
@@ -40,6 +44,11 @@ CommerceProvider nhan du lieu ban dau, sau hydrate chi bo sung session/gia B2B,
 orders va favorites doc lap. Khong doi orders/account de hien thi san pham.
 Response null/HTML/malformed session hien loi co nut thu lai, khong doc `.user`
 tu null. API down khong tu fallback sang san pham mock; preview van giu nguyen.
+
+Anh dung next/image + sharp production, sizes/srcset theo tung vung. Card,
+category, thumbnails va noi dung duoi man hinh lazy-load; hero dau tien va
+gallery chinh priority. Hero chi mount slide da xem de khong tai ca 3 slide
+ngay luc mo trang. data-image-src giu URL goc cho QA/debug.
 
 FE tu quan ly types trong lib/types.ts, API responses trong lib/api-types.ts
 va validation trong lib/admin-*.ts. BE co types/rules rieng trong src/;
@@ -87,6 +96,10 @@ dev server dang chay. Chay typecheck sau build khi Next da sinh xong types.
 Chon **Root Directory = .** (hoac de trong), khong chon frontend/.
 Install `npm ci`, build `npm run build`, start `npm run start` khi tu host Node.
 Frontend env tai goc theo .env.example; BACKEND_URL tro toi backend host.
+BACKEND_URL phai co http:// hoac https://; tren cloud dung HTTPS backend.
+Sau thay doi proxy/next-image, build va redeploy FE; clear CDN cache neu con
+response API rong hoac /images/* 422 tu deploy cu. Khong cache /api/backend/*.
+Su dung npm ci voi optional native dependencies cua sharp (khong --omit=optional).
 Production can persistent media volume o BE va HTTPS cookies.
 
 ## Tai Lieu

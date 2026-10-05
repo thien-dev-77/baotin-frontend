@@ -246,6 +246,8 @@ export const heroSlides = [
   {
     image:
       "/images/hero/kitchen-lighting-hd.jpg",
+    width: 3750,
+    height: 888,
     href: "/category/phu-kien-bep",
     alt: "Không gian bếp hiện đại với phụ kiện tủ và ánh sáng LED",
     caption: "Giải pháp cho không gian sống tiện ích"
@@ -253,6 +255,8 @@ export const heroSlides = [
   {
     image:
       "/images/hero/cabinet-lighting-hd.jpg",
+    width: 3750,
+    height: 1250,
     href: "/category/led-tu-ke",
     alt: "Tủ bếp hiện đại với ánh sáng LED dưới chân tủ",
     caption: "Phụ kiện đồng bộ cho tủ bếp hiện đại"
@@ -260,6 +264,8 @@ export const heroSlides = [
   {
     image:
       "/images/hero/wood-kitchen-hd.jpg",
+    width: 3750,
+    height: 1250,
     href: "/category/phu-kien-lap-dat",
     alt: "Không gian nội thất gỗ sáng với phụ kiện hoàn thiện",
     caption: "Hoàn thiện nội thất gọn đẹp và bền bỉ"

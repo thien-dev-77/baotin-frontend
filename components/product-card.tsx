@@ -3,6 +3,7 @@
 import { Product, money, priceFor } from "@/lib/catalog";
 import { Eye, Heart } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useCommerce } from "@/components/commerce-provider";
 import { apiMode } from "@/lib/api-client";
 
@@ -23,7 +24,7 @@ export function ProductCard({ product, list = false }: { product: Product; list?
   const discount = product.oldPrice ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
   return <article className={`bt-product-card group ${list ? "flex" : "flex flex-col"}`}>
     <div className={`bt-product-card-media relative shrink-0 bg-[#f8fafc] ${list ? "h-[160px] w-[96px] sm:w-[120px]" : "h-[150px] md:h-[180px]"}`}>
-      <Link href={`/products/${product.slug}`} className="bt-product-card-image-link"><img src={product.image} alt={product.name} loading="lazy" width={240} height={180} className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]" /></Link>
+      <Link href={`/products/${product.slug}`} className="bt-product-card-image-link"><Image src={product.image} data-image-src={product.image} alt={product.name} fill quality={85} sizes={list ? "(min-width: 640px) 120px, 96px" : "(min-width: 1280px) 240px, (min-width: 1024px) 20vw, (min-width: 640px) 33vw, 50vw"} className="object-cover transition duration-200 group-hover:scale-[1.02]" /></Link>
       <Link href={`/products/${product.slug}`} aria-label={`Xem sản phẩm - ${product.name}`} className="bt-button-primary bt-product-card-details"><Eye size={16} className="shrink-0" aria-hidden="true" /><span>Xem sản phẩm</span></Link>
       <button type="button" aria-label={`${liked ? "Bỏ yêu thích" : "Yêu thích"} ${product.name}`} aria-pressed={liked} title={liked ? "Bỏ yêu thích" : "Yêu thích"} onClick={() => toggleFavorite(product.id)} className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white ${liked ? "text-danger" : "text-primary"}`}><Heart size={16} fill={liked ? "currentColor" : "none"} /></button>
       {discount > 0 && <span className="absolute left-2 top-2 rounded bg-danger px-1.5 py-0.5 text-[11px] font-semibold text-white">-{discount}%</span>}

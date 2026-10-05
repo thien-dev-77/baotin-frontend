@@ -4,6 +4,7 @@ import { Modal } from "@/components/ui";
 import type { Product } from "@/lib/catalog";
 import { ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
 import { useState } from "react";
+import Image from "next/image";
 
 export function ProductGallery({ product }: { product: Product }) {
   const [photo, setPhoto] = useState(0);
@@ -22,16 +23,19 @@ export function ProductGallery({ product }: { product: Product }) {
               onClick={() => setPhoto(index)}
               className={`h-16 w-16 shrink-0 overflow-hidden rounded-md border bg-section p-1 ${photo === index ? "border-blue-brand ring-1 ring-blue-brand" : "border-border"}`}
             >
-              <img alt="" src={image} className="h-full w-full object-contain" />
+              <Image alt="" src={image} data-image-src={image} width={56} height={56} sizes="56px" quality={85} className="h-full w-full object-contain" />
             </button>
           ))}
         </div>
         <div className="relative order-1 aspect-square overflow-hidden rounded-lg bg-[#f8fafc] sm:order-2">
-          <img
+          <Image
             src={product.gallery[photo]}
+            data-image-src={product.gallery[photo]}
             alt={product.name}
-            width={400}
-            height={400}
+            fill
+            sizes="(min-width: 1280px) 400px, (min-width: 1024px) 35vw, (min-width: 640px) 60vw, 100vw"
+            quality={90}
+            priority
             fetchPriority="high"
             className="h-full w-full object-contain p-4"
           />
@@ -57,7 +61,7 @@ export function ProductGallery({ product }: { product: Product }) {
         </div>
       </section>
       <Modal open={zoom} onClose={() => setZoom(false)} title={product.name}>
-        <img src={product.gallery[photo]} alt={product.name} className="max-h-[65vh] w-full object-contain" />
+        <Image src={product.gallery[photo]} data-image-src={product.gallery[photo]} alt={product.name} width={1000} height={1000} sizes="(min-width: 640px) 640px, 100vw" quality={90} loading="eager" className="max-h-[65vh] w-full object-contain" />
       </Modal>
     </>
   );

@@ -16,7 +16,11 @@ async function ready(page) {
 
 async function checkImage(image, density) {
   await image.evaluate((element) => element.decode());
-  const info = await image.evaluate((element) => {
+  const info = await image.evaluate(async (element) => {
+    // naturalWidth is density-adjusted by srcset; inspect the actual decoded pixels.
+    const bitmap = await createImageBitmap(await (await fetch(element.currentSrc)).blob());
+    const pixelWidth = bitmap.width, pixelHeight = bitmap.height;
+    bitmap.close();
     const bounds = element.getBoundingClientRect();
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 64;
@@ -26,9 +30,11 @@ async function checkImage(image, density) {
     const colors = new Set();
     for (let i = 0; i < pixels.length; i += 4) colors.add(`${pixels[i] >> 4},${pixels[i + 1] >> 4},${pixels[i + 2] >> 4}`);
     return {
-      src: element.getAttribute("src"),
+      src: element.getAttribute("data-image-src") || element.getAttribute("src"),
       naturalWidth: element.naturalWidth,
       naturalHeight: element.naturalHeight,
+      pixelWidth,
+      pixelHeight,
       width: bounds.width,
       height: bounds.height,
       fit: getComputedStyle(element).objectFit,
@@ -42,8 +48,8 @@ async function checkImage(image, density) {
   // Chrome hardware is mostly grayscale; a blank image has only one color bin.
   expect(info.colors, info.src).toBeGreaterThan(10);
   const sourceDensity = info.fit === "contain"
-    ? Math.max(info.naturalWidth / info.width, info.naturalHeight / info.height)
-    : Math.min(info.naturalWidth / info.width, info.naturalHeight / info.height);
+    ? Math.max(info.pixelWidth / info.width, info.pixelHeight / info.height)
+    : Math.min(info.pixelWidth / info.width, info.pixelHeight / info.height);
   expect(sourceDensity, `${info.src}: insufficient source pixels`).toBeGreaterThanOrEqual(density);
   return info;
 }
@@ -78,6 +84,9 @@ try {
       await categories.screenshot({ path: `${directory}/${width}-${touch ? "touch" : "mouse"}-categories.png` });
 
       for (const code of codes) {
+        const listing = `${base}/search?q=${encodeURIComponent(code)}`;
+        await page.goto(listing);
+        await ready(page);
         const card = page.locator(".bt-product-card").filter({ hasText: `Mã: ${code}` }).first();
         await card.evaluate((element) => {
           element.scrollIntoView({ block: "center", inline: "center", behavior: "instant" });
@@ -88,7 +97,7 @@ try {
         const overlay = card.locator(".bt-product-card-details");
         const imageLink = card.locator(".bt-product-card-image-link");
         const href = await imageLink.getAttribute("href");
-        const src = await card.locator("img").getAttribute("src");
+        const src = await card.locator("img").getAttribute("data-image-src");
         if (!touch && width >= 1024) {
           await expect(overlay).toHaveCSS("opacity", "0");
           await card.locator(".bt-product-card-media").hover();
@@ -105,11 +114,11 @@ try {
         await expect(page).toHaveURL(base + href);
         await ready(page);
         const photo = page.locator("img[fetchpriority=high]");
-        await expect(photo).toHaveAttribute("src", src);
+        await expect(photo).toHaveAttribute("data-image-src", src);
         // Gallery photos stay at original resolution; cards/hero must cover display density.
         images.push(await checkImage(photo, 1));
         await expect(page.getByRole("button", { name: "Thêm vào giỏ hàng", exact: true })).toBeEnabled();
-        await page.goto(base);
+        await page.goto(listing);
         await ready(page);
         const title = page.locator(".bt-product-card").filter({ hasText: `Mã: ${code}` }).first().locator(":scope > div:last-child > a").first();
         await title.evaluate((element) => element.scrollIntoView({ block: "center", inline: "center", behavior: "instant" }));

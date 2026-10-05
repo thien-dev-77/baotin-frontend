@@ -127,3 +127,65 @@ test("Desktop and mobile hydration preserve the layout and render images", async
   }
   expect(errors).toEqual([]);
 });
+
+test("Real proxy returns guest JSON and image bytes with web request headers", async ({ request }) => {
+  const headers = { "X-BaoTin-Client": "web", Origin: base };
+  const session = await request.get(`${base}/api/backend/auth/session`, { headers });
+  expect(session.status()).toBe(200);
+  expect(await session.json()).toEqual({ user: null });
+  expect(session.headers()["cache-control"]).toContain("no-store");
+  const orders = await request.get(`${base}/api/backend/orders`, { headers });
+  expect(orders.status()).toBe(200);
+  expect(Array.isArray(await orders.json())).toBe(true);
+  const image = await request.get(`${base}/images/locks/912-21-048.jpg`, { headers });
+  expect(image.status()).toBe(200);
+  expect(image.headers()["content-type"]).toContain("image/jpeg");
+  expect((await image.body()).byteLength).toBeGreaterThan(1000);
+});
+
+test("Next images lazy-load offscreen products and defer unvisited hero slides", async ({ page }) => {
+  const requested = new Set<string>();
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.pathname === "/_next/image") requested.add(url.searchParams.get("url") || "");
+  });
+  await page.goto(base);
+  await expect(page.locator(".bt-home-hero-image")).toHaveCount(1);
+  const offscreen = page.locator("[data-category-products]").last().locator(".bt-product-card img").first();
+  await expect(offscreen).toHaveAttribute("loading", "lazy");
+  await expect(offscreen).toHaveAttribute("data-nimg", "fill");
+  const source = await offscreen.getAttribute("data-image-src");
+  expect(requested.has(source!)).toBe(false);
+  await offscreen.scrollIntoViewIfNeeded();
+  await expect.poll(() => offscreen.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+  expect(requested.has(source!)).toBe(true);
+  await page.locator(".bt-home-hero-banner").getByRole("button", { name: "Chọn slide 2", exact: true }).click();
+  await expect(page.locator(".bt-home-hero-image")).toHaveCount(2);
+});
+
+test("Lock product detail renders an optimized, nonblank main image without API alerts", async ({ browser }) => {
+  for (const width of [1440, 390]) {
+    const context = await browser.newContext({ viewport: { width, height: width > 1000 ? 1000 : 844 } });
+    try {
+      const page = await context.newPage();
+      await page.goto(`${base}/products/hafele-912-21-048`);
+      const image = page.locator('section[aria-label="Hình ảnh sản phẩm"] img[fetchpriority="high"]');
+      await expect(image).toHaveAttribute("src", /^\/_next\/image\?/);
+      await expect(image).not.toHaveAttribute("loading", "lazy");
+      await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
+      expect(await image.evaluate((element: HTMLImageElement) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = 32;
+        const context = canvas.getContext("2d")!;
+        context.drawImage(element, 0, 0, 32, 32);
+        const pixels = context.getImageData(0, 0, 32, 32).data;
+        const colors = new Set<string>();
+        for (let i = 0; i < pixels.length; i += 4) colors.add(`${pixels[i] >> 4},${pixels[i + 1] >> 4},${pixels[i + 2] >> 4}`);
+        return colors.size;
+      })).toBeGreaterThan(10);
+      await expect(page.getByRole("alert").filter({ hasText: /API|Backend|backend/ })).toHaveCount(0);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+      await page.screenshot({ path: `/private/tmp/baotin-lock-detail-${width}-after.png`, fullPage: true });
+    } finally { await context.close(); }
+  }
+});

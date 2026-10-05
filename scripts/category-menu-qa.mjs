@@ -48,7 +48,7 @@ try {
       expect(await link.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
     }
     await page.getByRole("button", { name: "Chọn slide 2", exact: true }).click();
-    await expect(hero.locator('img[data-active="true"]')).toHaveAttribute("src", "/images/hero/cabinet-lighting-hd.jpg");
+    await expect(hero.locator('img[data-active="true"]')).toHaveAttribute("data-image-src", "/images/hero/cabinet-lighting-hd.jpg");
     await expect(hero.getByRole("link")).toHaveAttribute("href", "/category/led-tu-ke");
     await expect(page.getByRole("button", { name: "Chọn slide 2", exact: true })).toHaveAttribute("aria-pressed", "true");
     expect((await hero.boundingBox()).height).toBe(heroBounds.height);

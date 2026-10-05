@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import type { AdminApproval } from "@/lib/admin-preview";
 import { money, type Product } from "@/lib/catalog";
 
@@ -12,8 +14,7 @@ export function AdminApprovalSnapshot({ approval, products }: { approval: AdminA
       <ul className="divide-y divide-border">{snapshot.lines.map((line) => {
         const product = products.find((item) => item.id === line.productId);
         return <li key={line.productId} className="py-3"><div className="flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          {product && <img src={product.image} alt={product.name} width={40} height={40} className="h-10 w-10 shrink-0 rounded object-contain" />}
+          {product && <Image src={product.image} alt={product.name} width={40} height={40} className="h-10 w-10 shrink-0 rounded object-contain" quality={85} sizes="40px" data-image-src={product.image} />}
           <div className="min-w-0"><p className="text-sm font-medium leading-5 text-primary">{product?.name || line.productId}</p><p className="mt-1 text-xs text-text-muted">{product?.code || line.productId} · {line.quantity} {product?.unit}</p></div></div>
           <dl className="mt-3 grid grid-cols-2 gap-3 text-sm"><div><dt className="text-xs text-text-secondary">Giá hiện tại</dt><dd className="mt-1 tabular-nums">{money(line.unitPrice)}</dd></div><div><dt className="text-xs text-text-secondary">Giá đề nghị</dt><dd className="mt-1 font-semibold tabular-nums text-blue-brand">{money(line.requestedPrice)}</dd></div></dl>
         </li>;

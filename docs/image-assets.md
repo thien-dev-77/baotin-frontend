@@ -1,7 +1,8 @@
 # Image assets
 
 Images now live in `media/images/` in the separate backend repository.
-Next.js rewrites `/images/*` to the backend; the table below uses paths
+Next.js Route Handlers proxy `/images/*` to the backend; `next/image`
+optimizes and lazy-loads the assets. The table below uses paths
 relative to that image directory. The former `frontend/public/images/` paths
 describe the static-preview layout, not the current frontend repository.
 Sources, dimensions and production-verification caveats below are unchanged.

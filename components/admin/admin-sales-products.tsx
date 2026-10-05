@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import { useState } from "react";
 import { Check, Plus } from "lucide-react";
 import { Button, Modal } from "@/components/ui";
@@ -19,8 +21,7 @@ export function AdminSalesProducts({ open, onClose, products, customer, selected
     <div className="mb-3 flex flex-wrap gap-2"><AdminSearch value={query} onChange={(value) => { setQuery(value); setPage(1); }} placeholder="Tìm tên, SKU, thương hiệu..." /><select aria-label="Danh mục chọn sản phẩm" className="bt-input" value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }}><option value="all">Tất cả danh mục</option>{categoryCatalog.map((item) => <option key={item.slug} value={item.slug}>{item.name}</option>)}</select></div>
     <ul className="divide-y divide-border">
       {rows.slice((current - 1) * 10, current * 10).map((product) => <li key={product.id} className="flex items-center gap-3 py-3">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={product.image} alt={product.name} width={48} height={48} className="h-12 w-12 shrink-0 rounded object-contain" />
+        <Image src={product.image} alt={product.name} width={48} height={48} className="h-12 w-12 shrink-0 rounded object-contain" quality={85} sizes="48px" data-image-src={product.image} />
         <div className="min-w-0 flex-1"><p className="text-sm font-medium leading-5 text-primary">{product.name}</p><p className="mt-1 text-xs text-text-muted">{product.code} · Tồn {product.stock} {product.unit}</p><p className="mt-1 text-xs font-semibold text-blue-brand">{money(salesUnitPrice(product, customer))}/{product.unit}</p></div>
         <button type="button" className="bt-icon-button shrink-0 !border !border-border" aria-label={`Thêm ${product.code}`} title={selected.includes(product.id) ? "Đã thêm" : `Thêm ${product.code}`} disabled={selected.includes(product.id)} onClick={() => onAdd(product.id)}>{selected.includes(product.id) ? <Check size={18} /> : <Plus size={18} />}</button>
       </li>)}

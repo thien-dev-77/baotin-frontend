@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import Link from "next/link";
 import { useState } from "react";
 import { Download, ExternalLink, Pencil, Save } from "lucide-react";
@@ -15,8 +17,7 @@ function ProductEditor({ product, onSave }: { product: Product & { published: bo
   const [published, setPublished] = useState(product.published);
   return <form onSubmit={async (event) => { event.preventDefault(); await onSave(published); }}>
     <div className="mb-5 flex items-start gap-4">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={product.image} alt={product.name} width={96} height={96} className="h-24 w-24 shrink-0 rounded-md border border-border object-cover" />
+      <Image src={product.image} alt={product.name} width={96} height={96} className="h-24 w-24 shrink-0 rounded-md border border-border object-cover" quality={85} sizes="96px" data-image-src={product.image} />
       <div className="min-w-0"><p className="text-xs text-text-muted">{product.code} · {product.brand}</p><h3 className="mt-1 text-base font-semibold text-primary">{product.name}</h3><p className="mt-2 text-sm font-medium text-blue-brand">{money(product.price)}/{product.unit}</p></div>
     </div>
     {apiMode && <ProductImageUpload productId={product.id} />}
@@ -43,8 +44,7 @@ export function AdminProducts() {
     <AdminTable headings={["Sản phẩm", "Danh mục", "Giá bán lẻ", "Tồn mẫu", "Trạng thái", "Thao tác"]} empty={!rows.length}>
       {rows.slice((page - 1) * 10, page * 10).map((item) => <tr key={item.id}>
         <td><div className="flex min-w-[240px] items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={item.image} alt={item.name} width={44} height={44} className="h-11 w-11 shrink-0 rounded border border-border object-cover" loading="lazy" />
+          <Image src={item.image} alt={item.name} width={44} height={44} className="h-11 w-11 shrink-0 rounded border border-border object-cover" loading="lazy" quality={85} sizes="44px" data-image-src={item.image} />
           <div><button type="button" onClick={() => setSelected(item.id)} className="text-left font-medium text-primary hover:text-blue-brand">{item.name}</button><span className="mt-1 block text-xs text-text-muted">{item.code} · {item.brand}</span></div>
         </div></td>
         <td>{categoryCatalog.find((category) => category.slug === item.category)?.name}</td><td className="whitespace-nowrap tabular-nums">{money(item.price)}<span className="ml-1 text-xs text-text-muted">/{item.unit}</span></td><td><span className={item.stock === 0 ? "font-semibold text-danger" : "tabular-nums"}>{item.stock}</span></td><td><AdminStatus value={item.published ? "Đang bán" : "Đang ẩn"} /></td><td><button type="button" title="Trạng thái sản phẩm" aria-label={`Sửa sản phẩm ${item.code}`} className="bt-icon-button" onClick={() => setSelected(item.id)}><Pencil size={16} /></button></td>

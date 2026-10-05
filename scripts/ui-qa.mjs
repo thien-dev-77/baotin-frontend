@@ -63,7 +63,7 @@ try {
   await page.goto(`${base}/products/ban-le-giam-chan-hafele`);
   await expect(page.getByText("Giá B2B", { exact: true }).first()).toBeVisible();
   await page.getByRole("button", { name: "Xem ảnh 2", exact: true }).click();
-  await expect(page.locator('img[fetchpriority="high"]')).toHaveAttribute("src", "/images/catalog/hinge-hd.jpg");
+  await expect(page.locator('img[fetchpriority="high"]')).toHaveAttribute("data-image-src", "/images/catalog/hinge-hd.jpg");
   await page.getByRole("button", { name: "Phóng to ảnh", exact: true }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.keyboard.press("Escape");

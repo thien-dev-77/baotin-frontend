@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import { useCommerce } from "@/components/commerce-provider";
 import { Button } from "@/components/ui";
 import { money, priceFor, type Product } from "@/lib/catalog";
@@ -33,7 +35,7 @@ export function ProductBundle({ products }: { products: Product[] }) {
               checked={selected.includes(product.id)}
               onChange={() => toggleSelection(product.id)}
             />
-            <img alt="" src={product.image} className="h-14 w-14 shrink-0 rounded object-contain" />
+            <Image alt="" src={product.image} className="h-14 w-14 shrink-0 rounded object-contain" quality={85} width={56} height={56} sizes="56px" data-image-src={product.image} />
             <span className="min-w-0">
               <span className="line-clamp-2 text-xs font-semibold text-primary">{product.name}</span>
               <span className="mt-1 block text-xs text-text-muted">{product.code}</span>
