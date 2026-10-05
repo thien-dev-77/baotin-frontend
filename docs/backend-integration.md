@@ -44,7 +44,8 @@ mock khi API loi; doi NEXT_PUBLIC_* can restart/rebuild frontend.
 - BE src/types/: types cua backend; src/admin/rules/: business rules.
 - BE src/catalog/pricing.ts: seed pricing tren server; hai repo khong import nhau.
 - FE lib/api-client.ts: fetch same-origin, cookie, errors.
-- FE lib/server-api.ts: product SSR, hidden SKU 404.
+- FE lib/server-api.ts: catalog/product SSR, hidden SKU 404.
+- FE lib/commerce-api.ts: validate catalog/session responses, strip private prices.
 - FE components/admin/api-admin-provider.tsx: state va commands API.
 
 Schema rieng baotin_app, cam public/auth/storage. Tao schema neu chua co,
@@ -76,6 +77,18 @@ Khach moi pending, limit/debt=0; activate khong tu cap han muc, suspended bi cha
 API mode bo qua preview identity/orders trong localStorage.
 Cart/favorites cache API dung key baotin-commerce-api-v1; preview cu giu
 nguyen baotin-commerce-v1, khong xoa don demo cu khi chuyen che do.
+
+Tu 05/10/2026, RootLayout lay catalog public server-side va truyen vao
+CommerceProvider de HTML dau tien co san product cards. Request server
+khong forward cookie, dung no-store + timeout 8 giay; customerPrice luon
+bi loai tru truoc serialize. Khong cache/SSR profile, orders hay B2B prices.
+Client validate session truoc khi doc user; `{ user: null }` la guest hop le,
+nhung body null, HTML va shape sai phai hien loi co the retry. Catalog,
+orders, favorites cap nhat doc lap, co version guard chong response cu
+ghi de session moi; logout/session invalid strip B2B prices.
+Guest co initial catalog hop le khong fetch lai catalog luc hydrate.
+`npm run test:ssr` kiem tra HTML khi tat JS, session loi/cham, personalization,
+logout va screenshots desktop/mobile; chi chay QA_BASE_URL local.
 
 Guest orders thuoc HTTPOnly UUID cookie baotin_guest, khong truy van bang
 ma don cong khai; mat cookie mat quyen xem guest orders. Staff login /admin,

@@ -2,15 +2,16 @@
 
 import { CartLine, Customer, Order, Product, catalog, categoryCatalog, findProduct } from "@/lib/catalog";
 import type { Category, SessionUser } from "@/lib/types";
-import type { ApiSession, CatalogResponse, CheckoutDraft, Quote } from "@/lib/api-types";
+import type { CatalogResponse, CheckoutDraft, Quote } from "@/lib/api-types";
 import { api, apiMode } from "@/lib/api-client";
+import { readApiSession, readCatalogResponse, retailProducts } from "@/lib/commerce-api";
 import { CheckCircle2, X } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 type Store = { cart: CartLine[]; favorites: string[]; orders: Order[]; coupon: string };
 type Commerce = Store & {
   products: Product[]; categories: Category[]; sessionUser: SessionUser | null; apiError: string;
-  refreshSession: () => Promise<void>; reloadCatalog: () => Promise<void>;
+  refreshSession: (refreshProducts?: boolean) => Promise<void>; reloadCatalog: () => Promise<void>;
   loginWithPassword: (identity: string, password: string, remember?: boolean) => Promise<void>;
   registerWithPassword: (input: { name: string; company: string; phone: string; email: string; password: string }) => Promise<void>;
   submitOrder: (draft: CheckoutDraft, key: string) => Promise<Order>;
@@ -35,46 +36,68 @@ export function readPreviewCustomer(identity: string): Customer | null {
   } catch { return null; }
 }
 
-export function CommerceProvider({ children }: { children: React.ReactNode }) {
+export function CommerceProvider({ children, initialCatalog, initialCatalogError = "" }: { children: React.ReactNode; initialCatalog: CatalogResponse | null; initialCatalogError?: string }) {
   const [store, setStore] = useState<Store>(initial);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [ready, setReady] = useState(false);
   const [toast, setToast] = useState("");
-  const [products, setProducts] = useState<Product[]>(apiMode ? [] : catalog);
-  const [categories, setCategories] = useState<Category[]>(categoryCatalog);
+  const [products, setProducts] = useState<Product[]>(initialCatalog?.products || (apiMode ? [] : catalog));
+  const [categories, setCategories] = useState<Category[]>(initialCatalog?.categories || categoryCatalog);
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
-  const [apiError, setApiError] = useState("");
+  const [catalogError, setCatalogError] = useState(initialCatalogError);
+  const [sessionError, setSessionError] = useState("");
+  const [accountError, setAccountError] = useState("");
+  const apiError = catalogError || sessionError || accountError;
+  const catalogLoaded = useRef(initialCatalog !== null);
   const sessionIdentity = useRef<string | null>(null);
   const refreshVersion = useRef(0);
   const reloadCatalog = useCallback(async () => {
     if (!apiMode) return;
-    const result = await api<CatalogResponse>("/catalog");
+    const version = refreshVersion.current;
+    const result = readCatalogResponse(await api<unknown>("/catalog"));
+    if (version !== refreshVersion.current) return;
     setProducts(result.products); setCategories(result.categories);
+    catalogLoaded.current = true; setCatalogError("");
   }, []);
-  const refreshSession = useCallback(async () => {
+  const refreshSession = useCallback(async (refreshProducts = true) => {
     if (!apiMode) return;
     const version = ++refreshVersion.current;
     try {
-      const session = await api<ApiSession>("/auth/session");
+      const session = readApiSession(await api<unknown>("/auth/session"));
       if (version !== refreshVersion.current) return;
       const identity = session.user?.id || null;
       if (identity !== sessionIdentity.current) {
         setStore((state) => ({ ...state, orders: [], favorites: [] }));
-        setProducts((state) => state.map(({ customerPrice, ...retail }) => retail));
+        setProducts(retailProducts);
         sessionIdentity.current = identity;
       }
-      if (session.user?.customer?.status !== "active") setProducts((state) => state.map(({ customerPrice, ...retail }) => retail));
+      if (session.user?.customer?.status !== "active") setProducts(retailProducts);
       setSessionUser(session.user); setCustomer(session.user?.customer || null);
-      const [result, orders] = await Promise.all([api<CatalogResponse>("/catalog"), api<Order[]>("/orders")]);
-      let favorites: string[] | undefined;
-      if (session.user) favorites = (await api<{ favorites: string[] }>("/account")).favorites;
-      if (version !== refreshVersion.current) return;
-      setProducts(result.products); setCategories(result.categories);
-      setStore((state) => ({ ...state, orders, ...(favorites ? { favorites } : {}) }));
-      setApiError("");
-    } catch (error) { if (version === refreshVersion.current) setApiError(error instanceof Error ? error.message : "Không thể kết nối API."); }
+      setSessionError(""); setAccountError("");
+      const current = () => version === refreshVersion.current;
+      const accountFailure = (error: unknown) => { if (current()) setAccountError(error instanceof Error ? error.message : "Không thể tải dữ liệu tài khoản."); };
+      const loadCatalog = refreshProducts || !catalogLoaded.current || session.user?.customer?.status === "active";
+      // Publish each response independently so orders/preferences cannot block products.
+      await Promise.all([
+        loadCatalog ? reloadCatalog().catch((error) => { if (current()) setCatalogError(error instanceof Error ? error.message : "Không thể tải sản phẩm."); }) : Promise.resolve(),
+        api<Order[]>("/orders").then((orders) => {
+          if (!Array.isArray(orders)) throw new Error("Phản hồi đơn hàng không hợp lệ. Vui lòng thử lại.");
+          if (current()) setStore((state) => ({ ...state, orders }));
+        }).catch(accountFailure),
+        session.user ? api<{ favorites: string[] }>("/account").then((account) => {
+          if (!Array.isArray(account.favorites)) throw new Error("Phản hồi tài khoản không hợp lệ. Vui lòng thử lại.");
+          if (current()) setStore((state) => ({ ...state, favorites: account.favorites }));
+        }).catch(accountFailure) : Promise.resolve()
+      ]);
+    } catch (error) {
+      if (version === refreshVersion.current) {
+        setSessionUser(null); setCustomer(null); sessionIdentity.current = null;
+        setProducts(retailProducts); setStore((state) => ({ ...state, orders: [], favorites: [] }));
+        setSessionError(error instanceof Error ? error.message : "Không thể kiểm tra phiên đăng nhập.");
+      }
+    }
     finally { if (version === refreshVersion.current) setReady(true); }
-  }, []);
+  }, [reloadCatalog]);
 
   useEffect(() => {
     try {
@@ -91,7 +114,7 @@ export function CommerceProvider({ children }: { children: React.ReactNode }) {
       const session = sessionStorage.getItem("baotin-customer") || localStorage.getItem("baotin-customer");
       if (!apiMode && session) { const parsed = JSON.parse(session); if (parsed.role === "b2b" && typeof parsed.id === "string") setCustomer(parsed); }
     } catch { /* Storage is optional; the shopping flow remains available without it. */ }
-    if (apiMode) void refreshSession(); else setReady(true);
+    if (apiMode) void refreshSession(false); else setReady(true);
   }, [refreshSession]);
   useEffect(() => {
     if (!apiMode) return;
@@ -132,7 +155,7 @@ export function CommerceProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   };
   const logout = () => {
-    if (apiMode) { void api("/auth/logout", { method: "POST" }).then(refreshSession).catch((error) => notice(error.message)); return; }
+    if (apiMode) { void api("/auth/logout", { method: "POST" }).then(() => refreshSession()).catch((error) => notice(error.message)); return; }
     setCustomer(null); try { localStorage.removeItem("baotin-customer"); sessionStorage.removeItem("baotin-customer"); } catch {}
   };
   const loginWithPassword = async (identity: string, password: string, remember = false) => { await api("/auth/login", { method: "POST", body: JSON.stringify({ identity, password, remember }) }); await refreshSession(); };
@@ -145,7 +168,7 @@ export function CommerceProvider({ children }: { children: React.ReactNode }) {
   };
   const updateProfile = async (value: Customer) => {
     if (!apiMode) { login(value, Boolean(localStorage.getItem("baotin-customer"))); return; }
-    const result = await api<ApiSession>("/account/profile", { method: "PATCH", body: JSON.stringify({ name: value.name, company: value.company, phone: value.phone, email: value.email, tax: value.tax || "", address: value.address || "" }) });
+    const result = readApiSession(await api<unknown>("/account/profile", { method: "PATCH", body: JSON.stringify({ name: value.name, company: value.company, phone: value.phone, email: value.email, tax: value.tax || "", address: value.address || "" }) }));
     setSessionUser(result.user); setCustomer(result.user?.customer || null);
   };
   const setCoupon = (coupon: string) => setStore((state) => ({ ...state, coupon }));

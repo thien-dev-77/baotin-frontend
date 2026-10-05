@@ -33,6 +33,14 @@ Backend can chay cho API va anh: Next proxy /api/backend/* -> /api/*,
 /images/* -> /media/images/* va /media/* -> /media/*.
 DATABASE_URL, JWT_SECRET va SEED_PASSWORD chi o backend, khong o frontend env.
 
+API mode render catalog cong khai tren server cho home, category, search va
+cac product cards: RootLayout fetch catalog truc tiep tu BACKEND_URL,
+cache no-store, timeout 8 giay, khong forward cookie hay customerPrice vao HTML.
+CommerceProvider nhan du lieu ban dau, sau hydrate chi bo sung session/gia B2B,
+orders va favorites doc lap. Khong doi orders/account de hien thi san pham.
+Response null/HTML/malformed session hien loi co nut thu lai, khong doc `.user`
+tu null. API down khong tu fallback sang san pham mock; preview van giu nguyen.
+
 FE tu quan ly types trong lib/types.ts, API responses trong lib/api-types.ts
 va validation trong lib/admin-*.ts. BE co types/rules rieng trong src/;
 khong import code giua hai repo. Khi doi API can cap nhat DTO va FE adapter,
@@ -47,6 +55,8 @@ npm run lint
 npm run build
 npm run typecheck
 npm run test:domain
+# Sau khi chay frontend voi API mode va backend local
+QA_BASE_URL=http://localhost:3041 npm run test:ssr
 ```
 
 Connected browser QA can repo backend rieng. Chay tu goc repo FE:

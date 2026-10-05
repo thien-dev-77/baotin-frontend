@@ -7,6 +7,8 @@ import "@fontsource/inter/800.css";
 import type { Metadata } from "next";
 import { CommerceProvider } from "@/components/commerce-provider";
 import { SiteFrame } from "@/components/site-frame";
+import { serverCatalog } from "@/lib/server-api";
+import type { CatalogResponse } from "@/lib/api-types";
 
 export const metadata: Metadata = {
   title: "Bảo Tín - Phụ kiện nội thất",
@@ -14,10 +16,14 @@ export const metadata: Metadata = {
     "Catalog phụ kiện nội thất B2B/B2C cho công trình, xưởng nội thất và chủ nhà Việt."
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  let initialCatalog: CatalogResponse | null = null;
+  let initialCatalogError = "";
+  try { initialCatalog = await serverCatalog(); }
+  catch { initialCatalogError = "Không thể tải danh sách sản phẩm. Vui lòng thử lại."; }
   return (
     <html lang="vi">
-      <body className="font-sans antialiased"><CommerceProvider><SiteFrame>{children}</SiteFrame></CommerceProvider></body>
+      <body className="font-sans antialiased"><CommerceProvider initialCatalog={initialCatalog} initialCatalogError={initialCatalogError}><SiteFrame>{children}</SiteFrame></CommerceProvider></body>
     </html>
   );
 }
