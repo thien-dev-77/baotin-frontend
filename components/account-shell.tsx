@@ -4,7 +4,8 @@ import { CommerceLoading } from "@/components/checkout-flow";
 import { Breadcrumb, Button, EmptyState, Modal } from "@/components/ui";
 import { Building2, ClipboardList, Heart, LayoutDashboard, LogOut, MapPin, Menu, Package, Settings, UserRound, Wallet } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useRouter } from "@bprogress/next/app";
 import { useState } from "react";
 
 const navigation = [

@@ -7,7 +7,7 @@ import { ProductGrid } from "@/components/product-card";
 import { Breadcrumb, Button, EmptyState, Field, PageHeading, QuantityStepper } from "@/components/ui";
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, LockKeyhole, Package, RefreshCw, ShoppingCart, Trash2, Truck } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@bprogress/next/app";
 import { useEffect, useRef, useState } from "react";
 import { apiMode } from "@/lib/api-client";
 import type { Quote } from "@/lib/api-types";

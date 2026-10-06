@@ -3,7 +3,7 @@
 import Image from "next/image";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@bprogress/next/app";
 import { useEffect, useRef, useState } from "react";
 import { AlertCircle, ArrowLeft, Check, Plus, Trash2 } from "lucide-react";
 import { Button, Field, QuantityStepper } from "@/components/ui";

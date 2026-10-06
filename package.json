@@ -5,6 +5,7 @@
   "scripts": {
     "test:domain": "playwright test tests/domain.spec.ts tests/commerce-api.spec.ts tests/backend-proxy.spec.ts --workers=1",
     "test:ssr": "playwright test tests/ssr.spec.ts --workers=1",
+    "test:navigation": "playwright test tests/navigation-progress.spec.ts --workers=1",
     "test:connected": "node scripts/connected-api-qa.mjs",
     "test:operations": "node scripts/operations-ui-qa.mjs",
     "dev": "next dev",
@@ -26,6 +27,8 @@
     "qa:ui": "node scripts/ui-qa.mjs"
   },
   "dependencies": {
+    "@bprogress/next": "^3.2.12",
+    "@bprogress/react": "^1.2.7",
     "@fontsource/inter": "^5.3.0",
     "lucide-react": "^0.468.0",
     "next": "16.3.8",

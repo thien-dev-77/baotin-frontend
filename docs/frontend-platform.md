@@ -52,6 +52,24 @@ Dang nhap, gia B2B, cong no, don hang va form lien he hien dung du lieu mau/loca
 Next 16: public catalog khong co root loading boundary de HTML hien thi ca khi
 JavaScript tat. Co account/admin loading, `app/error.tsx` va empty states theo luong.
 
+### Navigation Progress
+
+`NavigationProgress` o root layout dung BProgress: thanh xanh 3px,
+khong spinner, bat dau sau 80ms va ket thuc khi route/query commit. Ap dung cho
+Link, router.push/replace va browser Back/Forward tren storefront/account/admin.
+Link ngoai, download, modifier-click va hash trong cung trang khong bat progress.
+Provider tu `@bprogress/react`, router tu `@bprogress/next/app`. Watcher so sanh
+pathname/query dang chuoi de chi stop khi route commit, khong stop khi pending
+render tao searchParams object moi. React click capture xu ly ca link SSR duoc
+replay trong selective hydration, khong doi bo cuc/boc catalog vao Suspense. Link huy navigation
+can dung `data-prevent-progress="true"` hoac `useProgress().stop()` (nhu swipe hero).
+Cac thao tac programmatic phai import useRouter tu `@bprogress/next/app`;
+usePathname/useSearchParams van import tu `next/navigation`.
+Suspense chi bao watcher, khong bao noi dung catalog; giu SSR khi JavaScript tat.
+Chay `QA_BASE_URL=http://localhost:3010 npm run test:navigation` de kiem tra
+navigation cham, query, lich su, mobile va SSR; `npm run test:ssr` kiem tra regression.
+Tham khao [BProgress](https://bprogress.vercel.app/docs/next/quick-start).
+
 ## Component va du lieu
 
 `app/layout.tsx` cung cap Inter va `CommerceProvider`. `SiteFrame` render header/footer ban hang mot lan cho cac route storefront/account, va bo qua cho `/admin`.

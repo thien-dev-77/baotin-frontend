@@ -6,7 +6,7 @@ import { useCommerce } from "@/components/commerce-provider";
 import { Modal } from "@/components/ui";
 import { Search } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@bprogress/next/app";
 import { useEffect, useId, useRef, useState } from "react";
 
 export function SearchBox({ large = false, compactButton = false, initialValue = "" }: { large?: boolean; compactButton?: boolean; initialValue?: string }) {

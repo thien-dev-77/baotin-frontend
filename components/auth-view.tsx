@@ -5,7 +5,7 @@ import { readPreviewCustomer, useCommerce } from "@/components/commerce-provider
 import { Breadcrumb, Button, EmptyState, Field, Modal } from "@/components/ui";
 import { Eye, EyeOff, LockKeyhole } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@bprogress/next/app";
 import { useId, useState } from "react";
 import { apiMode } from "@/lib/api-client";
 

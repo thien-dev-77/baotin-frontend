@@ -7,7 +7,7 @@ import { CommerceLoading, OrderTotals } from "@/components/checkout-flow";
 import { Breadcrumb, Button, EmptyState, PageHeading, Tabs } from "@/components/ui";
 import { Check, ClipboardList, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@bprogress/next/app";
 import { useState } from "react";
 import { apiMode } from "@/lib/api-client";
 

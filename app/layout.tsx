@@ -7,6 +7,7 @@ import "@fontsource/inter/800.css";
 import type { Metadata } from "next";
 import { CommerceProvider } from "@/components/commerce-provider";
 import { SiteFrame } from "@/components/site-frame";
+import { NavigationProgress } from "@/components/navigation-progress";
 import { serverCatalog } from "@/lib/server-api";
 import type { CatalogResponse } from "@/lib/api-types";
 
@@ -23,7 +24,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   catch { initialCatalogError = "Không thể tải danh sách sản phẩm. Vui lòng thử lại."; }
   return (
     <html lang="vi">
-      <body className="font-sans antialiased"><CommerceProvider initialCatalog={initialCatalog} initialCatalogError={initialCatalogError}><SiteFrame>{children}</SiteFrame></CommerceProvider></body>
+      <body className="font-sans antialiased"><NavigationProgress><CommerceProvider initialCatalog={initialCatalog} initialCatalogError={initialCatalogError}><SiteFrame>{children}</SiteFrame></CommerceProvider></NavigationProgress></body>
     </html>
   );
 }

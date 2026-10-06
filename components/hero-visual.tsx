@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import Image from "next/image";
+import { useProgress } from "@bprogress/next";
 
 function slideSizes(width: number, height: number) {
   // Panorama covers a taller frame: account for cropped pixels when choosing srcset.
@@ -13,6 +14,7 @@ function slideSizes(width: number, height: number) {
 }
 
 export function HeroVisual() {
+  const { stop } = useProgress();
   const [active, setActive] = useState(0);
   const [visited, setVisited] = useState([0]);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
@@ -48,7 +50,7 @@ export function HeroVisual() {
         }
       }}
       onPointerCancel={() => { touchStart.current = null; }}
-      onClick={(event) => { if (swiped.current) { event.preventDefault(); swiped.current = false; } }}>
+      onClick={(event) => { if (swiped.current) { event.preventDefault(); stop(); swiped.current = false; } }}>
       {heroSlides.map((item, index) => visited.includes(index) && <Image key={item.image} src={item.image} data-image-src={item.image} alt={item.alt} fill sizes={slideSizes(item.width, item.height)} quality={90} priority={index === 0} aria-hidden={active !== index} data-active={active === index} draggable={false} className="bt-home-hero-image" />)}
     </Link>
     <button type="button" className="bt-home-hero-arrow bt-home-hero-prev" aria-label="Ảnh trước" title="Ảnh trước" onClick={() => goTo(-1)}><ChevronLeft size={19} aria-hidden="true" /></button>
