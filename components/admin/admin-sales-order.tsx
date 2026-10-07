@@ -115,7 +115,7 @@ function SalesOrderForm({ order }: { order?: AdminOrder }) {
           {customer && <dl className="mt-5 space-y-2 border-t border-border pt-4 text-xs text-text-secondary"><div className="flex justify-between gap-2"><dt>Hạn mức</dt><dd className="tabular-nums">{money(customer.limit)}</dd></div><div className="flex justify-between gap-2"><dt>Công nợ hiện tại</dt><dd className="tabular-nums">{money(customer.debt)}</dd></div><div className="flex justify-between gap-2"><dt>Quá hạn</dt><dd className="tabular-nums">{money(customer.overdue)}</dd></div></dl>}
           {blocker && <div role="status" className="mt-5 flex gap-2 border-l-2 border-amber-400 bg-amber-50 p-3 text-xs leading-5 text-amber-900"><AlertCircle size={16} className="mt-0.5 shrink-0" /><div>{blocker}<p className="mt-1">Đơn có thể lưu chờ xử lý, chưa được chuyển kho.</p></div></div>}
           {error && <p role="alert" className="mt-4 text-sm leading-5 text-danger">{error}</p>}
-          <div className="mt-5"><AdminStatus value="Chờ xác nhận" /></div><Button type="submit" disabled={saving || apiMode && !currentQuote} className="mt-3 w-full"><Check size={16} />{saving ? "Đang lưu..." : order ? "Lưu thay đổi" : "Tạo đơn chờ xác nhận"}</Button>
+          <div className="mt-5"><AdminStatus value="Chờ xác nhận" /></div><Button type="submit" loading={saving} disabled={apiMode && !currentQuote} className="mt-3 w-full"><Check size={16} />{order ? "Lưu thay đổi" : "Tạo đơn chờ xác nhận"}</Button>
         </div>
       </aside>
     </form>

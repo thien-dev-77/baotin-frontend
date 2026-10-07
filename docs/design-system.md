@@ -260,6 +260,19 @@ Component dung chung:
 - `EmptyState`, `ErrorState`, `CommerceLoading` va `app/loading.tsx`.
 - `OrderTotals`, `OrderStatusBadge`, `OrdersTable`, `PromotionCard`, `GuideCard`.
 
+Admin API actions:
+
+- Dung `Button loading={busy}` cho nut goi API. Bat busy truoc `await`, don dep
+  trong `finally` o ca success va error; khong doi label trong luc cho.
+- Spinner thay icon dau nut; giu nguyen kich thuoc, accessible name va typography.
+  Nut tu dong disabled va co `aria-busy`; icon-only button phai co `aria-label`.
+- Lenh admin dung `pendingAction` (action, id, payload) de chi nut vua bam quay.
+  Cac lenh khac bi khoa cho den khi thao tac hoan tat; khong bao thanh cong som.
+- Dung `Modal busy={busy}` de khoa dong/Escape/backdrop khi dang luu. Khi loi,
+  giu form va input, hien thong bao API, mo lai nut de nguoi dung thu lai.
+- Upload anh va checkbox kiem hang dung chung `LoadingSpinner`. Nut lam moi va
+  thu lai cung hien spinner; retry khong bien mat khi request dang cho.
+
 Responsive:
 
 - Desktop >=1024px: header hai hang, sidebar loc, detail co cot noi dung va sidebar mua hang sticky.

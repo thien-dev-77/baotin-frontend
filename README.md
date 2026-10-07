@@ -5,6 +5,8 @@ Backend NestJS/TypeORM/JWT va media duoc quan ly rieng tai
 [baotin-backend](https://github.com/thien-dev-77/baotin-backend).
 Xem [Backend Integration](docs/backend-integration.md) cho contract API.
 Ban cap nhat uu tien 1-6: [Operations UI](docs/operations-rollout.md).
+Them/sua san pham, nhieu anh va hien thi rieng tu:
+[Product Management UI](docs/product-management.md).
 Next.js 16.3.8, React 19.3.0; dung Node LTS >=22.13.
 
 ```txt
@@ -68,6 +70,8 @@ npm run typecheck
 npm run test:domain
 # Sau khi chay frontend voi API mode va backend local
 QA_BASE_URL=http://localhost:3041 npm run test:ssr
+# API mode: browser QA voi API mock, khong sua database
+QA_BASE_URL=http://127.0.0.1:3010 npm run test:admin-loading
 ```
 
 Connected browser QA can repo backend rieng. Chay tu goc repo FE:

@@ -9,7 +9,7 @@ import { type AdminOrder } from "@/lib/admin-preview";
 import { money } from "@/lib/catalog";
 
 export function AdminReceiptForm({ order, onSave }: { order: AdminOrder; onSave: () => void }) {
-  const { receipts, createReceipt, today } = useAdmin();
+  const { receipts, createReceipt, today, pendingAction } = useAdmin();
   const summary = paymentSummary(order, receipts);
   const [draft, setDraft] = useState<ReceiptDraft>({ orderId: order.id, amount: summary.available, method: "Chuyển khoản", date: today, reference: "", note: "" });
   const [error, setError] = useState("");
@@ -25,6 +25,6 @@ export function AdminReceiptForm({ order, onSave }: { order: AdminOrder; onSave:
       <div className="sm:col-span-2"><Field label="Ghi chú"><textarea className="bt-input !h-auto" rows={3} maxLength={500} value={draft.note} onChange={(event) => change({ note: event.target.value })} /></Field></div>
     </div>
     {error && <p role="alert" className="mt-4 text-sm text-danger">{error}</p>}
-    <div className="mt-5 flex justify-end border-t border-border pt-4"><Button type="submit" disabled={summary.available <= 0}><Save size={16} />Lập phiếu thu</Button></div>
+    <div className="mt-5 flex justify-end border-t border-border pt-4"><Button type="submit" loading={pendingAction?.action === "create-receipt"} disabled={!!pendingAction || summary.available <= 0}><Save size={16} />Lập phiếu thu</Button></div>
   </form>;
 }

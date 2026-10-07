@@ -8,7 +8,7 @@ export function AdminHeading({ title, subtitle, children }: { title: string; sub
   return <div className="mb-6 flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-[22px] font-bold leading-7 text-primary">{title}</h1>{subtitle && <p className="mt-1.5 text-sm text-text-secondary">{subtitle}</p>}</div>{children}</div>;
 }
 export function AdminStatus({ value }: { value: string }) {
-  const color = ["Hoàn tất", "Đã duyệt", "Đã đối chiếu", "Đang hoạt động", "Đang bán", "Còn hàng"].includes(value) ? "bg-emerald-50 text-emerald-700" : ["Đã hủy", "Từ chối", "Tạm ngưng", "Quá hạn", "Vượt hạn mức", "Hết hàng", "Thiếu hàng"].includes(value) ? "bg-red-50 text-red-700" : ["Chờ xác nhận", "Chờ duyệt", "Chờ đối chiếu", "Sắp hết"].includes(value) ? "bg-amber-50 text-amber-800" : "bg-section-blue text-blue-brand";
+  const color = value === "Riêng tư" ? "bg-section text-text-secondary" : ["Hoàn tất", "Đã duyệt", "Đã đối chiếu", "Đang hoạt động", "Đang bán", "Công khai", "Còn hàng"].includes(value) ? "bg-emerald-50 text-emerald-700" : ["Đã hủy", "Từ chối", "Tạm ngưng", "Quá hạn", "Vượt hạn mức", "Hết hàng", "Thiếu hàng"].includes(value) ? "bg-red-50 text-red-700" : ["Chờ xác nhận", "Chờ duyệt", "Chờ đối chiếu", "Sắp hết"].includes(value) ? "bg-amber-50 text-amber-800" : "bg-section-blue text-blue-brand";
   return <span className={`inline-flex whitespace-nowrap rounded px-2 py-1 text-[11px] font-medium leading-4 ${color}`}>{value}</span>;
 }
 export function AdminSearch({ value, onChange, placeholder }: { value: string; onChange: (value: string) => void; placeholder: string }) {

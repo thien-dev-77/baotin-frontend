@@ -78,6 +78,7 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 button:not(:disabled), select { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--color-blue); outline-offset: 3px; }
 button:disabled { cursor: not-allowed; opacity: 0.5; }
+button:disabled[aria-busy="true"] { opacity: 1; }
 .bt-button-primary, .bt-button-secondary, .bt-button-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; font-size: 14px; font-weight: 600; white-space: normal; text-align: center; }
 .bt-button-ghost { border-radius: 8px; padding: 0 12px; color: var(--color-primary); }
 .bt-button-ghost:hover { background: var(--color-section); }

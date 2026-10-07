@@ -144,6 +144,9 @@ Chua co MFA. Khong cau hinh SMTP thi tra 503, khong bao gui email thanh cong gia
 | GET | /api/orders | Own B2B hoac guest orders |
 | GET | /api/admin/state | Scoped state, today server |
 | POST | /api/admin/commands | action/branch/id?/expectedRevision?/payload |
+| POST | /api/admin/products | Create product, private/public content fields |
+| PATCH | /api/admin/products/:id | Edit product/gallery/visibility; current revision required |
+| POST | /api/media/product-images | Multipart images, up to 10 files |
 | GET | /api/account | Profile/preferences/own credit ledger entries |
 | PATCH | /api/account/profile | name/company/phone/email/tax/address |
 | PATCH | /api/account/preferences | addresses/settings/favorites |
@@ -176,8 +179,12 @@ Product.image/gallery, binary luu disk backend, khong luu PostgreSQL.
 Max5MB JPEG/PNG/WebP, Sharp validate bytes max20MP, rotate, resize<=2000px,
 encodeWebP; bo filename client, khong SVG. Admin products co upload control.
 media/images version trong Git; uploads ignored. Can persistent volume va
-backup cung DB, khong dung ephemeral serverless filesystem. Chua delete/reorder
-gallery API; anh cu giu trong gallery. Mock assets chua verify moi SKU.
+backup cung DB, khong dung ephemeral serverless filesystem. Product editor da co
+upload nhieu anh, chon cover, doi thu tu va xoa khoi gallery qua PATCH product.
+Anh bi bo khoi gallery va upload chua gan san pham van giu tren disk; chua co
+orphan cleanup tu dong. Mock assets chua verify moi SKU.
+Che do rieng tu an san pham khoi catalog/SSR/quote, khong bao mat URL file anh.
+Chi tiet: [Product Management UI](product-management.md).
 
 FE dung next/image voi sharp, sizes cho card/gallery/banner. Mac dinh lazy,
 priority chi cho hero dau va gallery chinh; slide chua xem chua mount.

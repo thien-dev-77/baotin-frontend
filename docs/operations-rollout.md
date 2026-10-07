@@ -1,5 +1,9 @@
 # Operations UI - 05 October 2026
 
+Product management update (07 October): create/edit forms, multiple images,
+gallery cover/order/removal and public/private visibility are implemented.
+See [Product Management UI](product-management.md) for the current contract.
+
 Current handoff for priorities 1-6. Backend source, media and secrets stay in
 the separate backend repo. Each repo builds from its root; local workspace
 still has separate frontend/ and backend/ folders.
@@ -27,6 +31,13 @@ Do not use old preview-only backlog as the current live API contract.
 FE hides new management links by role. BE remains authoritative for role/branch
 checks. New resources clear old branch results while loading and ignore stale
 responses. The shared refresh control reloads independent operations resources.
+Same-resource refresh retains current data; retries retain their error/button
+until the request settles. Admin API buttons use the shared loading spinner,
+disable repeat clicks, and preserve their label/size. Command pending state is
+keyed by action, resource ID and payload so only the clicked action spins.
+Save dialogs block dismissal while pending and recover on error. Run
+`QA_BASE_URL=http://127.0.0.1:3010 npm run test:admin-loading` in API mode for
+delayed/error mocked-API browser tests that never mutate the real database.
 Global account/security screens do not show branch/report filters; pricing,
 ledger and integrations hide the irrelevant report-period selector. Mutation
 forms guard repeated submits and show backend validation.

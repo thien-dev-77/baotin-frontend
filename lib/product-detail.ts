@@ -20,8 +20,8 @@ export function getProductSpecifications(product: Product): ProductSpecification
   ];
 }
 
-export function getProductRecommendations(product: Product) {
-  const related = catalog.filter((item) => item.category === product.category && item.id !== product.id).slice(0, 4);
+export function getProductRecommendations(product: Product, products: Product[] = catalog) {
+  const related = products.filter((item) => item.category === product.category && item.id !== product.id).slice(0, 4);
   const accessories = related.filter((item) => item.subcategory !== product.subcategory);
   const bundle = [product, ...(accessories.length ? accessories : related).slice(0, 3)];
   return { related, bundle };

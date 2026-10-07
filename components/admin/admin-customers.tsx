@@ -10,7 +10,7 @@ import { downloadAdminCsv } from "@/lib/admin-preview";
 import { money, normalize } from "@/lib/catalog";
 
 export function AdminCustomers({ credit = false, initialStatus = "all" }: { credit?: boolean; initialStatus?: string }) {
-  const { scopedCustomers, customers, orders, branch, setCustomerStatus } = useAdmin();
+  const { scopedCustomers, customers, orders, branch, setCustomerStatus, pendingAction } = useAdmin();
   const filters = useAdminFilters(initialStatus);
   const [selected, setSelected] = useState<string | null>(null);
   const customer = customers.find((item) => item.id === selected);
@@ -33,13 +33,13 @@ export function AdminCustomers({ credit = false, initialStatus = "all" }: { cred
       </tr>)}
     </AdminTable>
     <AdminPagination count={rows.length} page={page} onChange={filters.setPage} />
-    <Modal open={!!customer} onClose={() => setSelected(null)} title="Hồ sơ khách hàng B2B">
+    <Modal open={!!customer} onClose={() => setSelected(null)} busy={!!pendingAction} title="Hồ sơ khách hàng B2B">
       {customer && <>
         <div className="mb-5"><p className="text-xs text-text-muted">{customer.id} · {customer.branch}</p><h3 className="mb-3 mt-1 text-lg font-semibold text-primary">{customer.name}</h3><AdminStatus value={customer.status} /></div>
         <dl className="grid grid-cols-2 gap-4 border-y border-border py-4 text-sm">{[["Người liên hệ", customer.contact], ["Điện thoại", customer.phone], ["Nhóm khách", customer.group], ["Hạn mức", money(customer.limit)], ["Công nợ", money(customer.debt)], ["Khoản quá hạn", money(customer.overdue)]].map(([label, value]) => <div key={label}><dt className="text-xs text-text-muted">{label}</dt><dd className="mt-1 break-words font-medium text-primary">{value}</dd></div>)}</dl>
         <h3 className="mb-2 mt-5 text-sm font-semibold text-primary">Đơn hàng gần đây</h3>
         <div className="mb-5 divide-y divide-border">{orders.filter((item) => item.customerId === customer.id).slice(0, 4).map((order) => <Link key={order.id} href={`/admin/orders?order=${order.id}`} className="flex items-center justify-between gap-2 py-3 text-xs"><span className="font-medium text-blue-brand">{order.id}</span><span className="tabular-nums">{money(order.total)}</span><ArrowRight size={14} /></Link>)}{!orders.some((item) => item.customerId === customer.id) && <p className="py-3 text-xs text-text-muted">Chưa có đơn hàng.</p>}</div>
-        {!credit && <div className="flex justify-end border-t border-border pt-4"><Button variant={customer.status === "Đang hoạt động" ? "secondary" : "primary"} onClick={() => setCustomerStatus(customer.id, customer.status === "Đang hoạt động" ? "Tạm ngưng" : "Đang hoạt động")}>{customer.status === "Đang hoạt động" ? <Pause size={16} /> : <Check size={16} />}{customer.status === "Đang hoạt động" ? "Tạm ngưng tài khoản" : "Kích hoạt tài khoản"}</Button></div>}
+        {!credit && <div className="flex justify-end border-t border-border pt-4"><Button variant={customer.status === "Đang hoạt động" ? "secondary" : "primary"} loading={pendingAction?.action === "customer-status" && pendingAction.id === customer.id} disabled={!!pendingAction} onClick={() => setCustomerStatus(customer.id, customer.status === "Đang hoạt động" ? "Tạm ngưng" : "Đang hoạt động")}>{customer.status === "Đang hoạt động" ? <Pause size={16} /> : <Check size={16} />}{customer.status === "Đang hoạt động" ? "Tạm ngưng tài khoản" : "Kích hoạt tài khoản"}</Button></div>}
       </>}
     </Modal>
   </>;

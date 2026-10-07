@@ -1,11 +1,22 @@
 "use client";
 
-import { AlertCircle, ChevronLeft, ChevronRight, Minus, Plus, RefreshCw, Search, X } from "lucide-react";
+import { AlertCircle, ChevronLeft, ChevronRight, LoaderCircle, Minus, Plus, RefreshCw, Search, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useId, useRef } from "react";
+import { Children, isValidElement, useEffect, useId, useRef } from "react";
 
-export function Button({ variant = "primary", className = "", ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "ghost" }) {
-  return <button className={`${variant === "primary" ? "bt-button-primary" : variant === "secondary" ? "bt-button-secondary" : "bt-button-ghost"} ${className}`} {...props} />;
+export function LoadingSpinner({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return <LoaderCircle size={size} aria-hidden="true" data-loading-spinner="" className={`shrink-0 animate-spin motion-reduce:animate-none ${className}`} />;
+}
+export function Button({ variant = "primary", className = "", loading = false, disabled, children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "ghost"; loading?: boolean }) {
+  const items = Children.toArray(children);
+  const icon = items[0];
+  const iconSize = isValidElement<{ size?: number }>(icon) ? icon.props.size : undefined;
+  // Replace the leading icon without changing the label or button dimensions.
+  const content = loading ? typeof iconSize === "number"
+    ? <><LoadingSpinner size={iconSize} />{items.slice(1)}</>
+    : <><span className="inline-flex items-center gap-2 opacity-0">{children}</span><span className="absolute inset-0 flex items-center justify-center"><LoadingSpinner /></span></>
+    : children;
+  return <button className={`relative ${variant === "primary" ? "bt-button-primary" : variant === "secondary" ? "bt-button-secondary" : "bt-button-ghost"} ${className}`} {...props} disabled={disabled || loading} aria-busy={loading || undefined}>{content}</button>;
 }
 export function Breadcrumb({ items }: { items: { label: string; href?: string }[] }) {
   return <nav aria-label="Đường dẫn" className="mb-5 flex flex-wrap items-center gap-1.5 text-xs text-text-secondary"><Link href="/" className="hover:text-blue-brand">Trang chủ</Link>{items.map((item, index) => <span key={`${item.label}-${index}`} className="inline-flex items-center gap-1.5"><ChevronRight size={13} aria-hidden="true" />{item.href ? <Link href={item.href} className="hover:text-blue-brand">{item.label}</Link> : <span aria-current="page" className="text-primary">{item.label}</span>}</span>)}</nav>;
@@ -27,7 +38,7 @@ export function Field({ label, required, error, children, htmlFor }: { label: st
   const content = <>{children}{error && <span className="mt-1 block text-xs text-danger">{error}</span>}</>;
   return htmlFor ? <div className="block min-w-0 text-sm font-medium text-primary"><label htmlFor={htmlFor}>{text}</label>{content}</div> : <label className="block min-w-0 text-sm font-medium text-primary">{text}{content}</label>;
 }
-export function Modal({ open, onClose, title, children, drawer = false, sheet = false, fullscreen = false }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode; drawer?: boolean; sheet?: boolean; fullscreen?: boolean }) {
+export function Modal({ open, onClose, title, children, drawer = false, sheet = false, fullscreen = false, busy = false }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode; drawer?: boolean; sheet?: boolean; fullscreen?: boolean; busy?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   useEffect(() => {
@@ -40,7 +51,7 @@ export function Modal({ open, onClose, title, children, drawer = false, sheet = 
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = previous; };
   }, [open]);
-  return <dialog ref={ref} aria-labelledby={titleId} onCancel={(event) => { event.preventDefault(); onClose(); }} onClick={(event) => { if (event.target === ref.current) { const rect = ref.current!.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) onClose(); } }} className={`bt-dialog${drawer ? " bt-drawer" : ""}${sheet ? " bt-sheet" : ""}${fullscreen ? " bt-fullscreen" : ""}`}><div className="flex items-center justify-between gap-3 border-b border-border p-4"><h2 id={titleId} className="text-base font-bold text-primary">{title}</h2><button type="button" onClick={onClose} className="bt-icon-button" aria-label="Đóng"><X size={20} /></button></div><div className="p-4">{open ? children : null}</div></dialog>;
+  return <dialog ref={ref} aria-labelledby={titleId} onCancel={(event) => { event.preventDefault(); if (!busy) onClose(); }} onClick={(event) => { if (!busy && event.target === ref.current) { const rect = ref.current!.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) onClose(); } }} className={`bt-dialog${drawer ? " bt-drawer" : ""}${sheet ? " bt-sheet" : ""}${fullscreen ? " bt-fullscreen" : ""}`}><div className="flex items-center justify-between gap-3 border-b border-border p-4"><h2 id={titleId} className="text-base font-bold text-primary">{title}</h2><button type="button" onClick={onClose} disabled={busy} className="bt-icon-button" aria-label="Đóng"><X size={20} /></button></div><div className="p-4">{open ? children : null}</div></dialog>;
 }
 export function Tabs({ options, value, onChange }: { options: string[]; value: string; onChange: (value: string) => void }) {
   return <div className="scrollbar-hide flex gap-1 overflow-x-auto border-b border-border" role="tablist">{options.map((option, index) => <button key={option} type="button" role="tab" aria-selected={value === option} tabIndex={value === option ? 0 : -1} onClick={() => onChange(option)} onKeyDown={(event) => { if (event.key === "ArrowRight" || event.key === "ArrowLeft") { event.preventDefault(); const next = options[(index + (event.key === "ArrowRight" ? 1 : -1) + options.length) % options.length]; onChange(next); const buttons = event.currentTarget.parentElement?.querySelectorAll("button"); buttons?.[options.indexOf(next)]?.focus(); } }} className={`shrink-0 border-b-2 px-3 py-3 text-sm ${value === option ? "border-blue-brand font-semibold text-blue-brand" : "border-transparent text-text-secondary hover:text-blue-brand"}`}>{option}</button>)}</div>;

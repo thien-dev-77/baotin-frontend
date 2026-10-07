@@ -36,10 +36,12 @@ function ApprovalRequestForm({ initialOrder, initialType }: { initialOrder: stri
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (!order || saving) return;
-    const result = await createApproval(order.id, { type, reason, prices: Object.fromEntries(order.items.map((item) => [item.productId, prices[item.productId] ?? item.unitPrice])) });
-    if (result.error) { setError(result.error); return; }
-    setSaving(true);
-    router.push(`/admin/approvals?request=${result.id}`);
+    setSaving(true); setError("");
+    try {
+      const result = await createApproval(order.id, { type, reason, prices: Object.fromEntries(order.items.map((item) => [item.productId, prices[item.productId] ?? item.unitPrice])) });
+      if (result.error) { setError(result.error); return; }
+      router.push(`/admin/approvals?request=${result.id}`);
+    } finally { setSaving(false); }
   }
 
   return <>
@@ -73,7 +75,7 @@ function ApprovalRequestForm({ initialOrder, initialType }: { initialOrder: stri
         <p className="mt-4 text-xs leading-5 text-text-secondary">{type === "Giá đặc biệt" ? "Giá đề nghị chỉ áp dụng cho đơn này, chưa gồm phí vận chuyển và thuế." : "Ngoại lệ chỉ áp dụng cho đơn này, không tăng hạn mức công nợ của khách."}</p>
         {blocker && <div role="status" className="mt-5 flex gap-2 border-l-2 border-amber-400 bg-amber-50 p-3 text-xs leading-5 text-amber-900"><AlertCircle size={16} className="mt-0.5 shrink-0" /><div>{blocker}{existing && <Link className="mt-2 block font-medium underline" href={`/admin/approvals?request=${existing.id}`}>Mở yêu cầu {existing.id}</Link>}</div></div>}
         {error && <p role="alert" className="mt-4 text-sm leading-5 text-danger">{error}</p>}
-        <Button type="submit" disabled={!!blocker || saving} className="mt-5 w-full"><Send size={16} />{saving ? "Đang gửi..." : "Gửi yêu cầu duyệt"}</Button>
+        <Button type="submit" loading={saving} disabled={!!blocker} className="mt-5 w-full"><Send size={16} />Gửi yêu cầu duyệt</Button>
       </div></aside>
     </form>
   </>;

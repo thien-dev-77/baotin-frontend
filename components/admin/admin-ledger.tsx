@@ -256,6 +256,7 @@ export function AdminLedger() {
       )}
       <Modal
         open={!!edit}
+        busy={busy}
         onClose={() => {
           if (!busy) setEdit(null);
         }}
@@ -385,9 +386,9 @@ export function AdminLedger() {
                 {error}
               </p>
             )}
-            <Button type="submit" disabled={busy || edit.branch !== branch}>
+            <Button type="submit" loading={busy} disabled={edit.branch !== branch}>
               <Save size={16} />
-              {busy ? "Đang lưu..." : "Xác nhận điều chỉnh"}
+              Xác nhận điều chỉnh
             </Button>
           </form>
         )}

@@ -183,7 +183,8 @@ function useAdminState() {
 type MockValue = ReturnType<typeof useAdminState>;
 type ActionKey = "createReceipt" | "reconcileReceipt" | "voidReceipt" | "setPaymentDueDate" | "saveSalesOrder" | "createApproval" | "advanceOrder" | "cancelOrder" | "decideApproval" | "setCustomerStatus" | "setPublished" | "setPicked" | "reportShortage" | "resolveShortage" | "reset";
 type Awaitable<T> = T extends (...args: infer A) => infer R ? (...args: A) => R | Promise<R | ([R] extends [void] ? string : never)> : T;
-export type AdminValue = Omit<{ [K in keyof MockValue]: K extends ActionKey ? Awaitable<MockValue[K]> : MockValue[K] }, keyof ApiAdminState | "scopedOrders" | "scopedApprovals" | "warehouseOrders"> & ApiAdminState & { scopedOrders: ApiAdminState["orders"]; scopedApprovals: ApiAdminState["approvals"]; warehouseOrders: ApiAdminState["orders"]; resourceRevision?: number };
+export type PendingAdminAction = { action: string; id?: string; payload: object };
+export type AdminValue = Omit<{ [K in keyof MockValue]: K extends ActionKey ? Awaitable<MockValue[K]> : MockValue[K] }, keyof ApiAdminState | "scopedOrders" | "scopedApprovals" | "warehouseOrders"> & ApiAdminState & { scopedOrders: ApiAdminState["orders"]; scopedApprovals: ApiAdminState["approvals"]; warehouseOrders: ApiAdminState["orders"]; resourceRevision?: number; pendingAction?: PendingAdminAction | null; refreshing?: boolean };
 export const AdminContext = createContext<AdminValue | null>(null);
 export function AdminProvider({ children }: { children: React.ReactNode }) {
   return apiMode ? <ApiAdminProvider>{children}</ApiAdminProvider> : <PreviewAdminProvider>{children}</PreviewAdminProvider>;

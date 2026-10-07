@@ -175,6 +175,7 @@ export function AdminUsers() {
       )}
       <Modal
         open={!!editing}
+        busy={busy}
         title={editing?.id ? "Sửa tài khoản" : "Tạo nhân viên"}
         onClose={() => {
           if (!busy) setEditing(null);
@@ -284,15 +285,16 @@ export function AdminUsers() {
                 {error}
               </p>
             )}
-            <Button type="submit" disabled={busy || !editing.branches.length}>
+            <Button type="submit" loading={busy} disabled={!editing.branches.length}>
               <Save size={16} />
-              {busy ? "Đang lưu..." : "Lưu tài khoản"}
+              Lưu tài khoản
             </Button>
           </form>
         )}
       </Modal>
       <Modal
         open={!!passwordUser}
+        busy={busy}
         title="Đặt lại mật khẩu"
         onClose={() => {
           if (!busy) setPasswordUser(null);
@@ -316,9 +318,9 @@ export function AdminUsers() {
                 {error}
               </p>
             )}
-            <Button type="submit" disabled={busy}>
+            <Button type="submit" loading={busy}>
               <KeyRound size={16} />
-              {busy ? "Đang lưu..." : "Đặt lại mật khẩu"}
+              Đặt lại mật khẩu
             </Button>
           </form>
         )}

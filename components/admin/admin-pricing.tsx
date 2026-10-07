@@ -128,6 +128,7 @@ export function AdminPricing() {
       )}
       <Modal
         open={!!editing}
+        busy={busy}
         onClose={() => {
           if (!busy) setEditing(null);
         }}
@@ -352,9 +353,9 @@ export function AdminPricing() {
                 {error}
               </p>
             )}
-            <Button type="submit" disabled={busy || editing.branch !== branch}>
+            <Button type="submit" loading={busy} disabled={editing.branch !== branch}>
               <Save size={16} />
-              {busy ? "Đang lưu..." : "Lưu bảng giá"}
+              Lưu bảng giá
             </Button>
           </form>
         )}

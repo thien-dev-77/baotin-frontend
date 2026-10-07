@@ -13,7 +13,7 @@ import { money } from "@/lib/catalog";
 function eventTime(value: string) { return new Intl.DateTimeFormat("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", dateStyle: "short", timeStyle: "short" }).format(new Date(value)); }
 
 export function AdminReceiptDetail({ receipt, onClose }: { receipt: Receipt; onClose: () => void }) {
-  const { reconcileReceipt, voidReceipt } = useAdmin();
+  const { reconcileReceipt, voidReceipt, pendingAction } = useAdmin();
   const [amount, setAmount] = useState(receipt.amount);
   const [reference, setReference] = useState(receipt.reference);
   const [note, setNote] = useState("");
@@ -33,9 +33,9 @@ export function AdminReceiptDetail({ receipt, onClose }: { receipt: Receipt; onC
       <Field label="Mã đối chiếu" required><input className="bt-input" required maxLength={100} value={reference} onChange={(event) => { setReference(event.target.value); setError(""); }} /></Field>
       <Field label="Kết quả kiểm tra" required><textarea className="bt-input !h-auto" rows={2} maxLength={500} required value={note} onChange={(event) => { setNote(event.target.value); setError(""); }} /></Field>
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-      <div className="flex justify-end"><Button type="submit" disabled={!note.trim() || !reference.trim()}><CheckCheck size={16} />Xác nhận đối chiếu</Button></div>
+      <div className="flex justify-end"><Button type="submit" loading={pendingAction?.action === "reconcile-receipt" && pendingAction.id === receipt.id} disabled={!!pendingAction || !note.trim() || !reference.trim()}><CheckCheck size={16} />Xác nhận đối chiếu</Button></div>
     </form>}
-    {cancel && <form className="mt-5 space-y-4" onSubmit={async (event) => { event.preventDefault(); const result = await voidReceipt(receipt.id, reason); if (result) setError(result); else onClose(); }}><Field label="Lý do hủy phiếu" required><textarea className="bt-input !h-auto" required maxLength={500} rows={3} value={reason} onChange={(event) => setReason(event.target.value)} /></Field>{error && <p role="alert" className="text-sm text-danger">{error}</p>}<div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="secondary" onClick={() => { setCancel(false); setError(""); }}>Quay lại</Button><Button type="submit" disabled={!reason.trim()}><XCircle size={16} />Xác nhận hủy phiếu</Button></div></form>}
-    {receipt.status !== "Đã hủy" && !cancel && <div className="mt-5 border-t border-border pt-4"><Button variant="ghost" className="!text-danger" onClick={() => { setCancel(true); setError(""); }}><XCircle size={16} />Hủy phiếu thu</Button></div>}
+    {cancel && <form className="mt-5 space-y-4" onSubmit={async (event) => { event.preventDefault(); const result = await voidReceipt(receipt.id, reason); if (result) setError(result); else onClose(); }}><Field label="Lý do hủy phiếu" required><textarea className="bt-input !h-auto" required maxLength={500} rows={3} value={reason} onChange={(event) => setReason(event.target.value)} /></Field>{error && <p role="alert" className="text-sm text-danger">{error}</p>}<div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="secondary" disabled={!!pendingAction} onClick={() => { setCancel(false); setError(""); }}>Quay lại</Button><Button type="submit" loading={pendingAction?.action === "void-receipt" && pendingAction.id === receipt.id} disabled={!!pendingAction || !reason.trim()}><XCircle size={16} />Xác nhận hủy phiếu</Button></div></form>}
+    {receipt.status !== "Đã hủy" && !cancel && <div className="mt-5 border-t border-border pt-4"><Button variant="ghost" className="!text-danger" disabled={!!pendingAction} onClick={() => { setCancel(true); setError(""); }}><XCircle size={16} />Hủy phiếu thu</Button></div>}
   </>;
 }

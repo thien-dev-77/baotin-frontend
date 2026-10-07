@@ -151,11 +151,9 @@ export function PasswordForm({
           {message}
         </p>
       )}
-      <Button type="submit" disabled={busy || (mode === "reset" && !token)}>
+      <Button type="submit" loading={busy} disabled={mode === "reset" && !token}>
         <LockKeyhole size={16} />
-        {busy
-          ? "Đang xử lý..."
-          : mode === "forgot"
+        {mode === "forgot"
             ? "Gửi liên kết khôi phục"
             : "Đổi mật khẩu"}
       </Button>

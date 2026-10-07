@@ -43,8 +43,8 @@ function ProductDescription({ product }: { product: Product }) {
   return (
     <>
       <h2 className="text-base font-bold text-primary">{product.name}</h2>
-      <p className="mt-3 text-sm leading-7 text-text-secondary">
-        {product.name} được lựa chọn để hoàn thiện hệ nội thất đồng bộ. Chất liệu {product.material.toLowerCase()} và thiết kế phù hợp cho nhu cầu sử dụng hàng ngày.
+      <p className="mt-3 whitespace-pre-line break-words text-sm leading-7 text-text-secondary">
+        {product.description || `${product.name} được lựa chọn để hoàn thiện hệ nội thất đồng bộ. Chất liệu ${product.material.toLowerCase()} và thiết kế phù hợp cho nhu cầu sử dụng hàng ngày.`}
       </p>
       <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-text-secondary">
         <li>Thông số: {product.specification}.</li>

@@ -21,7 +21,7 @@ export function ProductDetail({ product: initialProduct }: { product: Product })
   const [reviews, setReviews] = useState<ProductReview[]>(initialProductReviews);
   const category = categoryCatalog.find((item) => item.slug === product.category)!;
   const specifications = getProductSpecifications(product);
-  const { related, bundle } = getProductRecommendations(product);
+  const { related, bundle } = getProductRecommendations(product, products);
 
   useEffect(() => {
     const header = document.querySelector("header");

@@ -20,7 +20,7 @@ const nextActions: Record<string, string> = {
 };
 
 export function AdminOrderDialog({ id, onClose, warehouseMode = false }: { id: string | null; onClose: () => void; warehouseMode?: boolean }) {
-  const { orders, customers, approvals, products, warehouse, receipts, advanceOrder, cancelOrder } = useAdmin();
+  const { orders, customers, approvals, products, warehouse, receipts, advanceOrder, cancelOrder, pendingAction } = useAdmin();
   const [cancelling, setCancelling] = useState(false);
   const [reason, setReason] = useState("");
   useEffect(() => { setCancelling(false); setReason(""); }, [id]);
@@ -31,7 +31,7 @@ export function AdminOrderDialog({ id, onClose, warehouseMode = false }: { id: s
   const hasReceipts = !!order && receipts.some((item) => item.orderId === order.id && item.status !== "Đã hủy");
   const action = order && (!warehouseMode || isWarehouseOrder(order)) ? nextActions[order.status] : undefined;
 
-  return <Modal open={!!order} onClose={onClose} title={`Đơn hàng ${id || ""}`}>
+  return <Modal open={!!order} onClose={onClose} busy={!!pendingAction} title={`Đơn hàng ${id || ""}`}>
     {order && <>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-2"><AdminStatus value={order.status} /><span className="text-xs text-text-muted">{adminDate(order.date)} · {order.branch}</span></div>
       <dl className="mb-5 grid grid-cols-2 gap-4 text-sm">
@@ -49,13 +49,13 @@ export function AdminOrderDialog({ id, onClose, warehouseMode = false }: { id: s
       {canCancel && hasReceipts && <p role="status" className="mb-4 text-xs leading-5 text-text-secondary">Đơn có phiếu thu còn hiệu lực, cần xử lý trước khi hủy. <Link href="/admin/accounting" onClick={onClose} className="font-medium text-blue-brand">Mở phiếu thu</Link></p>}
       {cancelling && canCancel ? <form onSubmit={async (event) => { event.preventDefault(); const error = await cancelOrder(order.id, reason); if (!error) setCancelling(false); }} className="space-y-3 border-t border-border pt-4">
         <Field label="Lý do hủy đơn" required><textarea required maxLength={500} value={reason} onChange={(event) => setReason(event.target.value)} className="bt-input !h-24 py-2" /></Field>
-        <div className="flex flex-wrap justify-end gap-2"><Button variant="secondary" onClick={() => setCancelling(false)} type="button">Quay lại</Button><Button type="submit" disabled={!reason.trim() || hasReceipts} className="!bg-danger"><X size={16} />Xác nhận hủy</Button></div>
+        <div className="flex flex-wrap justify-end gap-2"><Button variant="secondary" disabled={!!pendingAction} onClick={() => setCancelling(false)} type="button">Quay lại</Button><Button type="submit" loading={pendingAction?.action === "cancel-order" && pendingAction.id === order.id} disabled={!!pendingAction || !reason.trim() || hasReceipts} className="!bg-danger"><X size={16} />Xác nhận hủy</Button></div>
       </form> : <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
         {!warehouseMode && order.status === "Chờ xác nhận" && order.customerId && <Link href={`/admin/approvals/new?order=${order.id}`} onClick={onClose} className="bt-button-secondary"><ClipboardPlus size={16} />Xin duyệt ngoại lệ</Link>}
         {!warehouseMode && order.status === "Chờ xác nhận" && !order.approvalId && <Link href={`/admin/orders/${order.id}/edit`} onClick={onClose} className="bt-button-secondary"><Pencil size={16} />Sửa đơn</Link>}
-        {canCancel && <Button variant="secondary" disabled={hasReceipts} onClick={() => setCancelling(true)}><X size={16} />Hủy đơn</Button>}
-        {action && <Button disabled={!!blocker} onClick={() => advanceOrder(order.id)}><Check size={16} />{action}</Button>}
-        {!action && <Button variant="secondary" onClick={onClose}>Đóng</Button>}
+        {canCancel && <Button variant="secondary" disabled={!!pendingAction || hasReceipts} onClick={() => setCancelling(true)}><X size={16} />Hủy đơn</Button>}
+        {action && <Button loading={pendingAction?.action === "advance-order" && pendingAction.id === order.id} disabled={!!pendingAction || !!blocker} onClick={() => advanceOrder(order.id)}><Check size={16} />{action}</Button>}
+        {!action && <Button variant="secondary" disabled={!!pendingAction} onClick={onClose}>Đóng</Button>}
       </div>}
       <AdminOrderHistory id={order.id} />
     </>}

@@ -8,6 +8,8 @@
     "test:navigation": "playwright test tests/navigation-progress.spec.ts --workers=1",
     "test:connected": "node scripts/connected-api-qa.mjs",
     "test:operations": "node scripts/operations-ui-qa.mjs",
+    "test:products": "node scripts/products-ui-qa.mjs",
+    "test:admin-loading": "playwright test tests/admin-loading.spec.ts --workers=1",
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",

@@ -9,7 +9,7 @@ import { Button, Field } from "@/components/ui";
 import { isWarehouseOrder } from "@/lib/admin-warehouse";
 import type { ApiAdminState } from "@/lib/api-types";
 import type { Branch } from "@/lib/types";
-import { AdminContext, type AdminValue } from "./admin-provider";
+import { AdminContext, type AdminValue, type PendingAdminAction } from "./admin-provider";
 import { PasswordInput } from "../password-form";
 
 const empty: ApiAdminState = { products: [], customers: [], orders: [], approvals: [], warehouse: {}, receipts: [], paymentDueDates: {}, today: "" };
@@ -23,10 +23,16 @@ export function ApiAdminProvider({ children }: { children: React.ReactNode }) {
   const [resourceRevision, setResourceRevision] = useState(0);
   const [error, setError] = useState("");
   const saving = useRef(false);
+  const [pendingAction, setPendingAction] = useState<PendingAdminAction | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const reloads = useRef(0);
+  const [loggingOut, setLoggingOut] = useState(false);
   const staff = sessionUser && sessionUser.role !== "b2b";
   const reload = useCallback(async () => {
+    reloads.current++; setRefreshing(true);
     try { setState(await api<ApiAdminState>("/admin/state")); setResourceRevision(version => version + 1); setError(""); setReady(true); }
     catch (error) { setError(error instanceof Error ? error.message : "Không thể tải dashboard."); }
+    finally { if (--reloads.current === 0) setRefreshing(false); }
   }, []);
   useEffect(() => {
     setReady(false); setState(empty);
@@ -41,6 +47,7 @@ export function ApiAdminProvider({ children }: { children: React.ReactNode }) {
   const command = async (action: string, id: string | undefined, payload: object, orderId = id) => {
     if (saving.current) return { error: "Đang lưu thao tác trước. Vui lòng đợi." };
     saving.current = true;
+    setPendingAction({ action, id, payload });
     try {
       const expectedRevision = state.orders.find((order) => order.id === orderId)?.revision;
       const result = await api<{ id: string; state: ApiAdminState }>("/admin/commands", { method: "POST", body: JSON.stringify({ action, id, branch, payload, expectedRevision }) });
@@ -50,14 +57,14 @@ export function ApiAdminProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       const message = error instanceof Error ? error.message : "Không thể lưu thay đổi.";
       notice(message); await reload(); return { error: message };
-    } finally { saving.current = false; }
+    } finally { saving.current = false; setPendingAction(null); }
   };
   const simple = async (action: string, id: string, payload: object, orderId = id) => (await command(action, id, payload, orderId)).error || "";
   const date = new Date(`${state.today || "2026-10-04"}T00:00:00Z`);
   date.setUTCDate(date.getUTCDate() - days + 1);
   const since = date.toISOString().slice(0, 10);
   const value: AdminValue = {
-    ...state, products: state.products.map(product => ({ ...product, stock: state.stockByBranch?.[branch]?.[product.id] ?? product.stock })), ready, branch, setBranch, days, setDays, resourceRevision, allowedBranches: sessionUser?.branches || [],
+    ...state, products: state.products.map(product => ({ ...product, stock: state.stockByBranch?.[branch]?.[product.id] ?? product.stock })), ready, branch, setBranch, days, setDays, resourceRevision, pendingAction, refreshing, allowedBranches: sessionUser?.branches || [],
     scopedOrders: state.orders.filter((order) => order.branch === branch && order.date >= since),
     scopedCustomers: state.customers.filter((customer) => customer.branch === branch),
     scopedApprovals: state.approvals.filter((approval) => approval.branch === branch).reverse(),
@@ -78,8 +85,8 @@ export function ApiAdminProvider({ children }: { children: React.ReactNode }) {
   };
   if (!sessionReady) return <div role="status" className="p-10 text-center text-sm">Đang kiểm tra phiên đăng nhập...</div>;
   if (!sessionUser) return <StaffLogin />;
-  if (!staff) return <div className="mx-auto max-w-md space-y-5 px-4 py-20"><LockKeyhole className="text-blue-brand" /><h1 className="text-xl font-bold text-primary">Tài khoản không có quyền quản trị</h1><Button onClick={logout}>Đổi tài khoản</Button><Link className="ml-4 text-sm text-blue-brand" href="/account">Tài khoản B2B</Link></div>;
-  return <AdminContext.Provider value={value}>{error && <div role="alert" className="flex items-center justify-center gap-3 bg-red-50 p-3 text-sm text-danger">{error}<Button variant="secondary" onClick={() => { void reload(); }}><RefreshCw size={16} />Thử lại</Button></div>}{children}</AdminContext.Provider>;
+  if (!staff) return <div className="mx-auto max-w-md space-y-5 px-4 py-20"><LockKeyhole className="text-blue-brand" /><h1 className="text-xl font-bold text-primary">Tài khoản không có quyền quản trị</h1><Button loading={loggingOut} onClick={async () => { setLoggingOut(true); try { await logout(); } finally { setLoggingOut(false); } }}>Đổi tài khoản</Button><Link className="ml-4 text-sm text-blue-brand" href="/account">Tài khoản B2B</Link></div>;
+  return <AdminContext.Provider value={value}>{error && <div role="alert" className="flex items-center justify-center gap-3 bg-red-50 p-3 text-sm text-danger">{error}<Button variant="secondary" loading={refreshing} onClick={() => { void reload(); }}><RefreshCw size={16} />Thử lại</Button></div>}{children}</AdminContext.Provider>;
 }
 
 function StaffLogin() {
@@ -92,5 +99,5 @@ function StaffLogin() {
     try { await loginWithPassword(String(data.get("identity")), String(data.get("password"))); }
     catch (error) { setError(error instanceof Error ? error.message : "Đăng nhập không thành công."); }
     finally { setBusy(false); }
-  }}><Field label="Email nhân viên" required><input className="bt-input" type="email" name="identity" autoComplete="username" required /></Field><PasswordInput name="password" label="Mật khẩu" current />{error && <p role="alert" className="text-sm text-danger">{error}</p>}<Button type="submit" disabled={busy} className="w-full"><LogIn size={17} />{busy ? "Đang đăng nhập..." : "Đăng nhập"}</Button></form><Link className="mt-4 block text-sm text-blue-brand" href="/forgot-password">Quên mật khẩu?</Link><Link className="mt-6 block text-sm text-blue-brand" href="/">Về website bán hàng</Link></main>;
+  }}><Field label="Email nhân viên" required><input className="bt-input" type="email" name="identity" autoComplete="username" required /></Field><PasswordInput name="password" label="Mật khẩu" current />{error && <p role="alert" className="text-sm text-danger">{error}</p>}<Button type="submit" loading={busy} className="w-full"><LogIn size={17} />Đăng nhập</Button></form><Link className="mt-4 block text-sm text-blue-brand" href="/forgot-password">Quên mật khẩu?</Link><Link className="mt-6 block text-sm text-blue-brand" href="/">Về website bán hàng</Link></main>;
 }

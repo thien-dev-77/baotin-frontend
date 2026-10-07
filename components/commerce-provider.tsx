@@ -20,7 +20,7 @@ type Commerce = Store & {
   customer: Customer | null; ready: boolean; notice: (message: string) => void;
   add: (product: Product, quantity?: number) => void; setQuantity: (id: string, quantity: number) => void;
   remove: (id: string) => void; toggleFavorite: (id: string) => void;
-  login: (customer: Customer, remember: boolean) => void; logout: () => void;
+  login: (customer: Customer, remember: boolean) => void; logout: () => Promise<void>;
   placeOrder: (order: Order) => void;
   setCoupon: (coupon: string) => void;
 };
@@ -154,8 +154,8 @@ export function CommerceProvider({ children, initialCatalog, initialCatalogError
       [value.id, value.email, value.phone].filter(Boolean).forEach((identity) => localStorage.setItem(profileKey(identity), JSON.stringify(value)));
     } catch {}
   };
-  const logout = () => {
-    if (apiMode) { void api("/auth/logout", { method: "POST" }).then(() => refreshSession()).catch((error) => notice(error.message)); return; }
+  const logout = async () => {
+    if (apiMode) { try { await api("/auth/logout", { method: "POST" }); await refreshSession(); } catch (error) { notice(error instanceof Error ? error.message : "Không thể đăng xuất."); } return; }
     setCustomer(null); try { localStorage.removeItem("baotin-customer"); sessionStorage.removeItem("baotin-customer"); } catch {}
   };
   const loginWithPassword = async (identity: string, password: string, remember = false) => { await api("/auth/login", { method: "POST", body: JSON.stringify({ identity, password, remember }) }); await refreshSession(); };

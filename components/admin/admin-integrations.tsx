@@ -42,6 +42,7 @@ export function AdminIntegrations() {
     null,
   );
   const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<{ action: string; id?: string } | null>(null);
   const [error, setError] = useState("");
   const [tab, setTab] = useState("Kết nối");
   const [kind, setKind] = useState("product");
@@ -56,6 +57,7 @@ export function AdminIntegrations() {
   async function action(name: string, payload: object = {}) {
     if (busy) return;
     setBusy(true);
+    setPending({ action: name, id: "id" in payload ? String(payload.id) : undefined });
     setError("");
     try {
       const result = await api<Preview>(`${root}/${name}`, {
@@ -64,16 +66,17 @@ export function AdminIntegrations() {
       });
       if (name === "preview") setPreview({ ...result, branch });
       else notice("Đã hoàn tất thao tác KiotViet.");
-      setConfirmation(null);
       await resource.reload();
       await reset();
       if (name === "apply-prices") await reloadCatalog();
+      setConfirmation(null);
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : "Không thể kết nối KiotViet.",
       );
     } finally {
       setBusy(false);
+      setPending(null);
     }
   }
   return (
@@ -81,13 +84,14 @@ export function AdminIntegrations() {
       <AdminHeading title="KiotViet" subtitle={branch}>
         <Button
           variant="secondary"
+          loading={pending?.action === "preview"}
           disabled={
             busy || !resource.data?.enabled || !resource.data?.configured
           }
           onClick={() => void action("preview")}
         >
           <RefreshCw size={16} />
-          {busy ? "Đang xử lý..." : "Lấy bản xem trước"}
+          Lấy bản xem trước
         </Button>
       </AdminHeading>
       {!resource.data ? (
@@ -228,7 +232,7 @@ export function AdminIntegrations() {
                           ))}
                     </select>
                   </Field>
-                  <Button type="submit" disabled={busy}>
+                  <Button type="submit" disabled={busy} loading={pending?.action === "link"}>
                     <Link2 size={16} />
                     Ghép mã
                   </Button>
@@ -321,6 +325,7 @@ export function AdminIntegrations() {
                               <Button
                                 variant="secondary"
                                 disabled={busy}
+                                loading={pending?.action === "reconcile" && pending.id === order.id}
                                 onClick={() =>
                                   void action("reconcile", { id: order.id })
                                 }
@@ -367,6 +372,7 @@ export function AdminIntegrations() {
       )}
       <Modal
         open={!!confirmation}
+        busy={busy}
         title="Xác nhận KiotViet"
         onClose={() => {
           if (!busy) setConfirmation(null);
@@ -395,12 +401,13 @@ export function AdminIntegrations() {
               </Button>
               <Button
                 disabled={busy}
+                loading={pending?.action === confirmation.action}
                 onClick={() =>
                   void action(confirmation.action, confirmation.payload)
                 }
               >
                 <Check size={16} />
-                {busy ? "Đang xử lý..." : "Xác nhận"}
+                Xác nhận
               </Button>
             </div>
           </div>
