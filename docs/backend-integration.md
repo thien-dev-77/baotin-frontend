@@ -56,6 +56,8 @@ mock khi API loi; doi NEXT_PUBLIC_* can restart/rebuild frontend.
 - FE lib/backend-proxy.ts: API/media proxy, cookies, safe paths, timeout.
 - FE lib/server-api.ts: catalog/product SSR, hidden SKU 404.
 - FE lib/commerce-api.ts: validate catalog/session responses, strip private prices.
+- FE lib/store/: Redux Toolkit auth slice, typed hooks, per-layout store factory.
+- FE components/store-provider.tsx: client Redux provider, never a server singleton.
 - FE components/admin/api-admin-provider.tsx: state va commands API.
 
 Schema rieng baotin_app, cam public/auth/storage. Tao schema neu chua co,
@@ -98,10 +100,37 @@ bi loai tru truoc serialize. Khong cache/SSR profile, orders hay B2B prices.
 Client validate session truoc khi doc user; `{ user: null }` la guest hop le,
 nhung body null, HTML va shape sai phai hien loi co the retry. Catalog,
 orders, favorites cap nhat doc lap, co version guard chong response cu
-ghi de session moi; logout/session invalid strip B2B prices.
+ghi de auth moi; logout/401 strip B2B prices.
 Guest co initial catalog hop le khong fetch lai catalog luc hydrate.
 `npm run test:ssr` kiem tra HTML khi tat JS, session loi/cham, personalization,
 logout va screenshots desktop/mobile; chi chay QA_BASE_URL local.
+
+### Frontend Auth Redux
+
+Redux Toolkit `auth` la nguon duy nhat cho user/ready/checking/error trong API
+mode; CommerceProvider expose `sessionUser`/customer tu Redux de cac view cu
+khong can doi contract. Store tao rieng theo root layout/request, duoc giu khi
+client navigation; khong tao singleton dung chung tren server.
+
+- GET /auth/session chi bootstrap mot lan khi load/F5; dedupe React Strict Mode.
+  Khong goi lai khi focus, chuyen trang hay cap nhat trang thai admin.
+- Login/register lay user tu POST response; logout lay `{ user: null }` tu POST.
+  Profile PATCH cung cap nhat Redux truc tiep. Khong them GET session sau login/logout.
+- Refresh auth chi khi nguoi dung retry, doi mat khau/quyen cua chinh minh, hoac
+  tab khac thong bao da doi auth. Refresh 503 giu user da xac thuc va hien retry.
+- Protected API 401 clear Redux, orders/favorites va B2B prices; auth form 401
+  (mat khau sai) va 403 (khong du quyen) khong tu dang xuat. Revision tai thoi
+  diem request ngan 401 cu lam mat login moi.
+- JWT chi o cookie HttpOnly. Khong luu JWT hay auth user/role vao Redux Persist,
+  localStorage hoac sessionStorage. Storage `baotin-auth-event` chi chua type va
+  nonce de dong bo tab; `baotin-customer` chi thuoc che do preview, khong phai auth that.
+- Redux chi quyet dinh UI; backend van verify JWT/session revoke va doc quyen tu DB
+  moi request. Bang sessions backend va contract cookie KHONG thay doi.
+
+`npm run test:auth` kiem tra so request, navigation/F5, login/register/logout,
+cross-tab, 401/403, malformed response va race bootstrap. `test:domain` gom unit
+Redux isolation/error/revision. Cac test auth mock client API, khong ghi DB that.
+Store/provider theo [huong dan Redux Toolkit cho Next.js](https://redux.js.org/usage/nextjs).
 
 Guest orders thuoc HTTPOnly UUID cookie baotin_guest, khong truy van bang
 ma don cong khai; mat cookie mat quyen xem guest orders. Staff login /admin,

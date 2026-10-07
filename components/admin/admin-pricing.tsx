@@ -71,11 +71,10 @@ export function AdminPricing() {
           </Button>
         )}
       </AdminHeading>
-      {!resource.data ? (
-        <ResourceStatus {...resource} />
-      ) : (
+      <ResourceStatus {...resource} />
+      {resource.data && (
         <div className="overflow-auto">
-          <table className="bt-table">
+          <table className="bt-table" aria-busy={resource.loading || undefined}>
             <thead>
               <tr>
                 <th>Bảng giá</th>

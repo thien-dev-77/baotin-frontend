@@ -94,9 +94,8 @@ export function AdminIntegrations() {
           Lấy bản xem trước
         </Button>
       </AdminHeading>
-      {!resource.data ? (
-        <ResourceStatus {...resource} />
-      ) : (
+      <ResourceStatus {...resource} />
+      {resource.data && (
         <>
           <Tabs
             options={["Kết nối", "Ghép mã", "Đơn hàng", "Lịch sử"]}

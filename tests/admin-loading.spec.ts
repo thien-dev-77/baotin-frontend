@@ -3,6 +3,7 @@ import { mkdir } from "node:fs/promises";
 import { catalog, categoryCatalog } from "../lib/catalog";
 import { adminApprovals, adminCustomers, adminOrders, previewDate } from "../lib/admin-preview";
 import type { ApiAdminState } from "../lib/api-types";
+import { authEventKey } from "../lib/store/auth-slice";
 
 const base = process.env.QA_BASE_URL || "http://127.0.0.1:3010";
 if (!["127.0.0.1", "localhost"].includes(new URL(base).hostname)) throw new Error("Admin loading QA only runs locally.");
@@ -28,16 +29,24 @@ async function mockAdmin(page: Page) {
   const state = fixtures();
   let signedIn = true;
   let gate: Gate | undefined;
+  let sessionReads = 0;
   const unexpected: string[] = [];
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
   const staff = { id: "qa-admin", name: "QA Admin", email: "qa@example.test", role: "admin", branches: ["Quy Nhơn", "Tuy Hòa"], customer: null };
   const integration = { configured: true, enabled: true, missing: [], branches: { "Quy Nhơn": 1 }, links: [], runs: [], outbox: [{ orderId: "BT26100004", status: "uncertain", externalId: "", at: previewDate }] };
+  const resources: Record<string, unknown> = {
+    "/admin/pricing": { policies: [] },
+    "/admin/users": { users: [{ ...staff, id: "qa-sales", role: "sales", disabled: false, revision: 1 }] },
+    "/admin/ledger": { inventory: state.products.slice(0, 2).map(product => ({ ...product, onHand: 500, reserved: 0 })), customers: state.customers, entries: [] },
+    "/admin/integrations/kiotviet": integration,
+  };
   // Intercept every client API call so no mutation can reach the real database.
   await page.route("**/api/backend/**", async route => {
     const request = route.request();
     const path = new URL(request.url()).pathname.slice("/api/backend".length);
     const method = request.method();
+    if (method === "GET" && path === "/auth/session") sessionReads++;
     if (gate && path === gate.path && method === gate.method) {
       const current = gate;
       current.count++;
@@ -55,10 +64,7 @@ async function mockAdmin(page: Page) {
       "/auth/session": { user: signedIn ? staff : null },
       "/catalog": { products: catalog, categories: categoryCatalog },
       "/orders": [], "/account": { favorites: [] }, "/admin/state": state,
-      "/admin/pricing": { policies: [] },
-      "/admin/users": { users: [{ ...staff, id: "qa-sales", role: "sales", disabled: false, revision: 1 }] },
-      "/admin/ledger": { inventory: state.products.slice(0, 2).map(product => ({ ...product, onHand: 500, reserved: 0 })), customers: state.customers, entries: [] },
-      "/admin/integrations/kiotviet": integration,
+      ...resources,
     };
     if (method !== "GET" || !(path in responses)) {
       unexpected.push(`${method} ${path}`);
@@ -68,7 +74,8 @@ async function mockAdmin(page: Page) {
     await route.fulfill({ json: responses[path] });
   });
   return {
-    state, errors, unexpected,
+    state, staff, resources, errors, unexpected,
+    sessionReads: () => sessionReads,
     session: (value: boolean) => { signedIn = value; },
     delay: (path: string, body: unknown = { id: "QA-SAVED", state }, status = 200, method = "POST") => {
       let release!: () => void;
@@ -86,6 +93,7 @@ async function mockAdmin(page: Page) {
 
 async function pending(page: Page, button: Locator, gate: Gate, dialog = false) {
   await expect(button).toBeEnabled();
+  await page.evaluate(async () => { await document.fonts.ready; });
   const before = await button.boundingBox();
   await button.click();
   await expect.poll(() => gate.count).toBe(1);
@@ -339,6 +347,153 @@ test("header refresh shows a spinner without hiding the current screen", async (
   const button = page.getByRole("button", { name: "Làm mới dữ liệu", exact: true });
   try { await pending(page, button, gate); await expect(page.getByRole("heading", { name: "Khách hàng B2B", exact: true })).toBeVisible(); } finally { gate.release(); }
   await expect(button).toBeEnabled();
+  api.check();
+});
+
+for (const width of [1440, 390]) {
+  test(`background refresh preserves the table, branch, filters and scroll at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    const api = await mockAdmin(page);
+    await api.visit("/admin/products");
+    await page.getByRole("combobox", { name: "Chi nhánh", exact: true }).selectOption("Tuy Hòa");
+    const search = page.getByLabel("Tìm sản phẩm, mã hàng, thương hiệu...", { exact: true });
+    await search.fill("khóa");
+    await page.getByRole("button", { name: "2", exact: true }).click();
+    await page.locator("#admin-content table").evaluate(table => { table.setAttribute("data-refresh-node", "original"); table.parentElement!.scrollLeft = 80; });
+    const scroll = await page.evaluate(() => ({ top: scrollY, left: document.querySelector("#admin-content table")!.parentElement!.scrollLeft }));
+    const gate = api.delay("/admin/state", api.state, 200, "GET");
+    try {
+      await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+      await expect.poll(() => gate.count).toBeGreaterThan(0);
+      expect(api.sessionReads()).toBe(1);
+      await expect(page.locator('[data-refresh-node="original"]')).toBeVisible();
+      await expect(search).toHaveValue("khóa");
+      await expect(page.getByRole("button", { name: "2", exact: true })).toHaveAttribute("aria-current", "page");
+      await expect(page.getByRole("combobox", { name: "Chi nhánh", exact: true })).toHaveValue("Tuy Hòa");
+      await mkdir("/private/tmp/baotin-admin-loading", { recursive: true });
+      await page.screenshot({ path: `/private/tmp/baotin-admin-loading/background-${width}.png`, fullPage: true });
+    } finally { gate.release(); }
+    await expect(page.getByRole("button", { name: "Làm mới dữ liệu", exact: true })).toBeEnabled();
+    await expect(page.locator('[data-refresh-node="original"]')).toBeVisible();
+    expect(await page.evaluate(() => ({ top: scrollY, left: document.querySelector("#admin-content table")!.parentElement!.scrollLeft }))).toEqual(scroll);
+    api.check();
+  });
+}
+
+test("status updates replace only the affected row content without unmounting the table", async ({ page }) => {
+  const api = await mockAdmin(page);
+  await api.visit("/admin/customers");
+  const search = page.getByLabel("Tìm mã khách, tên, số điện thoại...", { exact: true });
+  await search.fill("Minh An");
+  await page.locator("#admin-content table").evaluate(table => { table.setAttribute("data-refresh-node", "original"); table.querySelector("tbody tr")!.setAttribute("data-refresh-row", "original"); });
+  await page.getByRole("button", { name: "Xem khách KH001", exact: true }).click();
+  const next = structuredClone(api.state);
+  next.customers[0].status = "Tạm ngưng";
+  const gate = api.delay("/admin/commands", { id: "KH001", state: next });
+  try {
+    await pending(page, page.getByRole("button", { name: "Tạm ngưng tài khoản", exact: true }), gate, true);
+    await expect(page.locator('[data-refresh-node="original"]')).toBeVisible();
+  } finally { gate.release(); }
+  await expect(page.getByRole("button", { name: "Kích hoạt tài khoản", exact: true })).toBeEnabled();
+  await page.locator("dialog[open]").getByRole("button", { name: "Đóng", exact: true }).click();
+  await expect(page.locator('[data-refresh-row="original"]')).toContainText("Tạm ngưng");
+  await expect(search).toHaveValue("Minh An");
+  api.check();
+});
+
+test("an older background response cannot undo a confirmed status update", async ({ page }) => {
+  const api = await mockAdmin(page);
+  await api.visit("/admin/customers");
+  const stale = api.delay("/admin/state", structuredClone(api.state), 200, "GET");
+  const next = structuredClone(api.state);
+  next.customers[0].status = "Tạm ngưng";
+  let save: Gate | undefined;
+  try {
+    await page.getByRole("button", { name: "Làm mới dữ liệu", exact: true }).click();
+    await expect.poll(() => stale.count).toBe(1);
+    await page.getByRole("button", { name: "Xem khách KH001", exact: true }).click();
+    save = api.delay("/admin/commands", { id: "KH001", state: next });
+    await pending(page, page.getByRole("button", { name: "Tạm ngưng tài khoản", exact: true }), save, true);
+    save.release();
+    await expect(page.getByRole("button", { name: "Kích hoạt tài khoản", exact: true })).toBeEnabled();
+    const response = page.waitForResponse(result => result.url().endsWith("/admin/state"));
+    stale.release();
+    await (await response).finished();
+    await expect(page.getByRole("button", { name: "Làm mới dữ liệu", exact: true })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Kích hoạt tài khoản", exact: true })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Tạm ngưng tài khoản", exact: true })).toHaveCount(0);
+  } finally { stale.release(); save?.release(); }
+  api.check();
+});
+
+for (const [path, resourcePath] of [["/admin/pricing", "/admin/pricing"], ["/admin/users", "/admin/users"], ["/admin/ledger", "/admin/ledger"], ["/admin/integrations", "/admin/integrations/kiotviet"]]) {
+  test(`failed background refresh keeps ${path} visible and retryable`, async ({ page }) => {
+    const api = await mockAdmin(page);
+    await api.visit(path);
+    if (path === "/admin/integrations") await page.getByRole("tab", { name: "Đơn hàng", exact: true }).click();
+    const table = page.locator("#admin-content table");
+    await expect(table).toBeVisible();
+    await table.evaluate(table => table.setAttribute("data-refresh-node", "original"));
+    const failure = api.delay(resourcePath, { message: "Không thể tải bản cập nhật." }, 503, "GET");
+    try {
+      await page.getByRole("button", { name: "Làm mới dữ liệu", exact: true }).click();
+      await expect.poll(() => failure.count).toBeGreaterThan(0);
+      await expect(page.locator('[data-refresh-node="original"]')).toBeVisible();
+    } finally { failure.release(); }
+    await expect(page.getByRole("alert").filter({ hasText: "Chưa thể cập nhật dữ liệu." })).toBeVisible();
+    await expect(page.locator('[data-refresh-node="original"]')).toBeVisible();
+    const retry = api.delay(resourcePath, api.resources[resourcePath], 200, "GET");
+    try {
+      await pending(page, page.getByRole("button", { name: "Thử lại", exact: true }), retry);
+      await expect(page.locator('[data-refresh-node="original"]')).toBeVisible();
+    } finally { retry.release(); }
+    await expect(page.getByRole("alert").filter({ hasText: "Chưa thể cập nhật dữ liệu." })).toHaveCount(0);
+    await expect(page.locator('[data-refresh-node="original"]')).toBeVisible();
+    api.check();
+  });
+}
+
+test("a real branch permission change clears old data before loading the new scope", async ({ page }) => {
+  const api = await mockAdmin(page);
+  await api.visit("/admin/customers");
+  await page.locator("#admin-content table").evaluate(table => table.setAttribute("data-refresh-node", "original"));
+  api.staff.branches = ["Tuy Hòa"];
+  const gate = api.delay("/admin/state", api.state, 200, "GET");
+  try {
+    const session = page.waitForResponse(result => result.url().endsWith("/auth/session"));
+    await page.evaluate(key => window.dispatchEvent(new StorageEvent("storage", { key, newValue: JSON.stringify({ type: "refresh" }) })), authEventKey);
+    await (await session).finished();
+    await expect(page.getByRole("combobox", { name: "Chi nhánh", exact: true })).toHaveValue("Tuy Hòa");
+    await expect(page.locator('[data-refresh-node="original"]')).toHaveCount(0);
+    await expect(page.locator("#admin-content")).toContainText("Đang tải dữ liệu...");
+  } finally { gate.release(); }
+  await expect(page.locator("#admin-content table")).toContainText("Nội thất Mộc Việt");
+  await expect(page.locator("#admin-content table")).not.toContainText("Xưởng nội thất Minh An");
+  api.check();
+});
+
+test("a command from an old access scope cannot replace the new scope's data", async ({ page }) => {
+  const api = await mockAdmin(page);
+  await api.visit("/admin/customers");
+  await page.getByRole("button", { name: "Xem khách KH001", exact: true }).click();
+  const oldState = structuredClone(api.state);
+  oldState.customers[4].name = "Obsolete scope customer";
+  const save = api.delay("/admin/commands", { id: "KH001", state: oldState });
+  let refresh: Gate | undefined;
+  try {
+    await pending(page, page.getByRole("button", { name: "Tạm ngưng tài khoản", exact: true }), save, true);
+    api.staff.branches = ["Tuy Hòa"];
+    refresh = api.delay("/admin/state", api.state, 200, "GET");
+    await page.evaluate(key => window.dispatchEvent(new StorageEvent("storage", { key, newValue: JSON.stringify({ type: "refresh" }) })), authEventKey);
+    await expect.poll(() => refresh!.count).toBeGreaterThan(0);
+    refresh.release();
+    await expect(page.locator("#admin-content table")).toContainText("Nội thất Mộc Việt");
+    const response = page.waitForResponse(result => result.url().endsWith("/admin/commands"));
+    save.release();
+    await (await response).finished();
+    await expect(page.locator("#admin-content table")).not.toContainText("Obsolete scope customer");
+    await expect(page.getByRole("combobox", { name: "Chi nhánh", exact: true })).toHaveValue("Tuy Hòa");
+  } finally { save.release(); refresh?.release(); }
   api.check();
 });
 

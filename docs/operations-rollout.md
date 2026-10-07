@@ -38,6 +38,20 @@ keyed by action, resource ID and payload so only the clicked action spins.
 Save dialogs block dismissal while pending and recover on error. Run
 `QA_BASE_URL=http://127.0.0.1:3010 npm run test:admin-loading` in API mode for
 delayed/error mocked-API browser tests that never mutate the real database.
+Auth is held in Redux Toolkit across client navigation. Bootstrap reads the
+HttpOnly JWT cookie once through `/auth/session`; window focus does not repeat
+that call. Login/register/logout use their POST response directly. Explicit
+auth refreshes compare user ID, role and permitted branch values,
+not response object/array identity. Unchanged access keeps tables, filters,
+pagination, open dialogs and scroll mounted. Changed access clears the old
+scope before loading again. Failed resource refreshes retain same-path data and
+show an inline retry warning. Older reads and old-session command responses
+cannot overwrite a confirmed update or the current user's state.
+Protected API 401 clears client auth and personalized data, with request-start
+revision checks to ignore old failures after a new login. Transient auth errors
+retain the last verified user with retry. Cross-tab markers contain only an
+event type and nonce, never user data or tokens. Backend authentication and
+revocation are unchanged. Run `npm run test:auth` for mocked browser auth QA.
 Global account/security screens do not show branch/report filters; pricing,
 ledger and integrations hide the irrelevant report-period selector. Mutation
 forms guard repeated submits and show backend validation.

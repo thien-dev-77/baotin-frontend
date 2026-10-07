@@ -24,12 +24,12 @@ export function useAdminResource<T>(path: string) {
       if (version === sequence.current) setResult({ path, data, loading: false });
     } catch (error) {
       if (version === sequence.current)
-        setResult({
-          path,
+        setResult(previous => ({
+          ...(previous.path === path ? previous : { path }),
           loading: false,
           error:
             error instanceof Error ? error.message : "Không thể tải dữ liệu.",
-        });
+        }));
     }
   }, [path]);
   useEffect(() => {
@@ -50,17 +50,20 @@ export function ResourceStatus({
   error,
   reload,
   loading,
+  data,
 }: {
   error?: string;
   reload: () => Promise<void>;
   loading?: boolean;
+  data?: unknown;
 }) {
+  if (data !== undefined && !error) return loading ? <span role="status" className="sr-only">Đang cập nhật dữ liệu...</span> : null;
   return (
     <div
       role={error ? "alert" : "status"}
-      className="flex flex-wrap items-center gap-3 py-10 text-sm text-text-secondary"
+      className={`flex flex-wrap items-center gap-3 text-sm ${data !== undefined ? "mb-4 rounded border border-amber-200 bg-amber-50 p-3 text-amber-900" : "py-10 text-text-secondary"}`}
     >
-      {!error && <LoadingSpinner />}{error || "Đang tải..."}
+      {!error && <LoadingSpinner />}{error ? `${data !== undefined ? "Chưa thể cập nhật dữ liệu. " : ""}${error}` : "Đang tải..."}
       {error && (
         <Button variant="secondary" loading={loading} onClick={() => void reload()}>
           <RefreshCw size={16} />

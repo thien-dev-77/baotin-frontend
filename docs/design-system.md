@@ -272,6 +272,14 @@ Admin API actions:
   giu form va input, hien thong bao API, mo lai nut de nguoi dung thu lai.
 - Upload anh va checkbox kiem hang dung chung `LoadingSpinner`. Nut lam moi va
   thu lai cung hien spinner; retry khong bien mat khi request dang cho.
+- Khi cap nhat trang thai hoac refresh cung pham vi, giu nguyen bang, filter,
+  pagination va scroll; chi thay du lieu khi API tra ve. Loading toan trang chi
+  dung lan dau hoac khi doi tai khoan/quyen/chi nhanh duoc cap phep.
+- Refresh that bai van giu du lieu hien tai va hien canh bao kem retry. Khong
+  giu du lieu khac pham vi; response cu khong duoc ghi de trang thai vua luu.
+- Auth UI doc user tu Redux Toolkit; khong goi kiem tra auth lai khi focus hay
+  dieu huong. Loading auth toan trang chi cho bootstrap; kiem tra lai trong nen
+  giu giao dien hien tai. 401 protected clear auth, 503 giu user va hien retry.
 
 Responsive:
 

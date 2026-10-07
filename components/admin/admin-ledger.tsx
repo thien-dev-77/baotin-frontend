@@ -75,12 +75,11 @@ export function AdminLedger() {
           placeholder="Tìm mã hàng, khách hàng"
         />
       </div>
-      {!resource.data ? (
-        <ResourceStatus {...resource} />
-      ) : (
+      <ResourceStatus {...resource} />
+      {resource.data && (
         <div className="overflow-auto">
           {tab === "Tồn kho" && (
-            <table className="bt-table">
+            <table className="bt-table" aria-busy={resource.loading || undefined}>
               <thead>
                 <tr>
                   <th>Mã hàng</th>
@@ -132,7 +131,7 @@ export function AdminLedger() {
             </table>
           )}
           {tab === "Công nợ" && !warehouse && (
-            <table className="bt-table">
+            <table className="bt-table" aria-busy={resource.loading || undefined}>
               <thead>
                 <tr>
                   <th>Khách hàng</th>
@@ -218,7 +217,7 @@ export function AdminLedger() {
             </table>
           )}
           {tab === "Phát sinh" && (
-            <table className="bt-table">
+            <table className="bt-table" aria-busy={resource.loading || undefined}>
               <thead>
                 <tr>
                   <th>Thời gian</th>

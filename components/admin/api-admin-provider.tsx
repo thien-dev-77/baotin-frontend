@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LockKeyhole, LogIn, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { api } from "@/lib/api-client";
@@ -8,7 +8,7 @@ import { useCommerce } from "@/components/commerce-provider";
 import { Button, Field } from "@/components/ui";
 import { isWarehouseOrder } from "@/lib/admin-warehouse";
 import type { ApiAdminState } from "@/lib/api-types";
-import type { Branch } from "@/lib/types";
+import type { Branch, SessionUser } from "@/lib/types";
 import { AdminContext, type AdminValue, type PendingAdminAction } from "./admin-provider";
 import { PasswordInput } from "../password-form";
 
@@ -16,8 +16,12 @@ const empty: ApiAdminState = { products: [], customers: [], orders: [], approval
 
 export function ApiAdminProvider({ children }: { children: React.ReactNode }) {
   const { ready: sessionReady, sessionUser, logout, notice, reloadCatalog } = useCommerce();
+  // Session refreshes return new objects; reset only when access actually changes.
+  const scopeKey = JSON.stringify(sessionUser ? { id: sessionUser.id, role: sessionUser.role, branches: sessionUser.branches } : null);
+  const scope = useMemo(() => JSON.parse(scopeKey) as Pick<SessionUser, "id" | "role" | "branches"> | null, [scopeKey]);
+  const activeScope = useRef(scopeKey);
   const [state, setState] = useState(empty);
-  const [ready, setReady] = useState(false);
+  const [readyScope, setReadyScope] = useState<string | null>(null);
   const [branch, setBranch] = useState<Branch>("Quy Nhơn");
   const [days, setDays] = useState(7);
   const [resourceRevision, setResourceRevision] = useState(0);
@@ -26,38 +30,56 @@ export function ApiAdminProvider({ children }: { children: React.ReactNode }) {
   const [pendingAction, setPendingAction] = useState<PendingAdminAction | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const reloads = useRef(0);
+  const reloadVersion = useRef(0);
+  const scopeVersion = useRef(0);
   const [loggingOut, setLoggingOut] = useState(false);
-  const staff = sessionUser && sessionUser.role !== "b2b";
+  const staff = scope && scope.role !== "b2b";
+  const ready = readyScope === scopeKey;
   const reload = useCallback(async () => {
+    if (activeScope.current !== scopeKey) return;
+    const version = ++reloadVersion.current;
     reloads.current++; setRefreshing(true);
-    try { setState(await api<ApiAdminState>("/admin/state")); setResourceRevision(version => version + 1); setError(""); setReady(true); }
-    catch (error) { setError(error instanceof Error ? error.message : "Không thể tải dashboard."); }
+    try {
+      const next = await api<ApiAdminState>("/admin/state");
+      if (version !== reloadVersion.current) return;
+      setState(next); setResourceRevision(version => version + 1); setError(""); setReadyScope(scopeKey);
+    }
+    catch (error) { if (version === reloadVersion.current) setError(error instanceof Error ? error.message : "Không thể tải dashboard."); }
     finally { if (--reloads.current === 0) setRefreshing(false); }
-  }, []);
+  }, [scopeKey]);
   useEffect(() => {
-    setReady(false); setState(empty);
+    const scopes = scopeVersion;
+    const reads = reloadVersion;
+    activeScope.current = scopeKey;
+    scopes.current++; reads.current++;
+    setReadyScope(null); setState(empty); setError(""); setPendingAction(null); saving.current = false;
     if (!staff) return;
-    setBranch(sessionUser.branches[0]);
+    setBranch(scope.branches[0]);
     void reload();
-    const focus = () => { void reload(); };
+    const focus = () => { if (!saving.current) void reload(); };
     window.addEventListener("focus", focus);
-    return () => window.removeEventListener("focus", focus);
-  }, [staff, sessionUser?.id, sessionUser?.branches, reload]);
+    return () => { scopes.current++; reads.current++; window.removeEventListener("focus", focus); };
+  }, [staff, scope, scopeKey, reload]);
 
   const command = async (action: string, id: string | undefined, payload: object, orderId = id) => {
     if (saving.current) return { error: "Đang lưu thao tác trước. Vui lòng đợi." };
     saving.current = true;
+    const currentScope = scopeVersion.current;
+    reloadVersion.current++;
     setPendingAction({ action, id, payload });
     try {
       const expectedRevision = state.orders.find((order) => order.id === orderId)?.revision;
       const result = await api<{ id: string; state: ApiAdminState }>("/admin/commands", { method: "POST", body: JSON.stringify({ action, id, branch, payload, expectedRevision }) });
+      if (currentScope !== scopeVersion.current) return { error: "Phiên quản trị đã thay đổi. Vui lòng kiểm tra lại dữ liệu." };
+      reloadVersion.current++;
       setState(result.state); setResourceRevision(version => version + 1); notice("Đã lưu thay đổi.");
       if (action === "publish-product") void reloadCatalog().catch((error) => notice(error.message));
       return { id: result.id };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Không thể lưu thay đổi.";
-      notice(message); await reload(); return { error: message };
-    } finally { saving.current = false; setPendingAction(null); }
+      if (currentScope === scopeVersion.current) { notice(message); await reload(); }
+      return { error: message };
+    } finally { if (currentScope === scopeVersion.current) { saving.current = false; setPendingAction(null); } }
   };
   const simple = async (action: string, id: string, payload: object, orderId = id) => (await command(action, id, payload, orderId)).error || "";
   const date = new Date(`${state.today || "2026-10-04"}T00:00:00Z`);

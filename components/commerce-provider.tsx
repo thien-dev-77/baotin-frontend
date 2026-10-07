@@ -3,8 +3,10 @@
 import { CartLine, Customer, Order, Product, catalog, categoryCatalog, findProduct } from "@/lib/catalog";
 import type { Category, SessionUser } from "@/lib/types";
 import type { CatalogResponse, CheckoutDraft, Quote } from "@/lib/api-types";
-import { api, apiMode } from "@/lib/api-client";
+import { api, apiMode, onUnauthorized } from "@/lib/api-client";
 import { readApiSession, readCatalogResponse, retailProducts } from "@/lib/commerce-api";
+import { useAppSelector, useAppStore } from "@/lib/store/hooks";
+import { authCheckFailed, authCheckStarted, authEventKey, authReceived } from "@/lib/store/auth-slice";
 import { CheckCircle2, X } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
@@ -28,6 +30,10 @@ const Context = createContext<Commerce | null>(null);
 const initial: Store = { cart: [], favorites: [], orders: [], coupon: "" };
 const storageKey = apiMode ? "baotin-commerce-api-v1" : "baotin-commerce-v1";
 
+function notifyAuthChange(type: "refresh" | "logout") {
+  try { localStorage.setItem(authEventKey, JSON.stringify({ type, nonce: crypto.randomUUID() })); } catch {}
+}
+
 const profileKey = (identity: string) => `baotin-profile-${identity.trim().toLowerCase().replace(/\s+/g, "")}`;
 export function readPreviewCustomer(identity: string): Customer | null {
   try {
@@ -37,20 +43,25 @@ export function readPreviewCustomer(identity: string): Customer | null {
 }
 
 export function CommerceProvider({ children, initialCatalog, initialCatalogError = "" }: { children: React.ReactNode; initialCatalog: CatalogResponse | null; initialCatalogError?: string }) {
+  const authStore = useAppStore();
+  const auth = useAppSelector(state => state.auth);
   const [store, setStore] = useState<Store>(initial);
-  const [customer, setCustomer] = useState<Customer | null>(null);
-  const [ready, setReady] = useState(false);
+  const [previewCustomer, setPreviewCustomer] = useState<Customer | null>(null);
+  const [storageReady, setStorageReady] = useState(false);
+  const sessionUser = auth.user;
+  const customer = apiMode ? sessionUser?.customer || null : previewCustomer;
+  const ready = storageReady && (!apiMode || auth.ready);
   const [toast, setToast] = useState("");
   const [products, setProducts] = useState<Product[]>(initialCatalog?.products || (apiMode ? [] : catalog));
   const [categories, setCategories] = useState<Category[]>(initialCatalog?.categories || categoryCatalog);
-  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [catalogError, setCatalogError] = useState(initialCatalogError);
-  const [sessionError, setSessionError] = useState("");
   const [accountError, setAccountError] = useState("");
-  const apiError = catalogError || sessionError || accountError;
+  const apiError = catalogError || auth.error || accountError;
   const catalogLoaded = useRef(initialCatalog !== null);
   const sessionIdentity = useRef<string | null>(null);
   const refreshVersion = useRef(0);
+  const refreshRequest = useRef<Promise<void> | null>(null);
+  const hydrated = useRef(false);
   const reloadCatalog = useCallback(async () => {
     if (!apiMode) return;
     const version = refreshVersion.current;
@@ -59,47 +70,65 @@ export function CommerceProvider({ children, initialCatalog, initialCatalogError
     setProducts(result.products); setCategories(result.categories);
     catalogLoaded.current = true; setCatalogError("");
   }, []);
-  const refreshSession = useCallback(async (refreshProducts = true) => {
-    if (!apiMode) return;
-    const version = ++refreshVersion.current;
-    try {
-      const session = readApiSession(await api<unknown>("/auth/session"));
-      if (version !== refreshVersion.current) return;
-      const identity = session.user?.id || null;
-      if (identity !== sessionIdentity.current) {
-        setStore((state) => ({ ...state, orders: [], favorites: [] }));
-        setProducts(retailProducts);
-        sessionIdentity.current = identity;
-      }
-      if (session.user?.customer?.status !== "active") setProducts(retailProducts);
-      setSessionUser(session.user); setCustomer(session.user?.customer || null);
-      setSessionError(""); setAccountError("");
-      const current = () => version === refreshVersion.current;
-      const accountFailure = (error: unknown) => { if (current()) setAccountError(error instanceof Error ? error.message : "Không thể tải dữ liệu tài khoản."); };
-      const loadCatalog = refreshProducts || !catalogLoaded.current || session.user?.customer?.status === "active";
-      // Publish each response independently so orders/preferences cannot block products.
-      await Promise.all([
-        loadCatalog ? reloadCatalog().catch((error) => { if (current()) setCatalogError(error instanceof Error ? error.message : "Không thể tải sản phẩm."); }) : Promise.resolve(),
-        api<Order[]>("/orders").then((orders) => {
-          if (!Array.isArray(orders)) throw new Error("Phản hồi đơn hàng không hợp lệ. Vui lòng thử lại.");
-          if (current()) setStore((state) => ({ ...state, orders }));
-        }).catch(accountFailure),
-        session.user ? api<{ favorites: string[] }>("/account").then((account) => {
-          if (!Array.isArray(account.favorites)) throw new Error("Phản hồi tài khoản không hợp lệ. Vui lòng thử lại.");
-          if (current()) setStore((state) => ({ ...state, favorites: account.favorites }));
-        }).catch(accountFailure) : Promise.resolve()
-      ]);
-    } catch (error) {
-      if (version === refreshVersion.current) {
-        setSessionUser(null); setCustomer(null); sessionIdentity.current = null;
-        setProducts(retailProducts); setStore((state) => ({ ...state, orders: [], favorites: [] }));
-        setSessionError(error instanceof Error ? error.message : "Không thể kiểm tra phiên đăng nhập.");
-      }
+  const loadUserData = useCallback(async (user: SessionUser | null, refreshProducts: boolean, version: number) => {
+    if (version !== refreshVersion.current) return;
+    const identity = user?.id || null;
+    if (identity !== sessionIdentity.current) {
+      setStore((state) => ({ ...state, orders: [], favorites: [] }));
+      setProducts(retailProducts);
+      sessionIdentity.current = identity;
     }
-    finally { if (version === refreshVersion.current) setReady(true); }
+    if (user?.customer?.status !== "active") setProducts(retailProducts);
+    setAccountError("");
+    const current = () => version === refreshVersion.current;
+    const accountFailure = (error: unknown) => { if (current()) setAccountError(error instanceof Error ? error.message : "Không thể tải dữ liệu tài khoản."); };
+    const loadCatalog = refreshProducts || !catalogLoaded.current || user?.customer?.status === "active";
+    // Publish each response independently so orders/preferences cannot block products.
+    await Promise.all([
+      loadCatalog ? reloadCatalog().catch((error) => { if (current()) setCatalogError(error instanceof Error ? error.message : "Không thể tải sản phẩm."); }) : Promise.resolve(),
+      api<Order[]>("/orders").then((orders) => {
+        if (!Array.isArray(orders)) throw new Error("Phản hồi đơn hàng không hợp lệ. Vui lòng thử lại.");
+        if (current()) setStore((state) => ({ ...state, orders }));
+      }).catch(accountFailure),
+      user ? api<{ favorites: string[] }>("/account").then((account) => {
+        if (!Array.isArray(account.favorites)) throw new Error("Phản hồi tài khoản không hợp lệ. Vui lòng thử lại.");
+        if (current()) setStore((state) => ({ ...state, favorites: account.favorites }));
+      }).catch(accountFailure) : Promise.resolve()
+    ]);
   }, [reloadCatalog]);
+  const clearAuth = useCallback(() => {
+    refreshVersion.current++;
+    refreshRequest.current = null;
+    authStore.dispatch(authReceived(null));
+    sessionIdentity.current = null;
+    setProducts(retailProducts);
+    setStore(state => ({ ...state, orders: [], favorites: [] }));
+    setAccountError("");
+  }, [authStore]);
+  const refreshSession = useCallback((refreshProducts = true): Promise<void> => {
+    if (!apiMode) return Promise.resolve();
+    if (refreshRequest.current) return refreshRequest.current;
+    const version = ++refreshVersion.current;
+    authStore.dispatch(authCheckStarted());
+    const request: Promise<void> = (async () => {
+      try {
+        const { user } = readApiSession(await api<unknown>("/auth/session"));
+        if (version !== refreshVersion.current) return;
+        authStore.dispatch(authReceived(user));
+        refreshRequest.current = null;
+        await loadUserData(user, refreshProducts, version);
+      } catch (error) {
+        if (version === refreshVersion.current) authStore.dispatch(authCheckFailed(error instanceof Error ? error.message : "Không thể kiểm tra đăng nhập."));
+      }
+      finally { if (version === refreshVersion.current) refreshRequest.current = null; }
+    })();
+    refreshRequest.current = request;
+    return request;
+  }, [authStore, loadUserData]);
 
   useEffect(() => {
+    if (hydrated.current) return;
+    hydrated.current = true;
     try {
       const raw = localStorage.getItem(storageKey) || (apiMode ? localStorage.getItem("baotin-commerce-v1") : null);
       if (raw) {
@@ -111,17 +140,36 @@ export function CommerceProvider({ children, initialCatalog, initialCatalogError
           orders: !apiMode && Array.isArray(parsed.orders) ? parsed.orders.filter((order) => order.id && Array.isArray(order.items)) : []
         });
       }
-      const session = sessionStorage.getItem("baotin-customer") || localStorage.getItem("baotin-customer");
-      if (!apiMode && session) { const parsed = JSON.parse(session); if (parsed.role === "b2b" && typeof parsed.id === "string") setCustomer(parsed); }
+      if (!apiMode) {
+        const session = sessionStorage.getItem("baotin-customer") || localStorage.getItem("baotin-customer");
+        if (session) { const parsed = JSON.parse(session); if (parsed.role === "b2b" && typeof parsed.id === "string") setPreviewCustomer(parsed); }
+      }
     } catch { /* Storage is optional; the shopping flow remains available without it. */ }
-    if (apiMode) void refreshSession(false); else setReady(true);
-  }, [refreshSession]);
+    setStorageReady(true);
+    if (apiMode && !authStore.getState().auth.ready) void refreshSession(false);
+  }, [authStore, refreshSession]);
   useEffect(() => {
     if (!apiMode) return;
-    const refresh = () => { void refreshSession(); };
-    window.addEventListener("focus", refresh);
-    return () => window.removeEventListener("focus", refresh);
-  }, [refreshSession]);
+    const unsubscribe = onUnauthorized(() => {
+      const revision = authStore.getState().auth.revision;
+      return () => {
+        const current = authStore.getState().auth;
+        if (current.revision !== revision || !current.user) return;
+        clearAuth(); notifyAuthChange("logout");
+        setToast("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+      };
+    });
+    const changed = (event: StorageEvent) => {
+      if (event.key !== authEventKey || !event.newValue) return;
+      try {
+        const value = JSON.parse(event.newValue);
+        if (value.type === "logout") { clearAuth(); void loadUserData(null, true, refreshVersion.current); }
+        else if (value.type === "refresh") void refreshSession();
+      } catch { /* Ignore invalid cross-tab notifications. */ }
+    };
+    window.addEventListener("storage", changed);
+    return () => { unsubscribe(); window.removeEventListener("storage", changed); };
+  }, [authStore, clearAuth, loadUserData, refreshSession]);
 
   useEffect(() => { if (ready) { try { localStorage.setItem(storageKey, JSON.stringify(apiMode ? { ...store, orders: [] } : store)); } catch {} } }, [store, ready]);
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(""), 3500); return () => clearTimeout(timer); }, [toast]);
@@ -143,11 +191,12 @@ export function CommerceProvider({ children, initialCatalog, initialCatalogError
   const remove = (id: string) => setStore((state) => ({ ...state, cart: state.cart.filter((line) => line.productId !== id) }));
   const toggleFavorite = (id: string) => {
     const favorites = store.favorites.includes(id) ? store.favorites.filter((item) => item !== id) : [...store.favorites, id];
-    if (apiMode && sessionUser) { void api("/account/preferences", { method: "PATCH", body: JSON.stringify({ favorites }) }).then(() => setStore((state) => ({ ...state, favorites }))).catch((error) => notice(error.message)); }
+    const revision = authStore.getState().auth.revision;
+    if (apiMode && sessionUser) { void api("/account/preferences", { method: "PATCH", body: JSON.stringify({ favorites }) }).then(() => { if (revision === authStore.getState().auth.revision) setStore((state) => ({ ...state, favorites })); }).catch((error) => { if (revision === authStore.getState().auth.revision) notice(error.message); }); }
     else setStore((state) => ({ ...state, favorites }));
   };
   const login = (value: Customer, remember: boolean) => {
-    setCustomer(value);
+    setPreviewCustomer(value);
     try {
       localStorage.removeItem("baotin-customer"); sessionStorage.removeItem("baotin-customer");
       (remember ? localStorage : sessionStorage).setItem("baotin-customer", JSON.stringify(value));
@@ -155,21 +204,41 @@ export function CommerceProvider({ children, initialCatalog, initialCatalogError
     } catch {}
   };
   const logout = async () => {
-    if (apiMode) { try { await api("/auth/logout", { method: "POST" }); await refreshSession(); } catch (error) { notice(error instanceof Error ? error.message : "Không thể đăng xuất."); } return; }
-    setCustomer(null); try { localStorage.removeItem("baotin-customer"); sessionStorage.removeItem("baotin-customer"); } catch {}
+    if (apiMode) {
+      try {
+        const result = readApiSession(await api<unknown>("/auth/logout", { method: "POST" }));
+        if (result.user !== null) throw new Error("Phản hồi đăng xuất không hợp lệ.");
+        clearAuth(); notifyAuthChange("logout");
+        await loadUserData(null, true, refreshVersion.current);
+      } catch (error) { notice(error instanceof Error ? error.message : "Không thể đăng xuất."); }
+      return;
+    }
+    setPreviewCustomer(null); try { localStorage.removeItem("baotin-customer"); sessionStorage.removeItem("baotin-customer"); } catch {}
   };
-  const loginWithPassword = async (identity: string, password: string, remember = false) => { await api("/auth/login", { method: "POST", body: JSON.stringify({ identity, password, remember }) }); await refreshSession(); };
-  const registerWithPassword = async (input: { name: string; company: string; phone: string; email: string; password: string }) => { await api("/auth/register", { method: "POST", body: JSON.stringify(input) }); await refreshSession(); };
+  const acceptLogin = async (value: unknown) => {
+    const { user } = readApiSession(value);
+    if (!user) throw new Error("Phản hồi đăng nhập không hợp lệ. Vui lòng thử lại.");
+    const version = ++refreshVersion.current;
+    refreshRequest.current = null;
+    authStore.dispatch(authReceived(user)); notifyAuthChange("refresh");
+    await loadUserData(user, true, version);
+  };
+  const loginWithPassword = async (identity: string, password: string, remember = false) => { await acceptLogin(await api<unknown>("/auth/login", { method: "POST", body: JSON.stringify({ identity, password, remember }) })); };
+  const registerWithPassword = async (input: { name: string; company: string; phone: string; email: string; password: string }) => { await acceptLogin(await api<unknown>("/auth/register", { method: "POST", body: JSON.stringify(input) })); };
   const quoteOrder = useCallback((input: Pick<CheckoutDraft, "items" | "delivery" | "coupon">) => api<Quote>("/orders/quote", { method: "POST", body: JSON.stringify(input) }), []);
   const submitOrder = async (draft: CheckoutDraft, key: string) => {
+    const revision = authStore.getState().auth.revision;
     const order = await api<Order>("/orders", { method: "POST", body: JSON.stringify(draft), headers: { "Idempotency-Key": key } });
-    setStore((state) => ({ ...state, orders: [order, ...state.orders.filter((item) => item.id !== order.id)], cart: [], coupon: "" }));
+    if (revision === authStore.getState().auth.revision) setStore((state) => ({ ...state, orders: [order, ...state.orders.filter((item) => item.id !== order.id)], cart: [], coupon: "" }));
     return order;
   };
   const updateProfile = async (value: Customer) => {
     if (!apiMode) { login(value, Boolean(localStorage.getItem("baotin-customer"))); return; }
+    const version = refreshVersion.current;
     const result = readApiSession(await api<unknown>("/account/profile", { method: "PATCH", body: JSON.stringify({ name: value.name, company: value.company, phone: value.phone, email: value.email, tax: value.tax || "", address: value.address || "" }) }));
-    setSessionUser(result.user); setCustomer(result.user?.customer || null);
+    if (version !== refreshVersion.current) return;
+    refreshVersion.current++; refreshRequest.current = null;
+    authStore.dispatch(authReceived(result.user)); notifyAuthChange("refresh");
   };
   const setCoupon = (coupon: string) => setStore((state) => ({ ...state, coupon }));
   const placeOrder = (order: Order) => setStore((state) => ({ ...state, orders: [order, ...state.orders], cart: [], coupon: "" }));

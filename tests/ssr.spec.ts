@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { catalog, categoryCatalog } from "../lib/catalog";
+import { authEventKey } from "../lib/store/auth-slice";
 
 const base = process.env.QA_BASE_URL || "http://localhost:3041";
 if (!["localhost", "127.0.0.1"].includes(new URL(base).hostname)) throw new Error("SSR QA requires a local frontend server.");
@@ -67,7 +68,7 @@ test("Personalized catalog updates without waiting for orders/account, and clear
     await expect(page.locator(".bt-product-card").first()).toContainText("Giá B2B");
     await expect(page.getByRole("alert").filter({ hasText: "Account unavailable" })).toBeVisible();
     guest = true;
-    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await page.evaluate(key => window.dispatchEvent(new StorageEvent("storage", { key, newValue: JSON.stringify({ type: "logout" }) })), authEventKey);
     await expect(page.locator(".bt-product-card").first()).not.toContainText("Giá B2B");
     await expect(page.locator(".bt-product-card").first()).toContainText("Đăng nhập B2B");
   } finally { release(); }
@@ -95,7 +96,7 @@ test("A delayed B2B catalog cannot overwrite a newer guest session", async ({ pa
     await expect.poll(() => catalogRequests).toBe(1);
     guest = true;
     const guestResponse = page.waitForResponse((response) => response.url().endsWith("/catalog"));
-    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await page.evaluate(key => window.dispatchEvent(new StorageEvent("storage", { key, newValue: JSON.stringify({ type: "logout" }) })), authEventKey);
     await (await guestResponse).finished();
     const staleResponse = page.waitForResponse((response) => response.url().endsWith("/catalog"));
     release();
