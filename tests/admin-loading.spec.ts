@@ -64,6 +64,8 @@ async function mockAdmin(page: Page) {
       "/auth/session": { user: signedIn ? staff : null },
       "/catalog": { products: catalog, categories: categoryCatalog },
       "/orders": [], "/account": { favorites: [] }, "/admin/state": state,
+      "/admin/customers": { items: state.customers.map(customer => ({ ...customer, revision: 1, account: { id: customer.id, disabled: false } })), assignees: [], groups: Array.from(new Set(state.customers.map(customer => customer.group))) },
+      "/notifications": { items: [], total: 0, unreadCount: 0, pageSize: 20 },
       ...resources,
     };
     if (method !== "GET" || !(path in responses)) {

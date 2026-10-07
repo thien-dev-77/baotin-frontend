@@ -7,8 +7,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "@bprogress/next/app";
 import { useState } from "react";
+import { Bell, BadgeDollarSign } from "lucide-react";
 
 const navigation = [
+  { href: "/account/notifications", label: "Thông báo", icon: Bell }, { href: "/account/price-requests", label: "Yêu cầu giá", icon: BadgeDollarSign },
   { href: "/account", label: "Tổng quan", icon: LayoutDashboard }, { href: "/account/orders", label: "Đơn hàng", icon: ClipboardList },
   { href: "/account/products", label: "Sản phẩm thường mua", icon: Package }, { href: "/account/favorites", label: "Danh sách yêu thích", icon: Heart },
   { href: "/account/company", label: "Thông tin công ty", icon: Building2 }, { href: "/account/addresses", label: "Địa chỉ giao hàng", icon: MapPin },

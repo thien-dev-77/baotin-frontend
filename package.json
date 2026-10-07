@@ -5,6 +5,8 @@
   "scripts": {
     "test:domain": "playwright test tests/domain.spec.ts tests/commerce-api.spec.ts tests/backend-proxy.spec.ts tests/auth-state.spec.ts --workers=1",
     "test:auth": "playwright test tests/auth-ui.spec.ts --workers=1",
+    "test:experience": "playwright test tests/experience-ui.spec.ts --workers=1",
+    "test:customers": "playwright test tests/customers-ui.spec.ts --workers=1",
     "test:ssr": "playwright test tests/ssr.spec.ts --workers=1",
     "test:navigation": "playwright test tests/navigation-progress.spec.ts --workers=1",
     "test:connected": "node scripts/connected-api-qa.mjs",

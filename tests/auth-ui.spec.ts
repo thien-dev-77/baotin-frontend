@@ -31,9 +31,13 @@ async function mockAuth(page: Page, initialUser: SessionUser | null = staff) {
     if (key === "POST /auth/register") user = customer;
     if (key === "POST /auth/logout") user = null;
     const responses: Record<string, unknown> = {
+      ...(path.startsWith("/reviews/") && request.method() === "GET" ? { [key]: { items: [] } } : {}),
       "GET /auth/session": { user }, "POST /auth/login": { user }, "POST /auth/register": { user }, "POST /auth/logout": { user },
       "GET /catalog": { products: catalog, categories: categoryCatalog },
       "GET /orders": [], "GET /account": { favorites: [] },
+      "GET /notifications": { items: [], total: 0, unreadCount: 0, pageSize: 20 },
+      "GET /account/frequently-bought": { products: [] },
+      "GET /admin/customers": { items: [], assignees: [], groups: [] },
       "GET /admin/state": { products: catalog.map(product => ({ ...product, published: true, revision: 1 })), categories: categoryCatalog, orders: [], customers: [], approvals: [], receipts: [], warehouse: {}, paymentDueDates: {}, today: "2026-10-07" },
     };
     if (!(key in responses)) { errors.push(`Unexpected API request: ${key}`); await route.fulfill({ status: 500, json: { message: "Unexpected QA request" } }); return; }

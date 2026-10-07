@@ -197,10 +197,10 @@ export function AdminUsers() {
                 }
               />
             </Field>
-            <Field label="Email đăng nhập" required>
+            <Field label="Email đăng nhập" required={editing.role !== "b2b"}>
               <input
                 className="bt-input"
-                required
+                required={editing.role !== "b2b"}
                 type="email"
                 maxLength={160}
                 value={editing.email}

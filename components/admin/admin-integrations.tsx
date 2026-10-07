@@ -9,6 +9,7 @@ import { useAdmin } from "./admin-provider";
 import { AdminHeading, AdminStatus } from "./admin-ui";
 import { useAdminResource, ResourceStatus } from "./admin-resource";
 import { money } from "@/lib/catalog";
+import { KiotReconciliation } from "./kiot-reconciliation";
 
 type Preview = {
   id: string;
@@ -98,7 +99,7 @@ export function AdminIntegrations() {
       {resource.data && (
         <>
           <Tabs
-            options={["Kết nối", "Ghép mã", "Đơn hàng", "Lịch sử"]}
+            options={["Kết nối", "Ghép mã", "Đơn hàng", "Đối chiếu số dư", "Lịch sử"]}
             value={tab}
             onChange={setTab}
           />
@@ -107,6 +108,7 @@ export function AdminIntegrations() {
               {error}
             </p>
           )}
+          {tab === "Đối chiếu số dư" && <KiotReconciliation branch={branch} enabled={resource.data.enabled && resource.data.configured && !!resource.data.branches[branch]} />}
           {tab === "Kết nối" && (
             <section className="space-y-5 py-5">
               <div className="flex flex-wrap items-center gap-3">

@@ -12,6 +12,8 @@ import { categoryCatalog, type Product } from "@/lib/catalog";
 import { getProductRecommendations, getProductSpecifications, initialProductReviews, type ProductReview } from "@/lib/product-detail";
 import { useEffect, useRef, useState } from "react";
 import { useCommerce } from "@/components/commerce-provider";
+import { apiMode } from "@/lib/api-client";
+import { useApiResource } from "@/lib/use-api-resource";
 
 export function ProductDetail({ product: initialProduct }: { product: Product }) {
   const { products } = useCommerce();
@@ -19,6 +21,9 @@ export function ProductDetail({ product: initialProduct }: { product: Product })
   const detailRef = useRef<HTMLElement>(null);
   const [tab, setTab] = useState("Mô tả sản phẩm");
   const [reviews, setReviews] = useState<ProductReview[]>(initialProductReviews);
+  const reviewResource = useApiResource<{ items: ProductReview[] }>(`/reviews/${encodeURIComponent(product.id)}`);
+  const visibleReviews = apiMode ? reviewResource.data?.items || [] : reviews;
+  const rating = visibleReviews.length ? visibleReviews.reduce((sum, review) => sum + review.stars, 0) / visibleReviews.length : 0;
   const category = categoryCatalog.find((item) => item.slug === product.category)!;
   const specifications = getProductSpecifications(product);
   const { related, bundle } = getProductRecommendations(product, products);
@@ -48,7 +53,7 @@ export function ProductDetail({ product: initialProduct }: { product: Product })
       <div className="bt-product-detail-layout">
         <div className="bt-product-detail-intro grid items-start gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
           <ProductGallery product={product} />
-          <ProductOverview product={product} specifications={specifications} reviewCount={reviews.length} onShowReviews={showReviews} />
+          <ProductOverview product={product} specifications={specifications} reviewCount={visibleReviews.length} rating={rating} onShowReviews={showReviews} />
         </div>
         <ProductPurchasePanel product={product} />
         <section className="bt-product-detail-information">
@@ -58,8 +63,9 @@ export function ProductDetail({ product: initialProduct }: { product: Product })
             specifications={specifications}
             tab={tab}
             onTabChange={setTab}
-            reviews={reviews}
+            reviews={visibleReviews}
             onAddReview={addReview}
+            reviewResource={apiMode ? reviewResource : undefined}
           />
         </section>
       </div>

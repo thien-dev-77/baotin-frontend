@@ -1,5 +1,9 @@
 # Operations UI - 05 October 2026
 
+Update 07 October: [Experience Rollout](experience-rollout.md) covers notifications,
+customer price requests, PDFs, leads, CMS/reviews, reports and optional Kiot
+read-only polling. Its status supersedes the old backlog.
+
 Product management update (07 October): create/edit forms, multiple images,
 gallery cover/order/removal and public/private visibility are implemented.
 See [Product Management UI](product-management.md) for the current contract.
@@ -117,5 +121,5 @@ Only run build/lint tools on trusted inputs. Do not force an audit downgrade.
 
 Kiot is a manual connector with durable outbox; no automatic stock/debt/status
 sync, remote image import, or invoice issuance. No live vendor call/email
-delivery verified yet. Banking/refunds, MFA, customer exception requests,
-CMS/review persistence and production operations remain outside this release.
+delivery verified yet. Banking/refunds, MFA, automatic financial synchronization
+and production operations remain outside local verification.

@@ -14,29 +14,32 @@ import { categoryCatalog as categories, guideCatalog as guides } from "@/lib/cat
 import Link from "next/link";
 import Image from "next/image";
 import { lockGroups, lockProducts } from "@/lib/lock-catalog";
+import { serverContent } from "@/lib/server-api";
+import type { PublicContent } from "@/lib/content-types";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const content = await serverContent();
   return (
     <main className="min-h-screen bg-white">
       <h1 className="sr-only">Bảo Tín - Phụ kiện nội thất chính hãng</h1>
-      <HeroSection />
+      <HeroSection banners={content?.filter(row => row.kind === "banner")} />
       <B2BQuickActions />
       <CategorySection />
-      <SolutionSection />
+      <SolutionSection items={content?.filter(row => row.kind === "solution")} />
       <ProductShowcase />
       <LockCategorySections />
-      <BuyingGuides />
+      <BuyingGuides items={content?.filter(row => row.kind === "guide")} />
       <OrderProcess />
       <SupportSection />
     </main>
   );
 }
 
-function HeroSection() {
+function HeroSection({ banners }: { banners?: PublicContent[] }) {
   return (
     <section className="bt-container bt-home-hero-layout" aria-label="Khám phá sản phẩm">
       <HomeCategorySidebar />
-      <HeroVisual />
+      <HeroVisual slides={banners?.map(row => ({ ...row, alt: row.title, href: row.href || (row.category ? `/category/${row.category}` : "/search") }))} />
     </section>
   );
 }
@@ -112,7 +115,8 @@ function CategorySection() {
   );
 }
 
-function SolutionSection() {
+function SolutionSection({ items }: { items?: PublicContent[] }) {
+  const entries = items || solutions;
   return (
     <section className="mt-5 bg-section py-4">
       <div className="bt-container">
@@ -122,9 +126,9 @@ function SolutionSection() {
           link="Xem tất cả giải pháp"
         />
         <div className="scrollbar-hide flex gap-3 overflow-x-auto pb-1 lg:grid lg:grid-cols-5 lg:overflow-visible">
-          {solutions.map((solution) => (
+          {entries.map((solution) => (
             <a
-              href={solution.href}
+              href={solution.href || "/search"}
               key={solution.title}
               className="group min-w-[220px] overflow-hidden rounded-lg border border-border bg-white shadow-card transition hover:-translate-y-0.5 hover:border-[#bbd5f0] hover:shadow-card-hover lg:min-w-0"
             >
@@ -171,7 +175,8 @@ function LockCategorySections() {
   ));
 }
 
-function BuyingGuides() {
+function BuyingGuides({ items }: { items?: PublicContent[] }) {
+  const entries = items || guides;
   return (
     <section className="bt-container mt-5">
       <SectionHeading
@@ -179,7 +184,7 @@ function BuyingGuides() {
         subtitle="Chọn đúng sản phẩm cho nhu cầu của bạn"
       />
       <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
-        {guides.map((guide) => (
+        {entries.map((guide) => (
           <a
             key={guide.title}
             href={`/guides/${guide.slug}`}

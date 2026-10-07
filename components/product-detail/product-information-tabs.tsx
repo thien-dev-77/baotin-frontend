@@ -6,6 +6,8 @@ import type { Product } from "@/lib/catalog";
 import type { ProductReview, ProductSpecification } from "@/lib/product-detail";
 import { Download } from "lucide-react";
 import Link from "next/link";
+import type { ResourceStatus } from "@/components/admin/admin-resource";
+import type { ComponentProps } from "react";
 
 const informationTabs = ["Mô tả sản phẩm", "Tài liệu / Hướng dẫn", "Đánh giá", "Câu hỏi thường gặp"];
 const frequentlyAskedQuestions = [
@@ -21,9 +23,10 @@ type ProductInformationTabsProps = {
   onTabChange: (tab: string) => void;
   reviews: ProductReview[];
   onAddReview: (review: ProductReview) => void;
+  reviewResource?: ComponentProps<typeof ResourceStatus>;
 };
 
-export function ProductInformationTabs({ product, specifications, tab, onTabChange, reviews, onAddReview }: ProductInformationTabsProps) {
+export function ProductInformationTabs({ product, specifications, tab, onTabChange, reviews, onAddReview, reviewResource }: ProductInformationTabsProps) {
   return (
     <>
       <div id="product-tabs" className="mt-5 scroll-mt-32">
@@ -32,7 +35,7 @@ export function ProductInformationTabs({ product, specifications, tab, onTabChan
       <div role="tabpanel" className="border-b border-border py-5">
         {tab === "Mô tả sản phẩm" && <ProductDescription product={product} />}
         {tab === "Tài liệu / Hướng dẫn" && <ProductDocuments code={product.code} specifications={specifications} />}
-        {tab === "Đánh giá" && <ProductReviews reviews={reviews} onAddReview={onAddReview} />}
+        {tab === "Đánh giá" && <ProductReviews productId={product.id} reviews={reviews} onAddReview={onAddReview} resource={reviewResource} />}
         {tab === "Câu hỏi thường gặp" && <ProductFaq />}
       </div>
     </>

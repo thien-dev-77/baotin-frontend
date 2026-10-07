@@ -32,6 +32,12 @@ export async function proxyBackend(request: Request, path: string[], kind: "api"
     for (const cookie of upstream.headers.getSetCookie()) outgoing.append("set-cookie", cookie);
     outgoing.set("cache-control", kind === "api" || !upstream.ok ? "private, no-store, max-age=0" : upstream.headers.get("cache-control") || "public, max-age=86400");
     outgoing.set("x-content-type-options", "nosniff");
+    const documentRoute = request.method === "GET" && ((path.length === 3 && path[0] === "orders" && path[2] === "document") || (path.length === 4 && path[0] === "admin" && path[1] === "orders" && path[3] === "document"));
+    if (kind === "api" && documentRoute && upstream.ok && upstream.headers.get("content-type")?.split(";")[0] === "application/pdf") {
+      const bytes = await upstream.arrayBuffer();
+      if (new TextDecoder().decode(bytes.slice(0, 5)) !== "%PDF-") return Response.json({ message: "Tài liệu PDF không hợp lệ." }, { status: 502 });
+      return new Response(bytes, { status: upstream.status, headers: outgoing });
+    }
     if (kind === "api" && request.method !== "HEAD" && upstream.status !== 204 && upstream.status !== 304) {
       const body = await upstream.text();
       try { if (JSON.parse(body) === null) throw new Error("Null API response"); }

@@ -11,12 +11,13 @@ export function Button({ variant = "primary", className = "", loading = false, d
   const items = Children.toArray(children);
   const icon = items[0];
   const iconSize = isValidElement<{ size?: number }>(icon) ? icon.props.size : undefined;
+  const iconOnly = className.split(/\s+/).includes("bt-icon-button");
   // Replace the leading icon without changing the label or button dimensions.
   const content = loading ? typeof iconSize === "number"
     ? <><LoadingSpinner size={iconSize} />{items.slice(1)}</>
     : <><span className="inline-flex items-center gap-2 opacity-0">{children}</span><span className="absolute inset-0 flex items-center justify-center"><LoadingSpinner /></span></>
     : children;
-  return <button className={`relative ${variant === "primary" ? "bt-button-primary" : variant === "secondary" ? "bt-button-secondary" : "bt-button-ghost"} ${className}`} {...props} disabled={disabled || loading} aria-busy={loading || undefined}>{content}</button>;
+  return <button className={`relative ${variant === "primary" ? "bt-button-primary" : variant === "secondary" ? "bt-button-secondary" : "bt-button-ghost"} ${className} ${iconOnly ? "!p-0" : ""}`} {...props} disabled={disabled || loading} aria-busy={loading || undefined}>{content}</button>;
 }
 export function Breadcrumb({ items }: { items: { label: string; href?: string }[] }) {
   return <nav aria-label="Đường dẫn" className="mb-5 flex flex-wrap items-center gap-1.5 text-xs text-text-secondary"><Link href="/" className="hover:text-blue-brand">Trang chủ</Link>{items.map((item, index) => <span key={`${item.label}-${index}`} className="inline-flex items-center gap-1.5"><ChevronRight size={13} aria-hidden="true" />{item.href ? <Link href={item.href} className="hover:text-blue-brand">{item.label}</Link> : <span aria-current="page" className="text-primary">{item.label}</span>}</span>)}</nav>;

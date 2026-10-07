@@ -1,2 +1,3 @@
 import { GuidesView } from "@/components/content-pages";
-export default function GuidesPage() { return <GuidesView />; }
+import { serverContent } from "@/lib/server-api";
+export default async function GuidesPage() { const content = await serverContent(); return <GuidesView guides={content?.filter(row => row.kind === "guide")} />; }

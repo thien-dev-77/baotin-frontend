@@ -4,6 +4,17 @@ import type { Product } from "@/lib/catalog";
 import { catalog, categoryCatalog, findProduct } from "@/lib/catalog";
 import type { CatalogResponse } from "@/lib/api-types";
 import { readCatalogResponse, retailProducts } from "@/lib/commerce-api";
+import type { PublicContent } from "./content-types";
+
+export async function serverContent(): Promise<PublicContent[] | null> {
+  if (!apiMode) return null;
+  const backend = (process.env.BACKEND_URL || "http://127.0.0.1:4000").replace(/\/+$/, "");
+  const response = await fetch(`${backend}/api/content`, { cache: "no-store", credentials: "omit", signal: AbortSignal.timeout(8000) });
+  if (!response.ok) throw new Error("Không thể tải nội dung website.");
+  const data = await response.json();
+  if (!Array.isArray(data?.items)) throw new Error("Nội dung website không hợp lệ.");
+  return data.items;
+}
 
 export async function serverCatalog(): Promise<CatalogResponse> {
   if (!apiMode) return { products: catalog, categories: categoryCatalog };

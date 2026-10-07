@@ -13,6 +13,7 @@ import { adminDate, orderBlocker } from "@/lib/admin-preview";
 import { isWarehouseOrder, warehouseBlocker } from "@/lib/admin-warehouse";
 import { money } from "@/lib/catalog";
 import { latestOrderApprovals } from "@/lib/admin-approval";
+import { OrderDocumentButtons } from "../order-document-buttons";
 
 const nextActions: Record<string, string> = {
   "Chờ xác nhận": "Xác nhận đơn", "Chờ soạn hàng": "Bắt đầu soạn", "Đang soạn": "Hoàn tất soạn hàng",
@@ -33,6 +34,7 @@ export function AdminOrderDialog({ id, onClose, warehouseMode = false }: { id: s
 
   return <Modal open={!!order} onClose={onClose} busy={!!pendingAction} title={`Đơn hàng ${id || ""}`}>
     {order && <>
+      {!warehouseMode && <OrderDocumentButtons id={order.id} admin />}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-2"><AdminStatus value={order.status} /><span className="text-xs text-text-muted">{adminDate(order.date)} · {order.branch}</span></div>
       <dl className="mb-5 grid grid-cols-2 gap-4 text-sm">
         <div className="col-span-2"><dt className="text-xs text-text-muted">Khách hàng</dt><dd className="mt-1 font-semibold text-primary">{order.customerName}</dd></div>

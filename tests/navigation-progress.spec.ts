@@ -1,7 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { createRequire } from "node:module";
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { catalog, categoryCatalog } from "../lib/catalog";
 
 const base = process.env.QA_BASE_URL || "http://localhost:3010";
 if (!["localhost", "127.0.0.1"].includes(new URL(base).hostname)) {
@@ -256,26 +254,53 @@ test("Back and Forward settle without leaving a stuck progress bar", async ({
   await expect(page.getByRole("progressbar")).toHaveCount(0);
 });
 
-test("Admin links share the same navigation indicator", async ({
-  page,
-  context,
-}) => {
-  const backend = resolve(process.env.QA_BACKEND_DIR || "../backend");
-  const requireBackend = createRequire(resolve(backend, "package.json"));
-  const env = requireBackend("dotenv").parse(
-    await readFile(resolve(backend, ".env.local"), "utf8"),
-  );
-  if (new URL(env.DATABASE_URL).hostname !== "127.0.0.1")
-    throw new Error("Admin QA must use the local database.");
-  const login = await context.request.post(`${base}/api/backend/auth/login`, {
-    headers: { Origin: base, "X-BaoTin-Client": "web" },
-    data: { identity: "admin@baotin.local", password: env.SEED_PASSWORD },
-  });
-  expect(login.status()).toBe(201);
+test("Admin links share the same navigation indicator", async ({ page }) => {
   const held = await holdNavigation(
     page,
     (url) => url.pathname === "/admin/pricing",
   );
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  const responses: Record<string, unknown> = {
+    "/auth/session": {
+      user: {
+        id: "qa-admin",
+        name: "QA Admin",
+        email: "qa@example.test",
+        role: "admin",
+        branches: ["Quy Nhơn"],
+        customer: null,
+      },
+    },
+    "/catalog": { products: catalog, categories: categoryCatalog },
+    "/orders": [],
+    "/account": { favorites: [] },
+    "/notifications": { items: [], total: 0, pageSize: 20, unreadCount: 0 },
+    "/admin/pricing": { policies: [] },
+    "/admin/state": {
+      products: catalog,
+      categories: categoryCatalog,
+      customers: [],
+      orders: [],
+      approvals: [],
+      warehouse: {},
+      receipts: [],
+      paymentDueDates: {},
+      today: "2026-10-07",
+    },
+  };
+  await page.route("**/api/backend/**", async (route) => {
+    const path = new URL(route.request().url()).pathname.slice(
+      "/api/backend".length,
+    );
+    if (route.request().method() !== "GET" || !(path in responses)) {
+      errors.push(`Unexpected QA request: ${path}`);
+      await route.fulfill({
+        status: 500,
+        json: { message: "Unexpected QA request" },
+      });
+    } else await route.fulfill({ json: responses[path] });
+  });
   try {
     await page.goto(`${base}/admin`);
     await expect(page.locator("#admin-content")).toHaveAttribute(
@@ -294,6 +319,7 @@ test("Admin links share the same navigation indicator", async ({
       page.getByRole("heading", { name: "Bảng giá B2B", exact: true }),
     ).toBeVisible();
     await expect(page.getByRole("progressbar")).toHaveCount(0);
+    expect(errors).toEqual([]);
   } finally {
     held.release();
   }

@@ -9,10 +9,11 @@ type ProductOverviewProps = {
   product: Product;
   specifications: ProductSpecification[];
   reviewCount: number;
+  rating?: number;
   onShowReviews: () => void;
 };
 
-export function ProductOverview({ product, specifications, reviewCount, onShowReviews }: ProductOverviewProps) {
+export function ProductOverview({ product, specifications, reviewCount, rating = 0, onShowReviews }: ProductOverviewProps) {
   const brandSlug = product.brand === "Bảo Tín" ? "bao-tin" : product.brand.toLowerCase();
 
   return (
@@ -21,10 +22,9 @@ export function ProductOverview({ product, specifications, reviewCount, onShowRe
       <h1 className="mt-1 text-[22px] font-bold leading-tight text-primary">{product.name}</h1>
       <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
         <span className="flex text-amber-500">
-          {Array.from({ length: 5 }, (_, index) => <Star key={index} size={13} fill="currentColor" />)}
+          {Array.from({ length: 5 }, (_, index) => <Star key={index} size={13} fill={index < Math.round(rating) ? "currentColor" : "none"} />)}
         </span>
-        <button onClick={onShowReviews} className="text-blue-brand">4.8 ({126 + reviewCount - 1} đánh giá)</button>
-        <span className="text-text-secondary">· Đã bán 1.2k+</span>
+        <button onClick={onShowReviews} className="text-blue-brand">{reviewCount ? `${rating.toFixed(1)} (${reviewCount} đánh giá)` : "Chưa có đánh giá"}</button>
       </div>
       <p className="mt-4 text-sm leading-6 text-text-secondary">
         {product.name} chính hãng, bền bỉ và đồng bộ. Phù hợp cho xưởng nội thất, công trình và ngôi nhà Việt.

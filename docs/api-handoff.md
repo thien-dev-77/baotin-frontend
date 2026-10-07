@@ -1,5 +1,13 @@
 # Ban giao UI va lap ke hoach API
 
+**Cap nhat quan ly khach B2B 07/10/2026:** tao/sua ho so, phan nhom,
+Sales phu trach, khach thu nghiem va tao tai khoan bang so dien thoai da co UI/API.
+Doc [Customer Management](customer-management.md). Code moi chua deploy production.
+
+**Cap nhat 07/10/2026:** thong bao admin/B2B, xin gia, san pham thuong mua,
+PDF, xu ly tu van, CMS/reviews va KPI/tuoi no da co UI/API.
+Doc [Experience Rollout](experience-rollout.md) cho contract va gioi han hien tai.
+
 **Hien trang 05/10/2026:** doc [Operations UI](operations-rollout.md) va
 [Backend Integration](backend-integration.md) truoc. Bang gia, ledger, accounts,
 website edit/requote da co UI/API; KiotViet connector co code, cho credentials.

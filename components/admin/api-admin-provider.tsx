@@ -99,7 +99,7 @@ export function ApiAdminProvider({ children }: { children: React.ReactNode }) {
     setPaymentDueDate: async (id, date) => (await command("due-date", id, { date })).error || "",
     advanceOrder: (id) => simple("advance-order", id, {}), cancelOrder: (id, reason) => simple("cancel-order", id, { reason }),
     decideApproval: (id, approved, reason) => simple("decide-approval", id, { approved, reason }, state.approvals.find((item) => item.id === id)?.orderId),
-    setCustomerStatus: (id, status) => simple("customer-status", id, { status }),
+    setCustomerStatus: (id, status) => simple("customer-status", id, { status, revision: state.customers.find(customer => customer.id === id)?.revision }),
     setPublished: (id, published) => simple("publish-product", id, { published }),
     setPicked: (id, productId, picked) => simple("pick-item", id, { productId, picked }),
     reportShortage: (id, productId, quantity, note) => simple("report-shortage", id, { productId, quantity, note }),

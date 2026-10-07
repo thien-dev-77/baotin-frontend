@@ -4,55 +4,679 @@ import { useCommerce } from "@/components/commerce-provider";
 import { OrdersTable, useCustomerOrders } from "@/components/order-views";
 import { ProductGrid } from "@/components/product-card";
 import { Button, EmptyState, Field, Modal, PageHeading } from "@/components/ui";
-import { ArrowRight, Building2, ClipboardList, Download, Heart, MapPin, Plus, ShoppingCart, Trash2, Wallet } from "lucide-react";
+import {
+  ArrowRight,
+  Building2,
+  ClipboardList,
+  Download,
+  Heart,
+  MapPin,
+  Plus,
+  ShoppingCart,
+  Trash2,
+  Wallet,
+} from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api, apiMode } from "@/lib/api-client";
 import { PasswordForm } from "./password-form";
 import { downloadAdminCsv } from "@/lib/admin-preview";
+import { FrequentlyBought, useFrequentlyBought } from "./frequently-bought";
+import { ResourceStatus } from "./admin/admin-resource";
 
 export function AccountDashboard() {
-  const { customer } = useCommerce(); const orders = useCustomerOrders();
-  return <section><PageHeading title={`Xin chào, ${customer?.name}`} description="Quản lý đơn hàng và công nợ của bạn tại Bảo Tín." /><div className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4">{[{ title: "Tổng đơn hàng", value: String(orders.length), icon: ClipboardList, href: "/account/orders" }, { title: "Đơn đang xử lý", value: String(orders.filter((o) => !["Đã giao", "Đã hủy"].includes(o.status)).length), icon: ShoppingCart, href: "/account/orders" }, { title: "Công nợ hiện tại", value: money(customer?.debt || 0), icon: Wallet, href: "/account/credit" }, { title: "Hạn mức còn lại", value: money(Math.max(0, (customer?.creditLimit || 0) - (customer?.debt || 0))), icon: Building2, href: "/account/credit" }].map(({ title, value, icon: Icon, href }) => <Link href={href} key={title} className="rounded-lg border border-border p-4"><div className="flex items-center justify-between gap-2"><p className="text-xs text-text-secondary">{title}</p><Icon size={18} className="text-blue-brand" /></div><strong className="mt-3 block text-lg text-primary">{value}</strong></Link>)}</div><div className="mb-3 flex items-center justify-between"><h2 className="text-lg font-bold text-primary">Đơn hàng gần đây</h2><Link href="/account/orders" className="text-xs font-semibold text-blue-brand">Xem tất cả →</Link></div><OrdersTable orders={orders.slice(0, 4)} /><div className="mb-4 mt-7 flex items-center justify-between"><h2 className="text-lg font-bold text-primary">Sản phẩm thường mua</h2><Link href="/account/products" className="text-xs font-semibold text-blue-brand">Xem tất cả →</Link></div><ProductGrid products={catalog.slice(0, 4)} /></section>;
+  const { customer } = useCommerce();
+  const orders = useCustomerOrders();
+  return (
+    <section>
+      <PageHeading
+        title={`Xin chào, ${customer?.name}`}
+        description="Quản lý đơn hàng và công nợ của bạn tại Bảo Tín."
+      />
+      <div className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
+        {[
+          {
+            title: "Tổng đơn hàng",
+            value: String(orders.length),
+            icon: ClipboardList,
+            href: "/account/orders",
+          },
+          {
+            title: "Đơn đang xử lý",
+            value: String(
+              orders.filter((o) => !["Đã giao", "Đã hủy"].includes(o.status))
+                .length,
+            ),
+            icon: ShoppingCart,
+            href: "/account/orders",
+          },
+          {
+            title: "Công nợ hiện tại",
+            value: money(customer?.debt || 0),
+            icon: Wallet,
+            href: "/account/credit",
+          },
+          {
+            title: "Hạn mức còn lại",
+            value: money(
+              Math.max(0, (customer?.creditLimit || 0) - (customer?.debt || 0)),
+            ),
+            icon: Building2,
+            href: "/account/credit",
+          },
+        ].map(({ title, value, icon: Icon, href }) => (
+          <Link
+            href={href}
+            key={title}
+            className="rounded-lg border border-border p-4"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-text-secondary">{title}</p>
+              <Icon size={18} className="text-blue-brand" />
+            </div>
+            <strong className="mt-3 block text-lg text-primary">{value}</strong>
+          </Link>
+        ))}
+      </div>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-lg font-bold text-primary">Đơn hàng gần đây</h2>
+        <Link
+          href="/account/orders"
+          className="text-xs font-semibold text-blue-brand"
+        >
+          Xem tất cả →
+        </Link>
+      </div>
+      <OrdersTable orders={orders.slice(0, 4)} />
+      <div className="mb-4 mt-7 flex items-center justify-between">
+        <h2 className="text-lg font-bold text-primary">Sản phẩm thường mua</h2>
+        <Link
+          href="/account/products"
+          className="text-xs font-semibold text-blue-brand"
+        >
+          Xem tất cả →
+        </Link>
+      </div>
+      <FrequentlyBought limit={4} />
+    </section>
+  );
 }
 export function FavoritesView() {
   const { favorites, ready, products: catalog } = useCommerce();
   const products = catalog.filter((p) => favorites.includes(p.id));
-  return <section><PageHeading title="Sản phẩm yêu thích" description={ready ? `${products.length} sản phẩm đã lưu` : "Đang tải danh sách..."} />{!ready ? <div role="status" aria-label="Đang tải sản phẩm yêu thích" className="h-60 animate-pulse rounded-lg bg-section" /> : (products.length ? <ProductGrid products={products} /> : <EmptyState icon={<Heart size={38} />} title="Bạn chưa có sản phẩm yêu thích" description="Lưu những phụ kiện bạn quan tâm để dễ tìm lại." href="/search" action="Khám phá sản phẩm" />)}</section>;
+  return (
+    <section>
+      <PageHeading
+        title="Sản phẩm yêu thích"
+        description={
+          ready ? `${products.length} sản phẩm đã lưu` : "Đang tải danh sách..."
+        }
+      />
+      {!ready ? (
+        <div
+          role="status"
+          aria-label="Đang tải sản phẩm yêu thích"
+          className="h-60 animate-pulse rounded-lg bg-section"
+        />
+      ) : products.length ? (
+        <ProductGrid products={products} />
+      ) : (
+        <EmptyState
+          icon={<Heart size={38} />}
+          title="Bạn chưa có sản phẩm yêu thích"
+          description="Lưu những phụ kiện bạn quan tâm để dễ tìm lại."
+          href="/search"
+          action="Khám phá sản phẩm"
+        />
+      )}
+    </section>
+  );
 }
 export function AccountProducts() {
-  const { add, notice, products: catalog } = useCommerce(); const [query, setQuery] = useState("");
-  const products = catalog.slice(0, 12).filter((p) => normalize(`${p.name} ${p.code}`).includes(normalize(query)));
-  return <section><PageHeading title="Sản phẩm thường mua" description="Tìm nhanh mã hàng, đặt lại các phụ kiện dùng thường xuyên." /><form className="mb-6 flex flex-wrap items-end gap-3 border-y border-border bg-section py-4 sm:px-4" onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); const p = catalog.find((item) => normalize(item.code) === normalize(String(form.get("code")).trim())); if (p) add(p, Number(form.get("quantity"))); else notice("Không tìm thấy mã hàng. Vui lòng kiểm tra lại."); }}><div className="min-w-[160px] flex-1"><Field label="Đặt nhanh theo mã"><input className="bt-input" required name="code" placeholder="Ví dụ: 311.72.501" /></Field></div><div className="w-24"><Field label="Số lượng"><input className="bt-input" type="number" required name="quantity" defaultValue="1" min="1" max="999" /></Field></div><Button type="submit"><ShoppingCart size={17} />Thêm vào giỏ</Button></form><input className="bt-input mb-4 max-w-md" aria-label="Tìm sản phẩm thường mua" placeholder="Tìm tên sản phẩm hoặc mã hàng..." value={query} onChange={(e) => setQuery(e.target.value)} />{products.length ? <ProductGrid products={products} /> : <EmptyState title="Không tìm thấy sản phẩm" />}</section>;
+  const { add, notice, products: catalog } = useCommerce();
+  const [query, setQuery] = useState("");
+  const frequentlyBought = useFrequentlyBought();
+  const products = frequentlyBought.products.filter((p) =>
+    normalize(`${p.name} ${p.code}`).includes(normalize(query)),
+  );
+  return (
+    <section>
+      <PageHeading
+        title="Sản phẩm thường mua"
+        description="Tìm nhanh mã hàng, đặt lại các phụ kiện dùng thường xuyên."
+      />
+      <form
+        className="mb-6 flex flex-wrap items-end gap-3 border-y border-border bg-section py-4 sm:px-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const form = new FormData(event.currentTarget);
+          const p = catalog.find(
+            (item) =>
+              normalize(item.code) ===
+              normalize(String(form.get("code")).trim()),
+          );
+          if (p) add(p, Number(form.get("quantity")));
+          else notice("Không tìm thấy mã hàng. Vui lòng kiểm tra lại.");
+        }}
+      >
+        <div className="min-w-[160px] flex-1">
+          <Field label="Đặt nhanh theo mã">
+            <input
+              className="bt-input"
+              required
+              name="code"
+              placeholder="Ví dụ: 311.72.501"
+            />
+          </Field>
+        </div>
+        <div className="w-24">
+          <Field label="Số lượng">
+            <input
+              className="bt-input"
+              type="number"
+              required
+              name="quantity"
+              defaultValue="1"
+              min="1"
+              max="999"
+            />
+          </Field>
+        </div>
+        <Button type="submit">
+          <ShoppingCart size={17} />
+          Thêm vào giỏ
+        </Button>
+      </form>
+      <input
+        className="bt-input mb-4 max-w-md"
+        aria-label="Tìm sản phẩm thường mua"
+        placeholder="Tìm tên sản phẩm hoặc mã hàng..."
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      <ResourceStatus {...frequentlyBought} />
+      {products.length ? (
+        <ProductGrid products={products} />
+      ) : (
+        !frequentlyBought.loading && <EmptyState title="Chưa có sản phẩm thường mua" />
+      )}
+    </section>
+  );
 }
 export function CompanyView() {
   const { customer, updateProfile, notice } = useCommerce();
   if (!customer) return null;
-  return <section><PageHeading title="Thông tin công ty" description="Thông tin sử dụng khi liên hệ và lập đơn hàng." /><form className="max-w-2xl space-y-4" onSubmit={async (event) => { event.preventDefault(); const form = new FormData(event.currentTarget); try { await updateProfile({ ...customer, name: String(form.get("name")), company: String(form.get("company")), email: String(form.get("email")), phone: String(form.get("phone")), tax: String(form.get("tax")), address: String(form.get("address")) }); notice("Đã cập nhật thông tin công ty."); } catch (error) { notice(error instanceof Error ? error.message : "Không thể lưu thông tin."); } }}><Field label="Tên công ty / Xưởng nội thất" required><input name="company" required defaultValue={customer.company} className="bt-input" /></Field><div className="grid gap-4 sm:grid-cols-2"><Field label="Người liên hệ" required><input name="name" required defaultValue={customer.name} className="bt-input" /></Field><Field label="Mã số thuế"><input name="tax" inputMode="numeric" defaultValue={customer.tax} className="bt-input" /></Field><Field label="Số điện thoại" required><input name="phone" type="tel" pattern="[+0-9 ]{9,15}" required defaultValue={customer.phone} className="bt-input" /></Field><Field label="Email"><input name="email" type="email" readOnly={apiMode} defaultValue={customer.email} className="bt-input" /></Field></div><Field label="Địa chỉ công ty"><input name="address" defaultValue={customer.address} className="bt-input" /></Field><Button type="submit">Lưu thông tin</Button></form></section>;
+  return (
+    <section>
+      <PageHeading
+        title="Thông tin công ty"
+        description="Thông tin sử dụng khi liên hệ và lập đơn hàng."
+      />
+      <form
+        className="max-w-2xl space-y-4"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          const form = new FormData(event.currentTarget);
+          try {
+            await updateProfile({
+              ...customer,
+              name: String(form.get("name")),
+              company: String(form.get("company")),
+              email: String(form.get("email")),
+              phone: String(form.get("phone")),
+              tax: String(form.get("tax")),
+              address: String(form.get("address")),
+            });
+            notice("Đã cập nhật thông tin công ty.");
+          } catch (error) {
+            notice(
+              error instanceof Error
+                ? error.message
+                : "Không thể lưu thông tin.",
+            );
+          }
+        }}
+      >
+        <Field label="Tên công ty / Xưởng nội thất" required>
+          <input
+            name="company"
+            required
+            defaultValue={customer.company}
+            className="bt-input"
+          />
+        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Người liên hệ" required>
+            <input
+              name="name"
+              required
+              defaultValue={customer.name}
+              className="bt-input"
+            />
+          </Field>
+          <Field label="Mã số thuế">
+            <input
+              name="tax"
+              inputMode="numeric"
+              defaultValue={customer.tax}
+              className="bt-input"
+            />
+          </Field>
+          <Field label="Số điện thoại" required>
+            <input
+              name="phone"
+              type="tel"
+              pattern="[+0-9 ]{9,15}"
+              required
+              defaultValue={customer.phone}
+              className="bt-input"
+            />
+          </Field>
+          <Field label="Email">
+            <input
+              name="email"
+              type="email"
+              readOnly={apiMode}
+              defaultValue={customer.email}
+              className="bt-input"
+            />
+          </Field>
+        </div>
+        <Field label="Địa chỉ công ty">
+          <input
+            name="address"
+            defaultValue={customer.address}
+            className="bt-input"
+          />
+        </Field>
+        <Button type="submit">Lưu thông tin</Button>
+      </form>
+    </section>
+  );
 }
 export function CreditView() {
   const { customer } = useCommerce();
-  const [payments, setPayments] = useState<{ date: string; note: string; debit: number; credit: number }[]>([]);
-  const [error, setError] = useState(""); const [loading, setLoading] = useState(apiMode);
-  useEffect(() => { let active = true; if (apiMode) { setLoading(true); setPayments([]); void api<{ payments: typeof payments }>("/account").then(result => { if (active) { setPayments(result.payments); setError(""); } }).catch(cause => { if (active) setError(cause.message); }).finally(() => { if (active) setLoading(false); }); } return () => { active = false; }; }, [customer?.id]);
-  const rows = apiMode ? payments : customer?.creditLimit ? [{ date: "28/09/2026", note: "Đơn hàng DH20260928001", debit: 8400000, credit: 0 }, { date: "26/09/2026", note: "Thanh toán chuyển khoản", debit: 0, credit: 5000000 }, { date: "24/09/2026", note: "Đơn hàng DH20260924005", debit: 9000000, credit: 0 }] : [];
-  const download = () => downloadAdminCsv("doi-chieu-cong-no.csv", [["Ngày", "Nội dung", "Phát sinh nợ", "Thanh toán"], ...rows.map(row => [row.date, row.note, row.debit, row.credit])]);
-  const available = Math.max(0, (customer?.creditLimit || 0) - (customer?.debt || 0) - (customer?.creditReserved || 0));
-  return <section><PageHeading title="Công nợ" description="Theo dõi hạn mức và lịch sử thanh toán."><Button variant="secondary" onClick={download} disabled={!rows.length}><Download size={16} />Tải đối chiếu</Button></PageHeading>
-    <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{[["Công nợ hiện tại", customer?.debt || 0], ["Hạn mức công nợ", customer?.creditLimit || 0], ["Đang giữ cho đơn hàng", customer?.creditReserved || 0], ["Hạn mức còn lại", available]].map(([label, value]) => <div key={label} className="rounded-lg border border-border p-4"><p className="text-xs text-text-secondary">{label}</p><strong className="mt-3 block text-lg text-primary">{money(Number(value))}</strong></div>)}</div>
-    <h2 className="mb-3 text-base font-bold text-primary">Phát sinh gần đây</h2>{loading ? <p role="status" className="py-8 text-sm text-text-secondary">Đang tải phát sinh...</p> : error ? <p role="alert" className="py-8 text-sm text-danger">{error}</p> : !rows.length ? <EmptyState title="Chưa có phát sinh công nợ" href="/contact" action="Liên hệ đối chiếu" /> : <div className="overflow-auto rounded-lg border border-border"><table className="bt-table"><thead><tr><th>Ngày</th><th>Nội dung</th><th>Phát sinh nợ</th><th>Thanh toán</th></tr></thead><tbody>{rows.map((row, index) => <tr key={`${row.date}-${index}`}><td className="whitespace-nowrap">{row.date.includes("T") ? new Date(row.date).toLocaleString("vi-VN") : row.date}</td><td>{row.note}</td><td className="whitespace-nowrap">{money(row.debit)}</td><td className="whitespace-nowrap text-success">{money(row.credit)}</td></tr>)}</tbody></table></div>}
-    <Link href="/contact" className="mt-5 inline-flex items-center gap-2 text-sm text-blue-brand">Liên hệ đối chiếu công nợ<ArrowRight size={15} /></Link></section>;
+  const [payments, setPayments] = useState<
+    { date: string; note: string; debit: number; credit: number }[]
+  >([]);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(apiMode);
+  useEffect(() => {
+    let active = true;
+    if (apiMode) {
+      setLoading(true);
+      setPayments([]);
+      void api<{ payments: typeof payments }>("/account")
+        .then((result) => {
+          if (active) {
+            setPayments(result.payments);
+            setError("");
+          }
+        })
+        .catch((cause) => {
+          if (active) setError(cause.message);
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    }
+    return () => {
+      active = false;
+    };
+  }, [customer?.id]);
+  const rows = apiMode
+    ? payments
+    : customer?.creditLimit
+      ? [
+          {
+            date: "28/09/2026",
+            note: "Đơn hàng DH20260928001",
+            debit: 8400000,
+            credit: 0,
+          },
+          {
+            date: "26/09/2026",
+            note: "Thanh toán chuyển khoản",
+            debit: 0,
+            credit: 5000000,
+          },
+          {
+            date: "24/09/2026",
+            note: "Đơn hàng DH20260924005",
+            debit: 9000000,
+            credit: 0,
+          },
+        ]
+      : [];
+  const download = () =>
+    downloadAdminCsv("doi-chieu-cong-no.csv", [
+      ["Ngày", "Nội dung", "Phát sinh nợ", "Thanh toán"],
+      ...rows.map((row) => [row.date, row.note, row.debit, row.credit]),
+    ]);
+  const available = Math.max(
+    0,
+    (customer?.creditLimit || 0) -
+      (customer?.debt || 0) -
+      (customer?.creditReserved || 0),
+  );
+  return (
+    <section>
+      <PageHeading
+        title="Công nợ"
+        description="Theo dõi hạn mức và lịch sử thanh toán."
+      >
+        <Button variant="secondary" onClick={download} disabled={!rows.length}>
+          <Download size={16} />
+          Tải đối chiếu
+        </Button>
+      </PageHeading>
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          ["Công nợ hiện tại", customer?.debt || 0],
+          ["Hạn mức công nợ", customer?.creditLimit || 0],
+          ["Đang giữ cho đơn hàng", customer?.creditReserved || 0],
+          ["Hạn mức còn lại", available],
+        ].map(([label, value]) => (
+          <div key={label} className="rounded-lg border border-border p-4">
+            <p className="text-xs text-text-secondary">{label}</p>
+            <strong className="mt-3 block text-lg text-primary">
+              {money(Number(value))}
+            </strong>
+          </div>
+        ))}
+      </div>
+      <h2 className="mb-3 text-base font-bold text-primary">
+        Phát sinh gần đây
+      </h2>
+      {loading ? (
+        <p role="status" className="py-8 text-sm text-text-secondary">
+          Đang tải phát sinh...
+        </p>
+      ) : error ? (
+        <p role="alert" className="py-8 text-sm text-danger">
+          {error}
+        </p>
+      ) : !rows.length ? (
+        <EmptyState
+          title="Chưa có phát sinh công nợ"
+          href="/contact"
+          action="Liên hệ đối chiếu"
+        />
+      ) : (
+        <div className="overflow-auto rounded-lg border border-border">
+          <table className="bt-table">
+            <thead>
+              <tr>
+                <th>Ngày</th>
+                <th>Nội dung</th>
+                <th>Phát sinh nợ</th>
+                <th>Thanh toán</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, index) => (
+                <tr key={`${row.date}-${index}`}>
+                  <td className="whitespace-nowrap">
+                    {row.date.includes("T")
+                      ? new Date(row.date).toLocaleString("vi-VN")
+                      : row.date}
+                  </td>
+                  <td>{row.note}</td>
+                  <td className="whitespace-nowrap">{money(row.debit)}</td>
+                  <td className="whitespace-nowrap text-success">
+                    {money(row.credit)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <Link
+        href="/contact"
+        className="mt-5 inline-flex items-center gap-2 text-sm text-blue-brand"
+      >
+        Liên hệ đối chiếu công nợ
+        <ArrowRight size={15} />
+      </Link>
+    </section>
+  );
 }
 type Address = { id: string; name: string; phone: string; address: string };
 export function AddressesView() {
-  const { customer, notice } = useCommerce(); const [addresses, setAddresses] = useState<Address[]>([]); const [editing, setEditing] = useState<Address | null>(null); const [open, setOpen] = useState(false);
+  const { customer, notice } = useCommerce();
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [editing, setEditing] = useState<Address | null>(null);
+  const [open, setOpen] = useState(false);
   const key = `baotin-addresses-${customer?.id}`;
-  useEffect(() => { if (apiMode) { void api<{ addresses: Address[] }>("/account").then((result) => setAddresses(result.addresses)).catch((error) => notice(error.message)); return; } try { const parsed = JSON.parse(localStorage.getItem(key) || "[]"); if (Array.isArray(parsed)) setAddresses(parsed); } catch {} }, [key, notice]);
-  const save = async (next: Address[]) => { if (apiMode) await api("/account/preferences", { method: "PATCH", body: JSON.stringify({ addresses: next }) }); else try { localStorage.setItem(key, JSON.stringify(next)); } catch {} setAddresses(next); };
-  return <section><PageHeading title="Địa chỉ giao hàng"><Button onClick={() => { setEditing(null); setOpen(true); }}><Plus size={17} />Thêm địa chỉ</Button></PageHeading>{addresses.length ? <div className="grid gap-3 sm:grid-cols-2">{addresses.map((address) => <article key={address.id} className="rounded-lg border border-border p-4"><h2 className="text-sm font-semibold text-primary">{address.name}</h2><p className="mt-2 text-sm leading-6 text-text-secondary">{address.phone}<br />{address.address}</p><div className="mt-3 flex items-center justify-between"><button onClick={() => { setEditing(address); setOpen(true); }} className="text-xs text-blue-brand">Chỉnh sửa</button><button aria-label="Xóa địa chỉ" className="bt-icon-button" onClick={() => { void save(addresses.filter((a) => a.id !== address.id)).catch((error) => notice(error.message)); }}><Trash2 size={16} /></button></div></article>)}</div> : <EmptyState icon={<MapPin size={36} />} title="Chưa có địa chỉ giao hàng" description="Thêm địa chỉ để lưu thông tin nhận hàng của bạn." />}<Modal open={open} onClose={() => setOpen(false)} title={editing ? "Chỉnh sửa địa chỉ" : "Thêm địa chỉ"}><form key={editing?.id || "new"} className="space-y-4" onSubmit={async (event) => { event.preventDefault(); const form = new FormData(event.currentTarget); const next: Address = { id: editing?.id || crypto.randomUUID(), name: String(form.get("name")), phone: String(form.get("phone")), address: String(form.get("address")) }; try { await save(editing ? addresses.map((a) => a.id === next.id ? next : a) : [...addresses, next]); setOpen(false); notice("Đã lưu địa chỉ giao hàng."); } catch (error) { notice(error instanceof Error ? error.message : "Không thể lưu địa chỉ."); } }}><Field label="Người nhận" required><input name="name" required defaultValue={editing?.name || customer?.name} className="bt-input" /></Field><Field label="Số điện thoại" required><input name="phone" type="tel" pattern="[+0-9 ]{9,15}" required defaultValue={editing?.phone || customer?.phone} className="bt-input" /></Field><Field label="Địa chỉ đầy đủ" required><textarea name="address" required defaultValue={editing?.address} className="bt-input" /></Field><Button type="submit">Lưu địa chỉ</Button></form></Modal></section>;
+  useEffect(() => {
+    if (apiMode) {
+      void api<{ addresses: Address[] }>("/account")
+        .then((result) => setAddresses(result.addresses))
+        .catch((error) => notice(error.message));
+      return;
+    }
+    try {
+      const parsed = JSON.parse(localStorage.getItem(key) || "[]");
+      if (Array.isArray(parsed)) setAddresses(parsed);
+    } catch {}
+  }, [key, notice]);
+  const save = async (next: Address[]) => {
+    if (apiMode)
+      await api("/account/preferences", {
+        method: "PATCH",
+        body: JSON.stringify({ addresses: next }),
+      });
+    else
+      try {
+        localStorage.setItem(key, JSON.stringify(next));
+      } catch {}
+    setAddresses(next);
+  };
+  return (
+    <section>
+      <PageHeading title="Địa chỉ giao hàng">
+        <Button
+          onClick={() => {
+            setEditing(null);
+            setOpen(true);
+          }}
+        >
+          <Plus size={17} />
+          Thêm địa chỉ
+        </Button>
+      </PageHeading>
+      {addresses.length ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {addresses.map((address) => (
+            <article
+              key={address.id}
+              className="rounded-lg border border-border p-4"
+            >
+              <h2 className="text-sm font-semibold text-primary">
+                {address.name}
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-text-secondary">
+                {address.phone}
+                <br />
+                {address.address}
+              </p>
+              <div className="mt-3 flex items-center justify-between">
+                <button
+                  onClick={() => {
+                    setEditing(address);
+                    setOpen(true);
+                  }}
+                  className="text-xs text-blue-brand"
+                >
+                  Chỉnh sửa
+                </button>
+                <button
+                  aria-label="Xóa địa chỉ"
+                  className="bt-icon-button"
+                  onClick={() => {
+                    void save(
+                      addresses.filter((a) => a.id !== address.id),
+                    ).catch((error) => notice(error.message));
+                  }}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={<MapPin size={36} />}
+          title="Chưa có địa chỉ giao hàng"
+          description="Thêm địa chỉ để lưu thông tin nhận hàng của bạn."
+        />
+      )}
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title={editing ? "Chỉnh sửa địa chỉ" : "Thêm địa chỉ"}
+      >
+        <form
+          key={editing?.id || "new"}
+          className="space-y-4"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            const form = new FormData(event.currentTarget);
+            const next: Address = {
+              id: editing?.id || crypto.randomUUID(),
+              name: String(form.get("name")),
+              phone: String(form.get("phone")),
+              address: String(form.get("address")),
+            };
+            try {
+              await save(
+                editing
+                  ? addresses.map((a) => (a.id === next.id ? next : a))
+                  : [...addresses, next],
+              );
+              setOpen(false);
+              notice("Đã lưu địa chỉ giao hàng.");
+            } catch (error) {
+              notice(
+                error instanceof Error
+                  ? error.message
+                  : "Không thể lưu địa chỉ.",
+              );
+            }
+          }}
+        >
+          <Field label="Người nhận" required>
+            <input
+              name="name"
+              required
+              defaultValue={editing?.name || customer?.name}
+              className="bt-input"
+            />
+          </Field>
+          <Field label="Số điện thoại" required>
+            <input
+              name="phone"
+              type="tel"
+              pattern="[+0-9 ]{9,15}"
+              required
+              defaultValue={editing?.phone || customer?.phone}
+              className="bt-input"
+            />
+          </Field>
+          <Field label="Địa chỉ đầy đủ" required>
+            <textarea
+              name="address"
+              required
+              defaultValue={editing?.address}
+              className="bt-input"
+            />
+          </Field>
+          <Button type="submit">Lưu địa chỉ</Button>
+        </form>
+      </Modal>
+    </section>
+  );
 }
 export function SettingsView() {
-  const { notice, customer } = useCommerce(); const [settings, setSettings] = useState([true, true, false]);
-  useEffect(() => { if (apiMode) { void api<{ settings: boolean[] }>("/account").then((result) => setSettings(result.settings)).catch((error) => notice(error.message)); return; } try { const value = JSON.parse(localStorage.getItem(`baotin-settings-${customer?.id}`) || "null"); if (Array.isArray(value) && value.length === 3) setSettings(value); } catch {} }, [customer?.id, notice]);
-  return <section><PageHeading title="Cài đặt" /><form className="max-w-xl space-y-5" onSubmit={async (e) => { e.preventDefault(); try { if (apiMode) await api("/account/preferences", { method: "PATCH", body: JSON.stringify({ settings }) }); else localStorage.setItem(`baotin-settings-${customer?.id}`, JSON.stringify(settings)); notice("Đã lưu cài đặt thông báo."); } catch (error) { notice(error instanceof Error ? error.message : "Không thể lưu cài đặt."); } }}><h2 className="text-base font-semibold text-primary">Thông báo</h2>{["Cập nhật trạng thái đơn hàng", "Thông báo công nợ và thanh toán", "Ưu đãi và sản phẩm mới"].map((label, index) => <label key={label} className="flex items-center justify-between gap-3 border-b border-border py-3 text-sm"><span>{label}</span><input type="checkbox" className="h-4 w-4 accent-blue-brand" checked={settings[index]} onChange={(e) => setSettings(settings.map((value, i) => i === index ? e.target.checked : value))} /></label>)}<Button type="submit">Lưu cài đặt</Button></form>{apiMode && <section className="mt-8 border-t border-border pt-6"><h2 className="mb-4 text-base font-semibold text-primary">Đổi mật khẩu</h2><PasswordForm mode="change" /></section>}</section>;
+  const { notice, customer } = useCommerce();
+  const [settings, setSettings] = useState([true, true, false]);
+  useEffect(() => {
+    if (apiMode) {
+      void api<{ settings: boolean[] }>("/account")
+        .then((result) => setSettings(result.settings))
+        .catch((error) => notice(error.message));
+      return;
+    }
+    try {
+      const value = JSON.parse(
+        localStorage.getItem(`baotin-settings-${customer?.id}`) || "null",
+      );
+      if (Array.isArray(value) && value.length === 3) setSettings(value);
+    } catch {}
+  }, [customer?.id, notice]);
+  return (
+    <section>
+      <PageHeading title="Cài đặt" />
+      <form
+        className="max-w-xl space-y-5"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          try {
+            if (apiMode)
+              await api("/account/preferences", {
+                method: "PATCH",
+                body: JSON.stringify({ settings }),
+              });
+            else
+              localStorage.setItem(
+                `baotin-settings-${customer?.id}`,
+                JSON.stringify(settings),
+              );
+            notice("Đã lưu cài đặt thông báo.");
+          } catch (error) {
+            notice(
+              error instanceof Error ? error.message : "Không thể lưu cài đặt.",
+            );
+          }
+        }}
+      >
+        <h2 className="text-base font-semibold text-primary">Thông báo</h2>
+        {[
+          "Cập nhật trạng thái đơn hàng",
+          "Thông báo công nợ và thanh toán",
+          "Ưu đãi và sản phẩm mới",
+        ].map((label, index) => (
+          <label
+            key={label}
+            className="flex items-center justify-between gap-3 border-b border-border py-3 text-sm"
+          >
+            <span>{label}</span>
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-blue-brand"
+              checked={settings[index]}
+              onChange={(e) =>
+                setSettings(
+                  settings.map((value, i) =>
+                    i === index ? e.target.checked : value,
+                  ),
+                )
+              }
+            />
+          </label>
+        ))}
+        <Button type="submit">Lưu cài đặt</Button>
+      </form>
+      {apiMode && (
+        <section className="mt-8 border-t border-border pt-6">
+          <h2 className="mb-4 text-base font-semibold text-primary">
+            Đổi mật khẩu
+          </h2>
+          <PasswordForm mode="change" />
+        </section>
+      )}
+    </section>
+  );
 }

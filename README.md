@@ -111,6 +111,8 @@ Production can persistent media volume o BE va HTTPS cookies.
 ## Tai Lieu
 
 - [Project](docs/project.md)
+- [Thong bao, CMS va cac luong UI/API moi](docs/experience-rollout.md)
+- [Quan ly khach B2B, Sales phu trach va khach thu nghiem](docs/customer-management.md)
 - [Cau truc code](docs/code-structure.md)
 - [Bat dau cong viec](docs/start-work.md)
 - [Design system](docs/design-system.md)

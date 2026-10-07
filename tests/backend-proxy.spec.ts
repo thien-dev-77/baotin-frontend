@@ -11,6 +11,18 @@ test.afterEach(() => {
 });
 const request = (path: string, options?: RequestInit) => new Request(`http://localhost:3041${path}`, options);
 
+test("Only document routes can proxy valid private PDF responses", async () => {
+  const bytes = new TextEncoder().encode("%PDF-1.7\nQA document");
+  globalThis.fetch = async () => new Response(bytes, { headers: { "content-type": "application/pdf", "content-disposition": "attachment; filename=qa.pdf" } });
+  for (const path of [["orders", "QA", "document"], ["admin", "orders", "QA", "document"]]) {
+    const response = await proxyBackend(request(`/api/backend/${path.join("/")}`), path, "api");
+    expect(response.status).toBe(200); expect(new Uint8Array(await response.arrayBuffer())).toEqual(bytes); expect(response.headers.get("cache-control")).toContain("private, no-store");
+  }
+  expect((await proxyBackend(request("/api/backend/auth/session"), ["auth", "session"], "api")).status).toBe(502);
+  globalThis.fetch = async () => new Response("Not a PDF", { headers: { "content-type": "application/pdf" } });
+  expect((await proxyBackend(request("/api/backend/orders/QA/document"), ["orders", "QA", "document"], "api")).status).toBe(502);
+});
+
 test("Proxy preserves JSON, authentication cookies and uncached API responses", async () => {
   globalThis.fetch = async (target, options) => {
     expect(String(target)).toBe("http://127.0.0.1:4002/api/auth/session");

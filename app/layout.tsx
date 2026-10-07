@@ -11,6 +11,7 @@ import { SiteFrame } from "@/components/site-frame";
 import { NavigationProgress } from "@/components/navigation-progress";
 import { serverCatalog } from "@/lib/server-api";
 import type { CatalogResponse } from "@/lib/api-types";
+import { NotificationsProvider } from "@/components/notifications";
 
 export const metadata: Metadata = {
   title: "Bảo Tín - Phụ kiện nội thất",
@@ -25,7 +26,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   catch { initialCatalogError = "Không thể tải danh sách sản phẩm. Vui lòng thử lại."; }
   return (
     <html lang="vi">
-      <body className="font-sans antialiased"><NavigationProgress><StoreProvider><CommerceProvider initialCatalog={initialCatalog} initialCatalogError={initialCatalogError}><SiteFrame>{children}</SiteFrame></CommerceProvider></StoreProvider></NavigationProgress></body>
+      <body className="font-sans antialiased"><NavigationProgress><StoreProvider><CommerceProvider initialCatalog={initialCatalog} initialCatalogError={initialCatalogError}><NotificationsProvider><SiteFrame>{children}</SiteFrame></NotificationsProvider></CommerceProvider></StoreProvider></NavigationProgress></body>
     </html>
   );
 }

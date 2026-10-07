@@ -57,6 +57,7 @@ export function ResourceStatus({
   loading?: boolean;
   data?: unknown;
 }) {
+  if (!loading && !error && data === undefined) return null;
   if (data !== undefined && !error) return loading ? <span role="status" className="sr-only">Đang cập nhật dữ liệu...</span> : null;
   return (
     <div
