@@ -43,7 +43,9 @@ DATABASE_URL, JWT_SECRET va SEED_PASSWORD chi o backend, khong o frontend env.
 
 API mode render catalog cong khai tren server cho home, category, search va
 cac product cards: RootLayout fetch catalog truc tiep tu BACKEND_URL,
-cache no-store, timeout 8 giay, khong forward cookie hay customerPrice vao HTML.
+cache DTO cong khai 15 giay, timeout 8 giay, khong forward cookie hay customerPrice vao HTML.
+CMS cache 60 giay; lenh ghi thanh cong qua proxy expire cache ngay. API browser,
+account/admin, checkout va chi tiet san pham van no-store.
 CommerceProvider nhan du lieu ban dau, sau hydrate chi bo sung session/gia B2B,
 orders va favorites doc lap. Khong doi orders/account de hien thi san pham.
 Response null/HTML/malformed session hien loi co nut thu lai, khong doc `.user`
@@ -113,6 +115,7 @@ Production can persistent media volume o BE va HTTPS cookies.
 - [Project](docs/project.md)
 - [Thong bao, CMS va cac luong UI/API moi](docs/experience-rollout.md)
 - [Quan ly khach B2B, Sales phu trach va khach thu nghiem](docs/customer-management.md)
+- [Quan ly danh muc, anh dai dien va nhom san pham](docs/category-management.md)
 - [Cau truc code](docs/code-structure.md)
 - [Bat dau cong viec](docs/start-work.md)
 - [Design system](docs/design-system.md)
@@ -128,3 +131,7 @@ Chua co auto Kiot stock/debt/status sync hay bank/refund.
 Khong cong bo du lieu seed/secrets. Tai lieu media ghi ro anh minh hoa va
 dieu kien xac minh truoc production. Runtime audit FE/BE hien 0 vulnerabilities;
 FE full audit con 7 high dev tools/braces chua co ban fix. Khong audit force downgrade.
+
+## Performance
+
+SSR/catalog, font and homepage data optimizations: [performance-optimization.md](docs/performance-optimization.md).

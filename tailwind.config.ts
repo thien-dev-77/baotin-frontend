@@ -31,7 +31,7 @@ const config: Config = {
         "card-hover": "0 8px 24px rgba(15, 49, 87, 0.10)"
       },
       fontFamily: {
-        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"]
+        sans: ["Inter Variable", "Inter", "ui-sans-serif", "system-ui", "sans-serif"]
       }
     }
   },

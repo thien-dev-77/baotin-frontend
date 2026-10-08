@@ -85,7 +85,7 @@ export const catalog: Product[] = [...originals, ...extras.map(([name, categoryI
 
 export const findProduct = (id: string) => catalog.find((p) => p.id === id || p.slug === id);
 export const findCategory = (slug: string) => categoryCatalog.find((c) => c.slug === slug);
-export const brands = ["Hafele", "Hettich", "Bảo Tín"];
+export const getCatalogBrands = (products: readonly Product[]) => Array.from(new Set(products.map(product => product.brand).filter(brand => brand.trim()))).sort((a, b) => a.localeCompare(b, "vi"));
 
 export const guideCatalog = [
   { slug: "chon-ban-le-theo-loai-canh", title: "Chọn bản lề theo loại cánh", description: "Phân biệt cánh phủ bì, nửa phủ và lọt lòng để chọn đúng bản lề.", image: "/images/catalog/hinge.png", category: "ban-le", minutes: 5 },

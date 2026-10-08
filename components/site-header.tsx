@@ -4,7 +4,6 @@ import { Logo } from "@/components/logo";
 import { SearchBox } from "@/components/search-box";
 import { Modal } from "@/components/ui";
 import { useCommerce } from "@/components/commerce-provider";
-import { categoryCatalog } from "@/lib/catalog";
 import { heroActions, trustBadges } from "@/lib/home-data";
 import { Heart, Menu, ShoppingCart, ChevronRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -48,7 +47,7 @@ function HeaderServiceLink({
 }
 
 export function SiteHeader() {
-  const { cart, customer, ready } = useCommerce();
+  const { cart, customer, ready, categories } = useCommerce();
   const [mobile, setMobile] = useState(false);
   const count = cart.reduce((sum, line) => sum + line.quantity, 0);
   const services = heroActions.map((action) =>
@@ -165,7 +164,7 @@ export function SiteHeader() {
               aria-label="Danh mục sản phẩm"
               className="scrollbar-hide flex min-w-0 flex-1 items-center gap-4 overflow-x-auto"
             >
-              {categoryCatalog.map((category) => (
+              {categories.map((category) => (
                 <Link
                   key={category.slug}
                   href={`/category/${category.slug}`}
@@ -197,7 +196,7 @@ export function SiteHeader() {
         drawer
       >
         <nav className="space-y-1">
-          {categoryCatalog.map((category) => (
+          {categories.map((category) => (
             <Link
               onClick={() => setMobile(false)}
               key={category.slug}

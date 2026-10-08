@@ -53,7 +53,7 @@ export function CommerceProvider({ children, initialCatalog, initialCatalogError
   const ready = storageReady && (!apiMode || auth.ready);
   const [toast, setToast] = useState("");
   const [products, setProducts] = useState<Product[]>(initialCatalog?.products || (apiMode ? [] : catalog));
-  const [categories, setCategories] = useState<Category[]>(initialCatalog?.categories || categoryCatalog);
+  const [categories, setCategories] = useState<Category[]>(initialCatalog?.categories || (apiMode ? [] : categoryCatalog));
   const [catalogError, setCatalogError] = useState(initialCatalogError);
   const [accountError, setAccountError] = useState("");
   const apiError = catalogError || auth.error || accountError;
@@ -133,10 +133,12 @@ export function CommerceProvider({ children, initialCatalog, initialCatalogError
       const raw = localStorage.getItem(storageKey) || (apiMode ? localStorage.getItem("baotin-commerce-v1") : null);
       if (raw) {
         const parsed = JSON.parse(raw) as Store;
+        const available = new Map((initialCatalog?.products || (apiMode ? [] : catalog)).map(product => [product.id, product]));
+        const hasCatalog = !apiMode || initialCatalog !== null;
         setStore({
           coupon: parsed.coupon === "BAOTIN10" ? parsed.coupon : "",
-          cart: Array.isArray(parsed.cart) ? parsed.cart.filter((line) => findProduct(line.productId) && Number.isInteger(line.quantity) && line.quantity > 0).map((line) => ({ ...line, quantity: Math.min(line.quantity, findProduct(line.productId)!.stock) })).filter((line) => line.quantity > 0) : [],
-          favorites: Array.isArray(parsed.favorites) ? parsed.favorites.filter((id) => findProduct(id)) : [],
+          cart: Array.isArray(parsed.cart) ? parsed.cart.filter(line => line && typeof line.productId === "string" && Number.isInteger(line.quantity) && line.quantity > 0 && (!hasCatalog || available.has(line.productId))).map(line => ({ productId: line.productId, quantity: Math.min(line.quantity, available.get(line.productId)?.stock ?? line.quantity) })).filter(line => line.quantity > 0) : [],
+          favorites: Array.isArray(parsed.favorites) ? parsed.favorites.filter(id => typeof id === "string" && (!hasCatalog || available.has(id))) : [],
           orders: !apiMode && Array.isArray(parsed.orders) ? parsed.orders.filter((order) => order.id && Array.isArray(order.items)) : []
         });
       }
@@ -147,7 +149,7 @@ export function CommerceProvider({ children, initialCatalog, initialCatalogError
     } catch { /* Storage is optional; the shopping flow remains available without it. */ }
     setStorageReady(true);
     if (apiMode && !authStore.getState().auth.ready) void refreshSession(false);
-  }, [authStore, refreshSession]);
+  }, [authStore, initialCatalog, refreshSession]);
   useEffect(() => {
     if (!apiMode) return;
     const unsubscribe = onUnauthorized(() => {

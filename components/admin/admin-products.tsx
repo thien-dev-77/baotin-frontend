@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { Download, ImageIcon, Pencil, Plus } from "lucide-react";
+import { Download, FolderTree, ImageIcon, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui";
 import { useCommerce } from "@/components/commerce-provider";
 import { useAdmin } from "./admin-provider";
@@ -24,7 +24,7 @@ export function AdminProducts() {
   const exportRows = () => downloadAdminCsv("bao-tin-san-pham.csv", [["Mã hàng", "Tên sản phẩm", "Thương hiệu", "Giá bán lẻ", "Tồn khả dụng", "Hiển thị"], ...rows.map(item => [item.code, item.name, item.brand, item.price, item.stock, item.published ? "Công khai" : "Riêng tư"])]);
   return <>
     <AdminHeading title="Sản phẩm" subtitle={`Danh mục website · ${products.length} sản phẩm`}>
-      <div className="flex flex-wrap gap-2"><Button variant="secondary" onClick={exportRows} disabled={!rows.length}><Download size={16} />Xuất CSV</Button>{canEdit && <Link href="/admin/products/new" className="bt-button-primary"><Plus size={17} />Thêm sản phẩm</Link>}</div>
+      <div className="flex flex-wrap gap-2"><Link href="/admin/categories" className="bt-button-secondary"><FolderTree size={16} />Danh mục</Link><Button variant="secondary" onClick={exportRows} disabled={!rows.length}><Download size={16} />Xuất CSV</Button>{canEdit && <Link href="/admin/products/new" className="bt-button-primary"><Plus size={17} />Thêm sản phẩm</Link>}</div>
     </AdminHeading>
     <div className="mb-4 flex flex-wrap gap-3">
       <AdminSearch value={filters.query} onChange={filters.setQuery} placeholder="Tìm sản phẩm, mã hàng, thương hiệu..." />

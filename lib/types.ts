@@ -1,7 +1,7 @@
 import type { ApprovalSnapshot, ApprovalType } from "./admin-approval";
 import type { SalesDetails } from "./admin-sales";
 
-export type Category = { slug: string; name: string; image: string; description: string; subcategories: string[] };
+export type Category = { slug: string; name: string; image: string; description: string; subcategories: string[]; visible?: boolean; sortOrder?: number; revision?: number };
 export type Product = {
   id: string; slug: string; name: string; code: string; category: string; subcategory: string;
   image: string; gallery: string[]; brand: string; specification: string; material: string;

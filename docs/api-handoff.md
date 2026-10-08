@@ -3,6 +3,7 @@
 **Cap nhat quan ly khach B2B 07/10/2026:** tao/sua ho so, phan nhom,
 Sales phu trach, khach thu nghiem va tao tai khoan bang so dien thoai da co UI/API.
 Doc [Customer Management](customer-management.md). Code moi chua deploy production.
+Quan ly danh muc va contract public moi: [Category Management](category-management.md).
 
 **Cap nhat 07/10/2026:** thong bao admin/B2B, xin gia, san pham thuong mua,
 PDF, xu ly tu van, CMS/reviews va KPI/tuoi no da co UI/API.

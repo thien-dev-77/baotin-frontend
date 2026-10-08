@@ -8,12 +8,12 @@ import { ProductGrid } from "./product-card";
 import { EmptyState } from "./ui";
 import { ResourceStatus } from "./admin/admin-resource";
 
-export function useFrequentlyBought() {
+export function useFrequentlyBought(enabled = true) {
   const { customer, products } = useCommerce();
   const orders = useCustomerOrders();
   const resource = useApiResource<{ products: Product[] }>(
     "/account/frequently-bought",
-    apiMode && customer?.status === "active",
+    enabled && apiMode && customer?.status === "active",
   );
   const counts = new Map<string, number>();
   for (const order of orders.filter((order) =>

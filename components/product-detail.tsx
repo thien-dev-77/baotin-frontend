@@ -8,7 +8,7 @@ import { ProductPurchasePanel } from "@/components/product-detail/product-purcha
 import { ProductSpecifications } from "@/components/product-detail/product-specifications";
 import { RelatedProducts } from "@/components/product-detail/related-products";
 import { Breadcrumb } from "@/components/ui";
-import { categoryCatalog, type Product } from "@/lib/catalog";
+import { type Product } from "@/lib/catalog";
 import { getProductRecommendations, getProductSpecifications, initialProductReviews, type ProductReview } from "@/lib/product-detail";
 import { useEffect, useRef, useState } from "react";
 import { useCommerce } from "@/components/commerce-provider";
@@ -16,7 +16,7 @@ import { apiMode } from "@/lib/api-client";
 import { useApiResource } from "@/lib/use-api-resource";
 
 export function ProductDetail({ product: initialProduct }: { product: Product }) {
-  const { products } = useCommerce();
+  const { products, categories } = useCommerce();
   const product = products.find((item) => item.id === initialProduct.id) || initialProduct;
   const detailRef = useRef<HTMLElement>(null);
   const [tab, setTab] = useState("Mô tả sản phẩm");
@@ -24,7 +24,7 @@ export function ProductDetail({ product: initialProduct }: { product: Product })
   const reviewResource = useApiResource<{ items: ProductReview[] }>(`/reviews/${encodeURIComponent(product.id)}`);
   const visibleReviews = apiMode ? reviewResource.data?.items || [] : reviews;
   const rating = visibleReviews.length ? visibleReviews.reduce((sum, review) => sum + review.stars, 0) / visibleReviews.length : 0;
-  const category = categoryCatalog.find((item) => item.slug === product.category)!;
+  const category = categories.find((item) => item.slug === product.category);
   const specifications = getProductSpecifications(product);
   const { related, bundle } = getProductRecommendations(product, products);
 
@@ -49,7 +49,7 @@ export function ProductDetail({ product: initialProduct }: { product: Product })
 
   return (
     <main ref={detailRef} className="bt-container bt-page bt-product-detail">
-      <Breadcrumb items={[{ label: category.name, href: `/category/${category.slug}` }, { label: product.name }]} />
+      <Breadcrumb items={[...(category ? [{ label: category.name, href: `/category/${category.slug}` }] : []), { label: product.name }]} />
       <div className="bt-product-detail-layout">
         <div className="bt-product-detail-intro grid items-start gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
           <ProductGallery product={product} />

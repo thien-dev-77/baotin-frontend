@@ -23,6 +23,7 @@ import {
   Plug,
   Shield,
   Settings,
+  FolderTree,
 } from "lucide-react";
 import { Button, Modal } from "@/components/ui";
 import { useAdmin } from "@/components/admin/admin-provider";
@@ -46,6 +47,7 @@ const links = [
   { href: "/admin/orders", label: "Đơn hàng", icon: ShoppingBag },
   { href: "/admin/warehouse", label: "Kho hàng", icon: Warehouse },
   { href: "/admin/products", label: "Sản phẩm", icon: Package },
+  { href: "/admin/categories", label: "Danh mục", icon: FolderTree },
   { href: "/admin/customers", label: "Khách hàng B2B", icon: UsersRound },
   { href: "/admin/credit", label: "Công nợ", icon: Wallet },
   {
@@ -61,6 +63,7 @@ const links = [
   { href: "/admin/settings", label: "Bảo mật tài khoản", icon: Settings },
 ];
 const rolesFor: Record<string, string[]> = {
+  "/admin/categories": ["admin", "boss", "sales", "accountant"],
   "/admin/customers": ["admin", "boss", "sales", "accountant"],
   "/admin/consultations": ["admin", "boss", "sales"],
   "/admin/content": ["admin", "boss"],
@@ -93,7 +96,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const active = (href: string) =>
     path === href || (href !== "/admin" && path.startsWith(`${href}/`));
   const page = links.find((item) => active(item.href))?.label || "Quản trị";
-  const globalScreen = ["/admin/users", "/admin/settings", "/admin/notifications", "/admin/content", "/admin/reviews"].includes(path);
+  const globalScreen = ["/admin/users", "/admin/settings", "/admin/notifications", "/admin/content", "/admin/reviews", "/admin/categories"].includes(path);
   const showPeriod =
     !path.startsWith("/admin/products") &&
     ![
@@ -104,6 +107,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       "/admin/settings",
       "/admin/notifications",
       "/admin/content",
+      "/admin/categories",
       "/admin/reviews",
       "/admin/consultations",
     ].includes(path);

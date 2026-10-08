@@ -72,6 +72,37 @@ falls back to fake content on upstream error. An empty CMS is genuinely empty:
 initialize and review content before production traffic. Images remain next/image,
 with offscreen lazy loading and hero priority.
 
+## Storefront Catalog Wiring - 08 October 2026
+
+With `NEXT_PUBLIC_API_MODE=true`, these views now use the existing `/catalog`
+response through `CommerceProvider`, rather than looking up mock SKUs or a fixed
+brand list. No new backend endpoint or database change is required.
+
+- Order detail resolves current names/images/links from API products, including
+  newly created admin SKUs. Every original order line remains visible even when
+  a product becomes private, disappears from the public catalog or sells out.
+  Quantities, unit prices and totals remain the order's historical values.
+- Reorder adds only products currently present and in stock, caps quantities at
+  current available stock and uses current catalog prices in the cart. Skipped
+  lines are reported; the button is disabled when none can be purchased again.
+  Checkout still revalidates authoritative stock/prices on the backend.
+- Cart suggestions use up to four in-stock API products not already in the cart.
+  Empty catalogs do not restore mock recommendations.
+- Brand filters, search results and header autocomplete derive unique brands
+  from visible API products. All links use the same `slugify` helper. Brand pages
+  resolve the brand server-side and render products without JavaScript. Unknown
+  brands, or brands with no public products, return 404. Layout and brand page
+  share one catalog read per request; existing public cache rules still apply.
+
+The current order-item contract contains product ID, quantity and unit price,
+but no historical name/image snapshot. Missing products therefore show their ID
+and a placeholder, not a fabricated mock product. Adding historical labels later
+requires a coordinated API/DTO change.
+
+Preview mode retains its fixtures intentionally. These changes do not make
+database seed data production-approved. Frontend code must be deployed before
+the live website reflects this wiring.
+
 ## Deploy And Test
 
 1. Deploy matching backend first to staging with database/media backup.
@@ -91,12 +122,21 @@ QA_BASE_URL=http://127.0.0.1:3010 npm run test:auth
 QA_BASE_URL=http://127.0.0.1:3010 npm run test:admin-loading
 QA_BASE_URL=http://127.0.0.1:3010 npm run test:experience
 QA_BASE_URL=http://127.0.0.1:3010 npm run test:ssr
+QA_BASE_URL=http://127.0.0.1:3010 npm run test:catalog-api
 NEXT_DIST_DIR=.next-build npm run build
+npm run test:performance
 ```
 
 Experience UI tests intercept every client mutation. Screenshots at
 1440/768/390/320px: `/private/tmp/baotin-experience`. SSR tests read the local API.
 Never point tests at production.
+
+Catalog UI QA uses intercepted API responses with new/updated/missing/out-of-stock
+SKUs and a new accented brand at 1440/390/320 px. It verifies historical totals,
+current reorder pricing/stock, empty states, filter/search/autocomplete links and
+no horizontal overflow. Screenshots: `/private/tmp/baotin-api-wiring-*`.
+Production-build performance QA also checks server-rendered brand pages and
+visibility invalidation against an isolated fake API, never production writes.
 
 ## Remaining External Work
 

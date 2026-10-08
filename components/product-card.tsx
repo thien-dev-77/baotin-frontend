@@ -25,13 +25,13 @@ export function ProductCard({ product: initialProduct, list = false }: { product
   const discount = product.oldPrice ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
   return <article className={`bt-product-card group ${list ? "flex" : "flex flex-col"}`}>
     <div className={`bt-product-card-media relative shrink-0 bg-[#f8fafc] ${list ? "h-[160px] w-[96px] sm:w-[120px]" : "h-[150px] md:h-[180px]"}`}>
-      <Link href={`/products/${product.slug}`} className="bt-product-card-image-link"><Image src={product.image} data-image-src={product.image} alt={product.name} fill quality={85} sizes={list ? "(min-width: 640px) 120px, 96px" : "(min-width: 1280px) 240px, (min-width: 1024px) 20vw, (min-width: 640px) 33vw, 50vw"} className="object-cover transition duration-200 group-hover:scale-[1.02]" /></Link>
-      <Link href={`/products/${product.slug}`} aria-label={`Xem sản phẩm - ${product.name}`} className="bt-button-primary bt-product-card-details"><Eye size={16} className="shrink-0" aria-hidden="true" /><span>Xem sản phẩm</span></Link>
+      <Link href={`/products/${product.slug}`} prefetch={false} className="bt-product-card-image-link"><Image src={product.image} data-image-src={product.image} alt={product.name} fill quality={85} sizes={list ? "(min-width: 640px) 120px, 96px" : "(min-width: 1280px) 240px, (min-width: 1024px) 20vw, (min-width: 640px) 33vw, 50vw"} className="object-cover transition duration-200 group-hover:scale-[1.02]" /></Link>
+      <Link href={`/products/${product.slug}`} prefetch={false} aria-label={`Xem sản phẩm - ${product.name}`} className="bt-button-primary bt-product-card-details"><Eye size={16} className="shrink-0" aria-hidden="true" /><span>Xem sản phẩm</span></Link>
       <button type="button" aria-label={`${liked ? "Bỏ yêu thích" : "Yêu thích"} ${product.name}`} aria-pressed={liked} title={liked ? "Bỏ yêu thích" : "Yêu thích"} onClick={() => toggleFavorite(product.id)} className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white ${liked ? "text-danger" : "text-primary"}`}><Heart size={16} fill={liked ? "currentColor" : "none"} /></button>
       {discount > 0 && <span className="absolute left-2 top-2 rounded bg-danger px-1.5 py-0.5 text-[11px] font-semibold text-white">-{discount}%</span>}
     </div>
     <div className="flex min-w-0 flex-1 flex-col p-3">
-      <Link href={`/products/${product.slug}`} className="line-clamp-2 min-h-[40px] text-sm font-semibold leading-5 text-primary hover:text-blue-brand">{product.name}</Link>
+      <Link href={`/products/${product.slug}`} prefetch={false} className="line-clamp-2 min-h-[40px] text-sm font-semibold leading-5 text-primary hover:text-blue-brand">{product.name}</Link>
       <p className="mt-1 text-xs text-text-muted">Mã: {product.code}</p>
       <p className="mt-1 text-xs font-medium text-text-secondary">{product.brand}</p>
       <p className="mt-1 line-clamp-2 text-xs leading-[18px] text-text-secondary">{product.specification}</p>

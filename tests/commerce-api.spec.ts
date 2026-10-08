@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { api } from "../lib/api-client";
 import { readApiSession, readCatalogResponse, retailProducts } from "../lib/commerce-api";
-import { catalog, categoryCatalog } from "../lib/catalog";
+import { catalog, categoryCatalog, getCatalogBrands, slugify } from "../lib/catalog";
 
 const originalFetch = globalThis.fetch;
 test.afterEach(() => { globalThis.fetch = originalFetch; });
@@ -29,6 +29,13 @@ test("Public catalog data removes personalized prices without mutating products"
   expect(retail).toEqual(catalog[0]);
   expect("customerPrice" in retail).toBe(false);
   expect(personalized.customerPrice).toBe(12345);
+});
+
+test("Brands come only from the supplied catalog and share canonical URLs", () => {
+  const products = ["Mộc & Kim+", "Blum", "Mộc & Kim+", "  "].map(brand => ({ ...catalog[0], brand }));
+  expect(getCatalogBrands(products)).toEqual(["Blum", "Mộc & Kim+"]);
+  expect(getCatalogBrands([])).toEqual([]);
+  expect(slugify("Mộc & Kim+")).toBe("moc-kim");
 });
 
 test("HTTP 200 with null, empty or HTML bodies raises an actionable API error", async () => {

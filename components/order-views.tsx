@@ -1,11 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { findProduct, money, mockOrders, Order, OrderStatus } from "@/lib/catalog";
+import { money, mockOrders, Order, OrderStatus } from "@/lib/catalog";
 import { useCommerce } from "@/components/commerce-provider";
 import { CommerceLoading, OrderTotals } from "@/components/checkout-flow";
 import { Breadcrumb, Button, EmptyState, PageHeading, Tabs } from "@/components/ui";
-import { Check, ClipboardList, RefreshCw } from "lucide-react";
+import { Check, ClipboardList, Package, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "@bprogress/next/app";
 import { useState } from "react";
@@ -31,11 +31,68 @@ export function OrderHistory() {
   return <section><PageHeading title="Đơn hàng" description="Theo dõi trạng thái và đặt lại đơn hàng." /><div className="mb-4 max-w-sm"><input aria-label="Tìm mã đơn hàng" placeholder="Tìm theo mã đơn hàng..." className="bt-input" value={query} onChange={(e) => setQuery(e.target.value)} /></div><Tabs value={tab} onChange={setTab} options={["Tất cả", "Chờ xác nhận", "Đang xử lý", "Đang giao", "Đã giao", "Đã hủy"]} /><div className="mt-4">{filtered.length ? <OrdersTable orders={filtered} /> : <EmptyState icon={<ClipboardList size={35} />} title="Chưa có đơn hàng phù hợp" href="/search" action="Mua hàng" />}</div></section>;
 }
 export function OrderDetailView({ id, standalone = false }: { id: string; standalone?: boolean }) {
-  const orders = useCustomerOrders(); const { ready, add, orders: localOrders } = useCommerce(); const router = useRouter();
+  const orders = useCustomerOrders();
+  const { ready, products, add, notice, orders: localOrders } = useCommerce();
+  const router = useRouter();
   const order = (standalone ? localOrders.filter((o) => !o.customerId) : orders).find((o) => o.id === id);
   if (!ready) return <CommerceLoading />;
   if (!order) return <EmptyState title="Không tìm thấy đơn hàng" href="/account/orders" action="Về danh sách đơn hàng" />;
   const index = order.status === "Chờ xác nhận" ? 0 : order.status === "Đang xử lý" ? 2 : order.status === "Đang giao" ? 3 : order.status === "Đã giao" ? 4 : -1;
-  const content = <><PageHeading title={`Đơn hàng ${order.id}`} description={`Ngày đặt: ${dateLabel(order.date)}`}><OrderStatusBadge status={order.status} /></PageHeading><div className="mb-6 border-y border-border py-5"><ol className="grid gap-4 sm:grid-cols-5">{["Tiếp nhận đơn", "Inside Sales xác nhận", "Kho soạn hàng", "Đang giao", "Đã giao"].map((step, i) => <li key={step} className="relative flex items-center gap-3 sm:flex-col sm:text-center"><span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${i <= index ? "bg-blue-brand text-white" : "bg-section text-text-muted"}`}>{i < index ? <Check size={15} /> : i + 1}</span><span className={`text-xs ${i <= index ? "font-semibold text-primary" : "text-text-muted"}`}>{step}</span></li>)}</ol></div>{order.b2b && <p className="mb-5 rounded-md bg-section-blue p-3 text-sm text-primary">{order.status === "Chờ xác nhận" ? "Đang chờ Inside Sales xác nhận giá, tồn kho và công nợ trước khi kho soạn hàng." : order.status === "Đã hủy" ? "Đơn hàng đã hủy." : "Inside Sales đã xác nhận đơn hàng."}</p>}<div className="mb-6 grid gap-5 sm:grid-cols-2"><section><h2 className="text-base font-semibold text-primary">Thông tin người nhận</h2><p className="mt-2 text-sm leading-7 text-text-secondary">{order.customer.name}<br />{order.customer.phone}<br />{order.customer.address}, {order.customer.ward}, {order.customer.district}, {order.customer.city}</p></section><section><h2 className="text-base font-semibold text-primary">Giao hàng & thanh toán</h2><p className="mt-2 text-sm leading-7 text-text-secondary">{order.delivery}<br />{order.payment}<br />{order.note || "Không có ghi chú."}</p></section></div><div className="divide-y divide-border border-y border-border">{order.items.map((item) => { const p = findProduct(item.productId); return p && <div key={item.productId} className="flex items-center gap-3 py-4"><Image alt="" src={p.image} className="h-16 w-16 shrink-0 rounded bg-section object-contain" quality={85} width={64} height={64} sizes="64px" data-image-src={p.image} /><div className="min-w-0 flex-1"><Link href={`/products/${p.slug}`} className="text-sm font-semibold text-primary">{p.name}</Link><p className="mt-1 text-xs text-text-muted">Mã: {p.code} · SL: {item.quantity}</p></div><strong className="text-sm">{money(item.unitPrice * item.quantity)}</strong></div>; })}</div><div className="ml-auto mt-6 max-w-sm"><OrderTotals subtotal={order.subtotal} shipping={order.shipping} discount={order.discount} total={order.total} /></div><div className="mt-6 flex flex-wrap justify-between gap-3"><Link href="/account/orders" className="bt-button-secondary">Về danh sách đơn hàng</Link><Button onClick={() => { order.items.forEach((item) => { const p = findProduct(item.productId); if (p) add(p, item.quantity); }); router.push("/cart"); }}><RefreshCw size={16} />Đặt lại đơn này</Button></div></>;
+  const productById = new Map(products.map(product => [product.id, product]));
+  const lines = order.items.map(item => ({ ...item, product: productById.get(item.productId) }));
+  const available = lines.filter(line => line.product && line.product.stock > 0);
+  const unavailableCount = lines.length - available.length;
+  const reorder = () => {
+    for (const line of available) {
+      if (line.product) add(line.product, line.quantity);
+    }
+    notice(`Đã cập nhật giỏ hàng theo giá và tồn kho hiện tại.${unavailableCount ? ` ${unavailableCount} sản phẩm chưa thể mua lại và không được thêm.` : ""}`);
+    router.push("/cart");
+  };
+  const content = (
+    <>
+      <PageHeading title={`Đơn hàng ${order.id}`} description={`Ngày đặt: ${dateLabel(order.date)}`}><OrderStatusBadge status={order.status} /></PageHeading>
+      <div className="mb-6 border-y border-border py-5">
+        <ol className="grid gap-4 sm:grid-cols-5">
+          {["Tiếp nhận đơn", "Inside Sales xác nhận", "Kho soạn hàng", "Đang giao", "Đã giao"].map((step, i) => (
+            <li key={step} className="relative flex items-center gap-3 sm:flex-col sm:text-center">
+              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${i <= index ? "bg-blue-brand text-white" : "bg-section text-text-muted"}`}>{i < index ? <Check size={15} /> : i + 1}</span>
+              <span className={`text-xs ${i <= index ? "font-semibold text-primary" : "text-text-muted"}`}>{step}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+      {order.b2b && <p className="mb-5 rounded-md bg-section-blue p-3 text-sm text-primary">{order.status === "Chờ xác nhận" ? "Đang chờ Inside Sales xác nhận giá, tồn kho và công nợ trước khi kho soạn hàng." : order.status === "Đã hủy" ? "Đơn hàng đã hủy." : "Inside Sales đã xác nhận đơn hàng."}</p>}
+      <div className="mb-6 grid gap-5 sm:grid-cols-2">
+        <section>
+          <h2 className="text-base font-semibold text-primary">Thông tin người nhận</h2>
+          <p className="mt-2 text-sm leading-7 text-text-secondary">{order.customer.name}<br />{order.customer.phone}<br />{order.customer.address}, {order.customer.ward}, {order.customer.district}, {order.customer.city}</p>
+        </section>
+        <section>
+          <h2 className="text-base font-semibold text-primary">Giao hàng & thanh toán</h2>
+          <p className="mt-2 text-sm leading-7 text-text-secondary">{order.delivery}<br />{order.payment}<br />{order.note || "Không có ghi chú."}</p>
+        </section>
+      </div>
+      <section aria-label="Sản phẩm trong đơn hàng" className="divide-y divide-border border-y border-border">
+        {lines.map(({ product, ...line }) => (
+          <div key={line.productId} className="flex items-center gap-3 py-4">
+            {product ? <Image alt="" src={product.image} className="h-16 w-16 shrink-0 rounded bg-section object-contain" quality={85} width={64} height={64} sizes="64px" data-image-src={product.image} /> : <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded bg-section text-text-muted"><Package size={24} aria-hidden="true" /></span>}
+            <div className="min-w-0 flex-1">
+              {product ? <Link href={`/products/${product.slug}`} className="break-words text-sm font-semibold text-primary">{product.name}</Link> : <p className="break-words text-sm font-semibold text-primary">Sản phẩm {line.productId}</p>}
+              <p className="mt-1 break-words text-xs text-text-muted">Mã: {product?.code || line.productId} · SL: {line.quantity}</p>
+              {(!product || !product.stock) && <p className="mt-1 text-xs text-text-secondary">Hiện chưa thể mua lại.</p>}
+            </div>
+            <strong className="max-w-[40%] break-words text-right text-sm">{money(line.unitPrice * line.quantity)}</strong>
+          </div>
+        ))}
+      </section>
+      {unavailableCount > 0 && <p role="status" className="mt-3 text-sm text-text-secondary">{unavailableCount} sản phẩm không có trong danh mục hiện tại hoặc đã hết hàng. Các dòng này vẫn được giữ trong đơn cũ.</p>}
+      <div className="ml-auto mt-6 max-w-sm"><OrderTotals subtotal={order.subtotal} shipping={order.shipping} discount={order.discount} total={order.total} /></div>
+      <div className="mt-6 flex flex-wrap justify-between gap-3">
+        <Link href="/account/orders" className="bt-button-secondary">Về danh sách đơn hàng</Link>
+        <Button disabled={!available.length} onClick={reorder}><RefreshCw size={16} />Đặt lại đơn này</Button>
+      </div>
+    </>
+  );
   return standalone ? <main className="bt-container bt-page"><Breadcrumb items={[{ label: "Chi tiết đơn hàng" }]} /><OrderDocumentButtons id={order.id} />{content}</main> : <section><OrderDocumentButtons id={order.id} />{content}</section>;
 }

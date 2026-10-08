@@ -5,17 +5,20 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 export function CategoryProductSection({ title, caption, href, products }: { title: string; caption: string; href: string; products: Product[] }) {
+  if (!products.length) return null;
+  const brands = new Set(products.map(product => product.brand));
+  const brand = brands.size === 1 ? products[0].brand : "BẢO TÍN";
   return (
     <section className="bt-container mt-7" aria-label={title} data-category-products>
-      <Link href={href} aria-label={`Xem danh mục ${title}`} className="bt-category-product-banner">
+      <Link href={href} prefetch={false} aria-label={`Xem danh mục ${title}`} className="bt-category-product-banner">
         <div className="bt-category-product-banner-copy">
-          <span className="text-xs font-semibold text-white/70">HAFELE</span>
+          <span className="text-xs font-semibold text-white/70">{brand}</span>
           <h2 className="mt-3 text-[22px] font-bold leading-tight text-white sm:text-[28px]">{title}</h2>
           <p className="mt-2 text-xs leading-5 text-white/80 sm:text-sm">{caption}</p>
           <span className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-white">Xem danh mục<ArrowRight size={15} aria-hidden="true" /></span>
         </div>
         <div className="bt-category-product-banner-image">
-          <Image src={products[0].image} alt={title} loading="lazy" className="h-full w-full object-contain" width={640} height={360} quality={85} sizes="(min-width: 1024px) 50vw, 100vw" data-image-src={products[0].image} />
+          <Image src={products[0].image} alt={title} loading="lazy" className="h-full w-full object-contain" width={640} height={360} quality={85} sizes="(min-width: 1280px) 640px, (min-width: 1024px) 50vw, (min-width: 640px) 45vw, 50vw" data-image-src={products[0].image} />
         </div>
       </Link>
       <div className="mt-[40px] bt-category-product-row scrollbar-hide" tabIndex={0} role="region" aria-label={`Sản phẩm ${title}`}>

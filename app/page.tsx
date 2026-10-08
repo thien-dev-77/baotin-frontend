@@ -1,7 +1,7 @@
 import { HeroVisual } from "@/components/hero-visual";
 import { HomeCategorySidebar } from "@/components/home-category-sidebar";
 import { ProductShowcase } from "@/components/product-showcase";
-import { CategoryProductSection } from "@/components/category-product-section";
+import { HomeLockSections } from "@/components/home-lock-sections";
 import { SectionHeading } from "@/components/section-heading";
 import {
   b2bActions,
@@ -10,10 +10,10 @@ import {
   supportCards
 } from "@/lib/home-data";
 import { ArrowRight, MessageCircle } from "lucide-react";
-import { categoryCatalog as categories, guideCatalog as guides } from "@/lib/catalog";
+import { guideCatalog as guides } from "@/lib/catalog";
+import { HomeCategorySection } from "@/components/category-section";
 import Link from "next/link";
 import Image from "next/image";
-import { lockGroups, lockProducts } from "@/lib/lock-catalog";
 import { serverContent } from "@/lib/server-api";
 import type { PublicContent } from "@/lib/content-types";
 
@@ -24,10 +24,10 @@ export default async function HomePage() {
       <h1 className="sr-only">Bảo Tín - Phụ kiện nội thất chính hãng</h1>
       <HeroSection banners={content?.filter(row => row.kind === "banner")} />
       <B2BQuickActions />
-      <CategorySection />
+      <HomeCategorySection />
       <SolutionSection items={content?.filter(row => row.kind === "solution")} />
       <ProductShowcase />
-      <LockCategorySections />
+      <HomeLockSections />
       <BuyingGuides items={content?.filter(row => row.kind === "guide")} />
       <OrderProcess />
       <SupportSection />
@@ -82,39 +82,6 @@ function B2BQuickActions() {
   );
 }
 
-function CategorySection() {
-  return (
-    <section className="bt-container mt-5">
-      <SectionHeading title="Danh mục sản phẩm chính" link="Xem tất cả danh mục" />
-      <div className="scrollbar-hide flex gap-2 overflow-x-auto pb-1 md:grid md:grid-cols-4 lg:grid-cols-8">
-        {categories.map((category) => (
-          <a
-            key={category.name}
-            href={`/category/${category.slug}`}
-            className="group w-[126px] shrink-0 overflow-hidden rounded-lg border border-border bg-white shadow-card transition hover:-translate-y-0.5 hover:border-[#bbd5f0] hover:shadow-card-hover md:w-auto"
-          >
-              <div className="aspect-[1.35/1] overflow-hidden bg-section">
-              <Image
-                src={category.image}
-                data-image-src={category.image}
-                alt={category.name}
-                width={640}
-                height={480}
-                sizes={category.slug === "led-tu-ke" ? "(min-width: 1024px) 500px, (min-width: 768px) 78.2vw, 395px" : "(min-width: 1024px) 160px, (min-width: 768px) 25vw, 126px"}
-                quality={85}
-                className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]"
-              />
-            </div>
-            <div className="flex h-8 items-center justify-center px-1 text-center text-[11px] font-bold text-primary md:text-xs">
-              {category.name}
-            </div>
-          </a>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 function SolutionSection({ items }: { items?: PublicContent[] }) {
   const entries = items || solutions;
   return (
@@ -161,18 +128,6 @@ function SolutionSection({ items }: { items?: PublicContent[] }) {
       </div>
     </section>
   );
-}
-
-function LockCategorySections() {
-  return lockGroups.map((group) => (
-    <CategoryProductSection
-      key={group.title}
-      title={group.title}
-      caption={group.caption}
-      href={`/category/khoa?subcategory=${encodeURIComponent(group.title)}`}
-      products={lockProducts.filter((product) => product.subcategory === group.title)}
-    />
-  ));
 }
 
 function BuyingGuides({ items }: { items?: PublicContent[] }) {

@@ -1,9 +1,5 @@
 import "./globals.css";
-import "@fontsource/inter/400.css";
-import "@fontsource/inter/500.css";
-import "@fontsource/inter/600.css";
-import "@fontsource/inter/700.css";
-import "@fontsource/inter/800.css";
+import "./fonts.css";
 import type { Metadata } from "next";
 import { CommerceProvider } from "@/components/commerce-provider";
 import { StoreProvider } from "@/components/store-provider";
@@ -18,6 +14,9 @@ export const metadata: Metadata = {
   description:
     "Catalog phụ kiện nội thất B2B/B2C cho công trình, xưởng nội thất và chủ nhà Việt."
 };
+
+// Cache public data, not complete account/admin HTML or build-time API snapshots.
+export const revalidate = 0;
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   let initialCatalog: CatalogResponse | null = null;

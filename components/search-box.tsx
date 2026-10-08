@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { brands, money, normalize, priceFor } from "@/lib/catalog";
+import { getCatalogBrands, money, normalize, priceFor, slugify } from "@/lib/catalog";
 import { useCommerce } from "@/components/commerce-provider";
 import { Modal } from "@/components/ui";
 import { Search } from "lucide-react";
@@ -11,6 +11,7 @@ import { useEffect, useId, useRef, useState } from "react";
 
 export function SearchBox({ large = false, compactButton = false, initialValue = "" }: { large?: boolean; compactButton?: boolean; initialValue?: string }) {
   const { customer, products: catalog, categories: categoryCatalog } = useCommerce();
+  const brands = getCatalogBrands(catalog);
   const router = useRouter();
   const [query, setQuery] = useState(initialValue);
   const [open, setOpen] = useState(false);
@@ -23,7 +24,7 @@ export function SearchBox({ large = false, compactButton = false, initialValue =
   const items = [
     ...catalog.filter((p) => normalize(`${p.name} ${p.code} ${p.brand}`).includes(term)).slice(0, 5).map((p) => ({ section: "Sản phẩm", name: p.name, detail: `Mã: ${p.code}`, price: money(priceFor(p, customer)), image: p.image, href: `/products/${p.slug}` })),
     ...categoryCatalog.filter((c) => normalize(c.name).includes(term)).slice(0, 3).map((c) => ({ section: "Danh mục", name: c.name, detail: "", price: "", image: c.image, href: `/category/${c.slug}` })),
-    ...brands.filter((brand) => normalize(brand).includes(term)).slice(0, 2).map((brand) => ({ section: "Thương hiệu", name: brand, detail: "", price: "", image: "", href: `/brand/${normalize(brand).replace(/ /g, "-")}` }))
+    ...brands.filter((brand) => normalize(brand).includes(term)).slice(0, 2).map((brand) => ({ section: "Thương hiệu", name: brand, detail: "", price: "", image: "", href: `/brand/${slugify(brand)}` }))
   ];
   useEffect(() => { const handler = (event: PointerEvent) => { if (!ref.current?.contains(event.target as Node)) setOpen(false); }; document.addEventListener("pointerdown", handler); return () => document.removeEventListener("pointerdown", handler); }, []);
   const close = () => { suppressFocus.current = true; requestAnimationFrame(() => { suppressFocus.current = false; }); setOpen(false); setMobile(false); setActive(-1); };

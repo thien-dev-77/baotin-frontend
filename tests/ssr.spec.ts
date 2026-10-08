@@ -107,6 +107,45 @@ test("A delayed B2B catalog cannot overwrite a newer guest session", async ({ pa
   } finally { release(); }
 });
 
+test("Homepage frequently bought loads on demand and clears on logout", async ({ page }) => {
+  let guest = false, requests = 0;
+  let release!: () => void;
+  const pending = new Promise<void>(resolve => { release = resolve; });
+  const product = { ...catalog[0], customerPrice: 12345 };
+  const personalized = { ...retail, products: catalog.map(item => ({ ...item, customerPrice: 12345 })) };
+  const showcase = page.locator("section").filter({ has: page.getByRole("heading", { name: "SẢN PHẨM NỔI BẬT / THƯỜNG MUA", exact: true }) });
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.route("**/api/backend/**", async route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith("/auth/session")) await route.fulfill({ json: { user: guest ? null : activeUser } });
+    else if (path.endsWith("/catalog")) await route.fulfill({ json: guest ? retail : personalized });
+    else if (path.endsWith("/account/frequently-bought")) {
+      requests++;
+      await pending;
+      await route.fulfill({ json: { products: [product] } });
+    } else await route.fulfill({ json: path.endsWith("/account") ? { favorites: [] } : [] });
+  });
+  try {
+    await page.goto(base);
+    await expect(page.locator(".bt-product-card").first()).toContainText("Giá B2B");
+    expect(requests).toBe(0);
+    await page.getByRole("button", { name: "Thường mua", exact: true }).click();
+    await expect(page.getByText("Đang tải...", { exact: true })).toBeVisible();
+    await expect.poll(() => requests).toBe(1);
+    release();
+    await expect(showcase.locator(".bt-product-card")).toHaveCount(1);
+    await expect(showcase.getByText(product.name, { exact: true })).toBeVisible();
+    guest = true;
+    await page.evaluate(key => window.dispatchEvent(new StorageEvent("storage", { key, newValue: JSON.stringify({ type: "logout" }) })), authEventKey);
+    await expect(page.getByText("Đăng nhập B2B để xem sản phẩm thường mua", { exact: true })).toBeVisible();
+    await expect(showcase.locator(".bt-product-card")).toHaveCount(0);
+    await expect(showcase.getByRole("button", { name: "Sản phẩm tiếp theo", exact: true })).toHaveCount(0);
+    expect(requests).toBe(1);
+    expect(errors).toEqual([]);
+  } finally { release(); }
+});
+
 test("Desktop and mobile hydration preserve the layout and render images", async ({ browser }) => {
   const errors: string[] = [];
   for (const [width, height] of [[1440, 1000], [390, 844]]) {
