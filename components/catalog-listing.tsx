@@ -1,56 +1,103 @@
 "use client";
-
 import Image from "next/image";
-import { Category, Product, getCatalogBrands, money, normalize, priceFor, slugify } from "@/lib/catalog";
-import { ProductGrid } from "@/components/product-card";
-import { PromotionCard } from "@/components/promotion-card";
-import { Breadcrumb, Button, EmptyState, Modal, PageHeading, Pagination, Tabs } from "@/components/ui";
-import { SearchBox } from "@/components/search-box";
-import { useCommerce } from "@/components/commerce-provider";
-import { Grid2X2, List, SlidersHorizontal, X } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
+import { useRouter } from "@bprogress/next/app";
+import { useOptimistic, useState, useTransition } from "react";
+import { Grid2X2, List, LoaderCircle, SlidersHorizontal } from "lucide-react";
+import { type Category, normalize, slugify } from "@/lib/catalog";
+import { apiMode } from "@/lib/api-client";
+import type { CatalogPageResponse } from "@/lib/api-types";
+import { previewCatalogPage } from "@/lib/catalog-query";
+import { readCatalogPage } from "@/lib/commerce-api";
+import { useApiResource } from "@/lib/use-api-resource";
+import { useCommerce } from "./commerce-provider";
+import { ProductGrid } from "./product-card";
+import { SearchBox } from "./search-box";
+import { PromotionCard } from "./promotion-card";
+import { Breadcrumb, Button, EmptyState, Modal, PageHeading, Tabs } from "./ui";
+import { ResourceStatus } from "./admin/admin-resource";
 
-type Filters = { category: string[]; brand: string[]; material: string[]; color: string[]; size: string[]; origin: string[]; stock: string[]; min: string; max: string; subcategory: string };
-const emptyFilters: Filters = { category: [], brand: [], material: [], color: [], size: [], origin: [], stock: [], min: "", max: "", subcategory: "" };
+type Props = { category?: Category; query?: string; brand?: string; promotion?: boolean; queryString: string; initialPage?: CatalogPageResponse; initialError?: string };
 
-export function CatalogListing({ category, query, brand, promotion = false, initialSubcategory = "" }: { category?: Category; query?: string; brand?: string; promotion?: boolean; initialSubcategory?: string }) {
-  const { customer, products: catalog, categories: categoryCatalog } = useCommerce();
-  const brands = getCatalogBrands(catalog);
-  const [filters, setFilters] = useState<Filters>(() => ({ ...emptyFilters, subcategory: initialSubcategory }));
+export function CatalogListing({ category, query, brand, promotion = false, queryString, initialPage, initialError = "" }: Props) {
+  const { customer, ready, products, categories, brands } = useCommerce();
+  const [optimisticQuery, setOptimisticQuery] = useOptimistic(queryString);
+  const params = new URLSearchParams(optimisticQuery);
+  const apiParams = new URLSearchParams(queryString);
+  apiParams.delete("tab");
+  const router = useRouter();
+  const pathname = usePathname();
+  const [pending, startTransition] = useTransition();
   const [drawer, setDrawer] = useState(false);
-  const [sort, setSort] = useState("popular");
   const [list, setList] = useState(false);
-  const [page, setPage] = useState(1);
-  const [tab, setTab] = useState("Tất cả");
   const [expanded, setExpanded] = useState<string[]>([]);
+  const resource = useApiResource<CatalogPageResponse>(`/catalog/search?${apiParams}`, apiMode && ready && customer?.status === "active", undefined, readCatalogPage);
+  const result = apiMode ? resource.data || initialPage : previewCatalogPage(products, categories, params, customer);
+  const busy = pending || resource.loading;
   const isSearch = query !== undefined;
-  const terms = normalize(query || "").trim().split(/\s+/).filter(Boolean);
-  const base = catalog.filter((p) => (!category || p.category === category.slug) && (!brand || p.brand === brand) && (!promotion || p.oldPrice) && terms.every((term) => normalize(`${p.name} ${p.code} ${p.brand} ${p.specification}`).includes(term)));
-  const result = base.filter((p) => {
-    const price = priceFor(p, customer);
-    return (!filters.category.length || filters.category.includes(p.category)) && (!filters.brand.length || filters.brand.includes(p.brand)) && (!filters.material.length || filters.material.includes(p.material)) && (!filters.color.length || filters.color.includes(p.color)) && (!filters.size.length || filters.size.includes(p.size)) && (!filters.origin.length || filters.origin.includes(p.origin)) && (!filters.stock.length || (filters.stock.includes("Còn hàng") && p.stock > 0) || (filters.stock.includes("Hết hàng") && p.stock === 0)) && (!filters.min || price >= Number(filters.min)) && (!filters.max || price <= Number(filters.max)) && (!filters.subcategory || p.subcategory === filters.subcategory);
-  }).sort((a, b) => sort === "low" ? priceFor(a, customer) - priceFor(b, customer) : sort === "high" ? priceFor(b, customer) - priceFor(a, customer) : sort === "new" ? catalog.indexOf(b) - catalog.indexOf(a) : Number(b.featured) - Number(a.featured));
-  const toggle = (group: keyof Filters, value: string) => { setPage(1); setFilters((prev) => ({ ...prev, [group]: (prev[group] as string[]).includes(value) ? (prev[group] as string[]).filter((v) => v !== value) : [...prev[group] as string[], value] })); };
-  const count = Object.values(filters).reduce((total, value) => total + (Array.isArray(value) ? value.length : value ? 1 : 0), 0);
-  const unique = (field: "material" | "color" | "size" | "origin") => Array.from(new Set(base.map((p) => p[field])));
-  const groups: { key: keyof Filters; title: string; options: { value: string; label: string }[] }[] = [
-    { key: "category", title: "Danh mục", options: categoryCatalog.map((c) => ({ value: c.slug, label: c.name })) },
-    { key: "brand", title: "Thương hiệu", options: brands.map((b) => ({ value: b, label: b })) },
-    ...([ ["material", "Chất liệu"], ["color", "Màu sắc"], ["size", "Kích thước"], ["origin", "Xuất xứ"] ] as const).map(([key, title]) => ({ key, title, options: unique(key).map((v) => ({ value: v, label: v })) })),
-    { key: "stock", title: "Tình trạng", options: ["Còn hàng", "Hết hàng"].map((v) => ({ value: v, label: v })) }
-  ];
-  const filterPanel = <div className="space-y-4"><div className="flex items-center justify-between"><h2 className="text-sm font-semibold text-primary">Bộ lọc{count > 0 && ` (${count})`}</h2>{count > 0 && <button onClick={() => { setFilters(emptyFilters); setPage(1); }} className="text-xs text-blue-brand">Xóa tất cả</button>}</div><details open className="border-b border-border pb-4"><summary className="text-sm font-semibold text-primary">Khoảng giá</summary><div className="mt-3 grid grid-cols-2 gap-2"><label className="text-xs text-text-secondary">Từ<input min="0" type="number" value={filters.min} placeholder="0đ" className="bt-input mt-1 !px-2 !text-xs" onChange={(event) => { setPage(1); setFilters({ ...filters, min: event.target.value }); }} /></label><label className="text-xs text-text-secondary">Đến<input min="0" type="number" value={filters.max} placeholder="Tối đa" className="bt-input mt-1 !px-2 !text-xs" onChange={(event) => { setPage(1); setFilters({ ...filters, max: event.target.value }); }} /></label></div></details>{groups.filter((g) => !((category && g.key === "category") || (brand && g.key === "brand"))).map((group) => <details key={group.key} open className="border-b border-border pb-4 last:border-0"><summary className="text-sm font-semibold text-primary">{group.title}</summary><div className="mt-3 space-y-2">{group.options.slice(0, expanded.includes(group.key) ? undefined : 4).map((option) => <label key={option.value} className="flex items-center gap-2 text-xs text-text-secondary"><input type="checkbox" className="h-3.5 w-3.5 accent-blue-brand" checked={(filters[group.key] as string[]).includes(option.value)} onChange={() => toggle(group.key, option.value)} />{option.label}</label>)}{group.options.length > 4 && <button className="text-xs font-medium text-blue-brand" onClick={() => setExpanded((prev) => prev.includes(group.key) ? prev.filter((v) => v !== group.key) : [...prev, group.key])}>{expanded.includes(group.key) ? "Thu gọn" : "Xem thêm"}</button>}</div></details>)}</div>;
+  const [tab, setTab] = useState("Tất cả");
   const title = category?.name || brand || (promotion ? "Khuyến mãi" : isSearch ? query ? `Kết quả tìm kiếm cho: ${query}` : "Tìm kiếm sản phẩm" : "Tất cả sản phẩm");
-  const matchedCategories = categoryCatalog.filter((c) => terms.every((t) => normalize(c.name).includes(t)));
-  const matchedBrands = brands.filter((b) => terms.every((t) => normalize(b).includes(t)));
-  return <main className="bt-container bt-page"><Breadcrumb items={[{ label: title }]} /><PageHeading title={title} description={category?.description || (brand ? `Phụ kiện ${brand} chính hãng cho công trình và ngôi nhà Việt.` : promotion ? "Ưu đãi dành cho phụ kiện nội thất được chọn lọc." : undefined)}><span className="text-sm text-text-muted">{base.length} sản phẩm</span></PageHeading>
-    {category && <div className="scrollbar-hide mb-6 flex gap-2 overflow-x-auto">{category.subcategories.map((sub) => <button key={sub} aria-pressed={filters.subcategory === sub} onClick={() => { setPage(1); setFilters({ ...filters, subcategory: filters.subcategory === sub ? "" : sub }); }} className={`flex h-14 shrink-0 items-center gap-2 rounded-lg border px-3 text-xs font-medium ${filters.subcategory === sub ? "border-blue-brand bg-section-blue text-blue-brand" : "border-border bg-white text-primary"}`}><Image src={category.image} alt="" className="h-9 w-9 rounded object-contain" quality={85} width={36} height={36} sizes="36px" data-image-src={category.image} />{sub}</button>)}</div>}
-    {brand && <div className="mb-6 flex min-h-[120px] items-center gap-5 border-y border-border bg-section-blue p-5"><strong className="text-2xl font-bold text-primary">{brand.toUpperCase()}</strong><p className="max-w-xl text-sm leading-6 text-text-secondary">Bản lề, ray trượt và phụ kiện đồng bộ. Lựa chọn sản phẩm theo mã hàng, kích thước và nhu cầu công trình.</p></div>}
-    {promotion && <div className="relative mb-6 flex h-[200px] items-center overflow-hidden bg-section-blue"><Image alt="Phụ kiện tủ bếp đang có ưu đãi" src="/images/catalog/kitchen-banner.png" className="absolute inset-0 h-full w-full object-cover" quality={85} fill sizes="100vw" data-image-src="/images/catalog/kitchen-banner.png" /><div className="absolute inset-0 bg-white/80" /><div className="relative px-6"><span className="text-xs font-semibold text-danger">ƯU ĐÃI THÁNG 10</span><h2 className="mt-2 text-xl font-bold text-primary">Phụ kiện đồng bộ, giá tốt hơn</h2><p className="mt-2 text-sm text-text-secondary">Giảm đến 20% cho sản phẩm được chọn.</p></div></div>}
-    {promotion && <div className="mb-6 grid gap-3 md:grid-cols-3">{categoryCatalog.filter((c) => ["phu-kien-bep", "ban-le", "led-tu-ke"].includes(c.slug)).map((c) => <PromotionCard key={c.slug} title={`Ưu đãi ${c.name.toLowerCase()}`} image={c.image} description="Xem phụ kiện đang có giá ưu đãi." selected={filters.category.includes(c.slug)} onSelect={() => { setPage(1); setFilters({ ...filters, category: filters.category.includes(c.slug) ? [] : [c.slug] }); }} />)}</div>}
+  const terms = normalize(query || "").trim().split(/\s+/).filter(Boolean);
+  const matchedCategories = categories.filter(item => terms.every(term => normalize(item.name).includes(term)));
+  const matchedBrands = brands.filter(name => terms.every(term => normalize(name).includes(term)));
+  const selected = (field: string) => params.getAll(field);
+  const filterFields = ["category", "brand", "material", "color", "size", "origin", "stock", "subcategory", "min", "max"];
+  const count = filterFields.reduce((sum, field) => sum + ((field === "category" && category || field === "brand" && brand) ? 0 : selected(field).length), 0);
+  const navigate = (next: URLSearchParams) => startTransition(() => {
+    setOptimisticQuery(next.toString());
+    router.push(`${pathname}?${next}`, { scroll: false });
+  });
+  const change = (field: string, values: string[]) => {
+    const next = new URLSearchParams(queryString);
+    next.delete(field);
+    values.filter(Boolean).forEach(value => next.append(field, value));
+    if (field !== "page") next.delete("page");
+    navigate(next);
+  };
+  const reset = () => {
+    const next = new URLSearchParams(queryString);
+    for (const field of [...filterFields, "page"]) {
+      if (field === "category" && category || field === "brand" && brand) continue;
+      next.delete(field);
+    }
+    navigate(next);
+  };
+  const groups = [
+    ...(!category ? [{ key: "category", title: "Danh mục", options: categories.map(item => ({ value: item.slug, label: item.name })) }] : []),
+    ...(!brand ? [{ key: "brand", title: "Thương hiệu", options: (result?.facets.brand || brands).map(value => ({ value, label: value })) }] : []),
+    ...([["material", "Chất liệu"], ["color", "Màu sắc"], ["size", "Kích thước"], ["origin", "Xuất xứ"]] as const).map(([key, title]) => ({ key, title, options: (result?.facets[key] || []).map(value => ({ value, label: value })) })),
+    { key: "stock", title: "Tình trạng", options: [{ value: "in", label: "Còn hàng" }, { value: "out", label: "Hết hàng" }] },
+  ];
+  const filterPanel = <fieldset disabled={busy} className="min-w-0 space-y-4">
+    <div className="flex items-center justify-between"><h2 className="text-sm font-semibold text-primary">Bộ lọc{count > 0 && ` (${count})`}</h2>{count > 0 && <button type="button" onClick={reset} className="text-xs text-blue-brand">Xóa tất cả</button>}</div>
+    <details open className="border-b border-border pb-4"><summary className="text-sm font-semibold text-primary">Khoảng giá</summary><div className="mt-3 grid grid-cols-2 gap-2">{[["min", "Từ", "0đ"], ["max", "Đến", "Tối đa"]].map(([field, label, placeholder]) =>
+      <label key={field} className="text-xs text-text-secondary">{label}<input key={queryString + field} aria-label={`Giá ${label.toLowerCase()}`} min="0" type="number" defaultValue={params.get(field) || ""} placeholder={placeholder} className="bt-input mt-1 !px-2 !text-xs" onBlur={event => { if (event.target.value !== (params.get(field) || "")) change(field, [event.target.value]); }} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); } }} /></label>)}</div></details>
+    {groups.map(group => <details key={group.key} open className="border-b border-border pb-4 last:border-0"><summary className="text-sm font-semibold text-primary">{group.title}</summary><div className="mt-3 space-y-2">{group.options.slice(0, expanded.includes(group.key) ? undefined : 4).map(option =>
+      <label key={option.value} className="flex items-center gap-2 text-xs text-text-secondary"><input type="checkbox" className="h-3.5 w-3.5 accent-blue-brand" checked={selected(group.key).includes(option.value)} onChange={() => change(group.key, selected(group.key).includes(option.value) ? selected(group.key).filter(value => value !== option.value) : [...selected(group.key), option.value])} />{option.label}</label>)}
+      {group.options.length > 4 && <button type="button" className="text-xs font-medium text-blue-brand" onClick={() => setExpanded(previous => previous.includes(group.key) ? previous.filter(key => key !== group.key) : [...previous, group.key])}>{expanded.includes(group.key) ? "Thu gọn" : "Xem thêm"}</button>}</div></details>)}
+  </fieldset>;
+  return <main className="bt-container bt-page">
+    <Breadcrumb items={[{ label: title }]} /><PageHeading title={title} description={category?.description || (brand ? `Phụ kiện ${brand} chính hãng cho công trình và ngôi nhà Việt.` : promotion ? "Ưu đãi dành cho phụ kiện nội thất được chọn lọc." : undefined)}><span className="text-sm text-text-muted">{result?.total || 0} sản phẩm</span></PageHeading>
+    {category && <div className="scrollbar-hide mb-6 flex gap-2 overflow-x-auto">{category.subcategories.map(sub => <button key={sub} disabled={busy} aria-pressed={params.get("subcategory") === sub} onClick={() => change("subcategory", params.get("subcategory") === sub ? [] : [sub])} className={`flex h-14 shrink-0 items-center gap-2 rounded-lg border px-3 text-xs font-medium ${params.get("subcategory") === sub ? "border-blue-brand bg-section-blue text-blue-brand" : "border-border bg-white text-primary"}`}><Image src={category.image} alt="" className="h-9 w-9 rounded object-contain" quality={85} width={36} height={36} sizes="36px" data-image-src={category.image} />{sub}</button>)}</div>}
+    {brand && <div className="mb-6 flex min-h-[120px] flex-wrap items-center gap-5 border-y border-border bg-section-blue p-5"><strong className="break-words text-2xl font-bold text-primary">{brand.toUpperCase()}</strong><p className="max-w-xl text-sm leading-6 text-text-secondary">Bản lề, ray trượt và phụ kiện đồng bộ. Lựa chọn sản phẩm theo mã hàng, kích thước và nhu cầu công trình.</p></div>}
+    {promotion && <div className="relative mb-6 flex h-[200px] items-center overflow-hidden bg-section-blue"><Image alt="Phụ kiện tủ bếp đang có ưu đãi" src="/images/catalog/kitchen-banner.png" className="absolute inset-0 h-full w-full object-cover" quality={85} fill sizes="100vw" /><div className="absolute inset-0 bg-white/80" /><div className="relative px-6"><span className="text-xs font-semibold text-danger">ƯU ĐÃI THÁNG 10</span><h2 className="mt-2 text-xl font-bold text-primary">Phụ kiện đồng bộ, giá tốt hơn</h2><p className="mt-2 text-sm text-text-secondary">Ưu đãi cho sản phẩm được chọn.</p></div></div>}
+    {promotion && <fieldset disabled={busy} className="mb-6 grid gap-3 md:grid-cols-3">{categories.filter(item => ["phu-kien-bep", "ban-le", "led-tu-ke"].includes(item.slug)).map(item => <PromotionCard key={item.slug} title={`Ưu đãi ${item.name.toLowerCase()}`} image={item.image} description="Xem phụ kiện đang có giá ưu đãi." selected={selected("category").includes(item.slug)} onSelect={() => change("category", selected("category").includes(item.slug) ? [] : [item.slug])} />)}</fieldset>}
     {isSearch && <div className="mb-5"><div className="mb-3 max-w-2xl"><SearchBox key={query} initialValue={query} large /></div><Tabs value={tab} onChange={setTab} options={["Tất cả", "Sản phẩm", "Danh mục", "Thương hiệu"]} /></div>}
-    {isSearch && tab === "Danh mục" ? <div className="grid gap-3 sm:grid-cols-3">{matchedCategories.map((c) => <Link className="bt-card flex items-center gap-3 p-3" href={`/category/${c.slug}`} key={c.slug}><Image src={c.image} alt="" className="h-20 w-20 rounded object-contain" quality={85} width={80} height={80} sizes="80px" data-image-src={c.image} /><strong>{c.name}</strong></Link>)}{!matchedCategories.length && <EmptyState title="Không tìm thấy danh mục" />}</div> : isSearch && tab === "Thương hiệu" ? <div className="grid gap-3 sm:grid-cols-3">{matchedBrands.map((b) => <Link key={b} href={`/brand/${slugify(b)}`} className="bt-card p-6 text-lg font-bold text-primary">{b}</Link>)}{!matchedBrands.length && <EmptyState title="Không tìm thấy thương hiệu" />}</div> : <div className="grid gap-5 lg:grid-cols-[235px_minmax(0,1fr)]"><aside className="hidden self-start border-r border-border pr-5 lg:block">{filterPanel}</aside><section className="min-w-0"><div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3"><span className="text-sm text-text-secondary">{isSearch ? "Tìm thấy " : ""}<strong className="text-primary">{result.length}</strong> sản phẩm</span><div className="flex items-center gap-2"><button onClick={() => setDrawer(true)} className="bt-button-secondary !h-9 !min-h-9 !px-2 !text-xs lg:hidden"><SlidersHorizontal size={15} />Bộ lọc{count ? ` (${count})` : ""}</button><select aria-label="Sắp xếp sản phẩm" className="bt-input !h-9 !w-auto !px-2 !text-xs" value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }}><option value="popular">Phổ biến</option><option value="low">Giá thấp → cao</option><option value="high">Giá cao → thấp</option><option value="new">Mới nhất</option></select><div className="hidden items-center sm:flex"><button className={`bt-icon-button ${!list ? "bg-section-blue" : ""}`} aria-label="Dạng lưới" aria-pressed={!list} title="Dạng lưới" onClick={() => setList(false)}><Grid2X2 size={18} /></button><button className={`bt-icon-button ${list ? "bg-section-blue" : ""}`} aria-label="Dạng danh sách" aria-pressed={list} title="Dạng danh sách" onClick={() => setList(true)}><List size={18} /></button></div></div></div>{count > 0 && <div className="mb-3 flex flex-wrap gap-1.5">{filters.subcategory && <button onClick={() => setFilters({ ...filters, subcategory: "" })} className="flex items-center gap-1 rounded bg-section-blue px-2 py-1 text-xs text-blue-brand">{filters.subcategory}<X size={12} /></button>}<button className="text-xs text-blue-brand" onClick={() => { setFilters(emptyFilters); setPage(1); }}>Xóa bộ lọc</button></div>}{result.length ? <><ProductGrid list={list} products={result.slice((page - 1) * 12, page * 12)} /><Pagination page={page} total={Math.ceil(result.length / 12)} onChange={(number) => { setPage(number); document.getElementById("main-content")?.scrollIntoView({ behavior: "smooth" }); }} /></> : <EmptyState title="Không tìm thấy sản phẩm phù hợp" description="Thử một mã hàng khác hoặc điều chỉnh bộ lọc." href="/search" action="Xem tất cả sản phẩm" />}</section></div>}
-    <Modal open={drawer} onClose={() => setDrawer(false)} title="Lọc sản phẩm" sheet>{filterPanel}<Button className="sticky bottom-0 mt-5 w-full" onClick={() => setDrawer(false)}>Xem {result.length} sản phẩm</Button></Modal>
+    {isSearch && tab === "Danh mục" ? <div className="grid gap-3 sm:grid-cols-3">{matchedCategories.map(item => <Link className="bt-card flex items-center gap-3 p-3" href={`/category/${item.slug}`} key={item.slug}><Image src={item.image} alt="" className="h-20 w-20 rounded object-contain" quality={85} width={80} height={80} sizes="80px" /><strong>{item.name}</strong></Link>)}{!matchedCategories.length && <EmptyState title="Không tìm thấy danh mục" />}</div> :
+      isSearch && tab === "Thương hiệu" ? <div className="grid gap-3 sm:grid-cols-3">{matchedBrands.map(name => <Link key={name} href={`/brand/${slugify(name)}`} className="bt-card break-words p-6 text-lg font-bold text-primary">{name}</Link>)}{!matchedBrands.length && <EmptyState title="Không tìm thấy thương hiệu" />}</div> :
+      <div className="grid gap-5 lg:grid-cols-[235px_minmax(0,1fr)]"><aside className="hidden self-start border-r border-border pr-5 lg:block">{filterPanel}</aside><section className="min-w-0" aria-label="Kết quả sản phẩm" aria-busy={busy}>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3"><span className="text-sm text-text-secondary">{isSearch ? "Tìm thấy " : ""}<strong className="text-primary">{result?.total || 0}</strong> sản phẩm</span><div className="flex flex-wrap items-center gap-2">
+          <button onClick={() => setDrawer(true)} className="bt-button-secondary !h-9 !min-h-9 !px-2 !text-xs lg:hidden"><SlidersHorizontal size={15} />Bộ lọc{count ? ` (${count})` : ""}</button>
+          <select disabled={busy} aria-label="Sắp xếp sản phẩm" className="bt-input !h-9 !w-auto !px-2 !text-xs" value={params.get("sort") || "popular"} onChange={event => change("sort", [event.target.value])}><option value="popular">Phổ biến</option><option value="low">Giá thấp → cao</option><option value="high">Giá cao → thấp</option><option value="new">Mới nhất</option></select>
+          <div className="hidden items-center sm:flex"><button className={`bt-icon-button ${!list ? "bg-section-blue" : ""}`} aria-label="Dạng lưới" aria-pressed={!list} title="Dạng lưới" onClick={() => setList(false)}><Grid2X2 size={18} /></button><button className={`bt-icon-button ${list ? "bg-section-blue" : ""}`} aria-label="Dạng danh sách" aria-pressed={list} title="Dạng danh sách" onClick={() => setList(true)}><List size={18} /></button></div>
+        </div></div>
+        <div className="flex min-h-7 items-center gap-2 text-xs text-text-secondary" role="status">{busy && <><LoaderCircle className="animate-spin" size={14} />Đang cập nhật sản phẩm…</>}</div>
+        {(initialError || resource.error) && <ResourceStatus error={resource.error || initialError} loading={false} reload={async () => { if (resource.error) await resource.reload(); else router.refresh(); }} />}
+        {count > 0 && <button className="mb-3 text-xs text-blue-brand" disabled={busy} onClick={reset}>Xóa bộ lọc</button>}
+        {result?.products.length ? <><ProductGrid list={list} products={result.products} /><nav aria-label="Phân trang sản phẩm" className="mt-6 flex flex-wrap items-center justify-center gap-2"><Button variant="secondary" disabled={busy || result.page <= 1} onClick={() => change("page", [String(result.page - 1)])}>Trước</Button><span className="px-2 text-sm tabular-nums">Trang {result.page} / {result.totalPages}</span><Button variant="secondary" disabled={busy || result.page >= result.totalPages} onClick={() => change("page", [String(result.page + 1)])}>Sau</Button></nav></> :
+          !busy && !initialError && !resource.error && <EmptyState title="Không tìm thấy sản phẩm phù hợp" description="Thử một mã hàng khác hoặc điều chỉnh bộ lọc." href="/search" action="Xem tất cả sản phẩm" />}
+      </section></div>}
+    <Modal open={drawer} onClose={() => setDrawer(false)} title="Lọc sản phẩm" sheet>{filterPanel}<Button className="sticky bottom-0 mt-5 w-full" loading={busy} onClick={() => setDrawer(false)}>Xem {result?.total || 0} sản phẩm</Button></Modal>
   </main>;
 }

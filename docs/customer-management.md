@@ -28,10 +28,11 @@ Financial values are never submitted by the profile editor.
 coordination. `customer-editor.tsx`: profile/account forms, password confirmation,
 loading/duplicate-submit guard. `lib/customer-management.ts`: directory contracts.
 
-The actual customer table continues to use `/admin/state`, enriched with profile
-fields/revisions. Directory metadata uses `/admin/customers?branch=...` through
-the scoped API resource hook. After a successful write, the existing admin state
-refresh updates every other customer consumer, including Sales/order/credit.
+The customer table uses branch-scoped `/admin/resources` customer/order groups,
+enriched with profile fields/revisions. Directory metadata uses
+`/admin/customers?branch=...` through the scoped API resource hook. Successful
+writes invalidate the private resource cache so Sales/order/credit consumers
+reload current data when needed. See [Admin Performance](admin-performance.md).
 
 Forms retain a metadata snapshot while open; a background refresh does not
 unmount them or discard a draft. Saving disables form inputs/dismissal and shows

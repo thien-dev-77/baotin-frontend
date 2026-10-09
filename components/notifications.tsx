@@ -30,6 +30,18 @@ type Inbox = {
   total: number;
   pageSize: number;
 };
+type NotificationCount = { unreadCount: number };
+function readNotificationCount(value: unknown): NotificationCount {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    !("unreadCount" in value) ||
+    typeof value.unreadCount !== "number" ||
+    !Number.isSafeInteger(value.unreadCount) ||
+    value.unreadCount < 0
+  ) throw new Error("Số lượng thông báo không hợp lệ.");
+  return { unreadCount: value.unreadCount };
+}
 const Context = createContext<{
   unreadCount: number;
   refresh: () => Promise<void>;
@@ -40,9 +52,11 @@ export function NotificationsProvider({
   children: React.ReactNode;
 }) {
   const { sessionUser } = useCommerce();
-  const resource = useApiResource<Inbox>(
-    "/notifications",
+  const resource = useApiResource<NotificationCount>(
+    "/notifications/count",
     apiMode && !!sessionUser,
+    undefined,
+    readNotificationCount,
   );
   const reload = resource.reload;
   useEffect(() => {
@@ -100,6 +114,13 @@ export function NotificationsPage() {
   const [pending, setPending] = useState("");
   const lock = useRef(false);
   const [error, setError] = useState("");
+  const active = useRef(false);
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
   const mark = async (id?: string) => {
     if (lock.current) return;
     lock.current = true;
@@ -110,8 +131,10 @@ export function NotificationsPage() {
         method: "PATCH",
         body: JSON.stringify(id ? { id } : {}),
       });
-      if (tab === "Chưa đọc") setPage(1);
-      await resource.reload();
+      if (active.current) {
+        if (tab === "Chưa đọc") setPage(1);
+        await resource.reload();
+      }
       await summary.refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Không thể cập nhật.");

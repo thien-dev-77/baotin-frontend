@@ -19,7 +19,12 @@ certification of production deployment or commercial acceptance.
 | `/admin/reports` | 7/30/90-day KPIs, aging, CSV and overdue reminder | Admin/boss/sales/accountant in branch |
 | `/admin/integrations` -> balance comparison | Mapped stock/debt/order-status snapshots | Admin/boss in branch |
 
-The bell in storefront/admin polls every 30 seconds while the document is visible.
+The bell in storefront/admin fetches only `/notifications/count` after login and
+polls that count every 30 seconds while the document is visible. The paginated
+`/notifications` list loads only inside `/admin/notifications` or
+`/account/notifications`; hovering the bell does not fetch the list. Marking read
+refreshes the count and, only if the inbox is still mounted, its current list.
+Invalid count responses retain the last valid badge; auth-scope changes clear it.
 No WebSocket delivery or `/auth/session` on focus/navigation. Redux auth and the
 existing HttpOnly JWT cookie are preserved. F5 verifies authentication once.
 
@@ -29,6 +34,7 @@ Backend paths below have `/api` prefix. Browser calls use `/api/backend`.
 
 | Endpoint | Payload / response |
 | --- | --- |
+| GET `/notifications/count` | `{unreadCount}`; authenticated recipient/current role/allowed branches, unread only |
 | GET `/notifications?page=1&unread=false&type=` | `{items,total,page,pageSize:20,unreadCount}` |
 | PATCH `/notifications/read` | `{id}` or `{}` for all this recipient's unread notifications |
 | GET `/account/frequently-bought` | `{products}` with current visibility, stock and personalized prices |
@@ -53,6 +59,10 @@ Price requests reuse staff approvals; the customer cannot change purchase prices
 directly. Reviews require moderation. CMS body is plain text, not arbitrary HTML.
 Status/revision/role/ownership guards are enforced on the server.
 
+Deploy the backend count endpoint before this frontend change. It uses one SQL
+COUNT rather than loading inbox rows. TypeORM synchronize adds a partial unread
+index; back up the database and verify the schema update in staging first.
+
 ## Shared Components
 
 - `components/notifications.tsx`: provider, bell and shared admin/account inbox.
@@ -74,11 +84,13 @@ with offscreen lazy loading and hero priority.
 
 ## Storefront Catalog Wiring - 08 October 2026
 
-With `NEXT_PUBLIC_API_MODE=true`, these views now use the existing `/catalog`
-response through `CommerceProvider`, rather than looking up mock SKUs or a fixed
-brand list. No new backend endpoint or database change is required.
+With `NEXT_PUBLIC_API_MODE=true`, storefront views use API products rather than
+mock SKUs or a fixed brand list. The latest revision uses bounded bootstrap,
+paginated search and targeted SKU reads, not a full `/catalog` preload. See
+[orders-catalog-pagination.md](orders-catalog-pagination.md) for the coordinated
+backend/frontend contract and schema update.
 
-- Order detail resolves current names/images/links from API products, including
+- Legacy order detail resolves current names/images/links from API products, including
   newly created admin SKUs. Every original order line remains visible even when
   a product becomes private, disappears from the public catalog or sells out.
   Quantities, unit prices and totals remain the order's historical values.
@@ -92,12 +104,12 @@ brand list. No new backend endpoint or database change is required.
   from visible API products. All links use the same `slugify` helper. Brand pages
   resolve the brand server-side and render products without JavaScript. Unknown
   brands, or brands with no public products, return 404. Layout and brand page
-  share one catalog read per request; existing public cache rules still apply.
+  share bootstrap metadata; the brand page has its own cached product-page read.
 
-The current order-item contract contains product ID, quantity and unit price,
-but no historical name/image snapshot. Missing products therefore show their ID
-and a placeholder, not a fabricated mock product. Adding historical labels later
-requires a coordinated API/DTO change.
+New order lines now contain a server-authored name/code/slug/image/unit snapshot.
+Order details/admin/PDF retain these labels through catalog renames/hiding.
+Legacy lines without snapshots use current metadata or an ID placeholder, never
+fabricated history. Reorder refreshes the current SKU IDs before adding products.
 
 Preview mode retains its fixtures intentionally. These changes do not make
 database seed data production-approved. Frontend code must be deployed before

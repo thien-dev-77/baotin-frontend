@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "test:domain": "playwright test tests/domain.spec.ts tests/commerce-api.spec.ts tests/backend-proxy.spec.ts tests/auth-state.spec.ts tests/public-cache.spec.ts --workers=1",
+    "test:domain": "playwright test tests/domain.spec.ts tests/commerce-api.spec.ts tests/backend-proxy.spec.ts tests/auth-state.spec.ts tests/public-cache.spec.ts tests/admin-resources.spec.ts --workers=1",
     "test:auth": "playwright test tests/auth-ui.spec.ts --workers=1",
     "test:experience": "playwright test tests/experience-ui.spec.ts --workers=1",
     "test:customers": "playwright test tests/customers-ui.spec.ts --workers=1",

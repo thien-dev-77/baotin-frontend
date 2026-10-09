@@ -1,13 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { api, apiMode } from "@/lib/api-client";
 import { Button, LoadingSpinner } from "../ui";
 import { useAdmin } from "./admin-provider";
 
 export function useAdminResource<T>(path: string) {
-  const { resourceRevision } = useAdmin();
+  const { resourceRevision, setResourceLoading } = useAdmin();
+  const resourceId = useId();
   const [result, setResult] = useState<{
     path: string;
     data?: T;
@@ -15,6 +16,10 @@ export function useAdminResource<T>(path: string) {
     loading: boolean;
   }>({ path, loading: true });
   const sequence = useRef(0);
+  useEffect(() => {
+    setResourceLoading?.(resourceId, result.path !== path || result.loading);
+    return () => { setResourceLoading?.(resourceId, false); };
+  }, [path, resourceId, result.path, result.loading, setResourceLoading]);
   const reload = useCallback(async () => {
     const version = ++sequence.current;
     setResult(previous => ({ ...(previous.path === path ? previous : { path }), loading: true }));

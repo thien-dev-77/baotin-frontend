@@ -7,6 +7,22 @@ if (!["localhost", "127.0.0.1"].includes(new URL(base).hostname)) throw new Erro
 const retail = { products: catalog, categories: categoryCatalog };
 const activeUser = { id: "qa-b2b", name: "QA Customer", email: "qa@example.test", role: "b2b", branches: ["Quy Nhơn"], customer: { id: "qa-customer", name: "QA Customer", email: "qa@example.test", phone: "0901234567", company: "QA", role: "b2b", status: "active", creditLimit: 0, debt: 0 } };
 
+test("Page two is server-rendered using the paginated API without JavaScript", async ({ browser, request }) => {
+  const params = "page=2&sort=low";
+  const response = await request.get(`${base}/api/backend/catalog/search?${params}`);
+  expect(response.ok()).toBe(true);
+  const result = await response.json();
+  expect(result.page).toBe(2);
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  try {
+    const page = await context.newPage();
+    await page.goto(`${base}/search?${params}`);
+    await expect(page.locator(".bt-product-card")).toHaveCount(result.products.length);
+    await expect(page.locator(".bt-product-card").first()).toContainText(result.products[0].name);
+    await expect(page.getByText(`Trang 2 / ${result.totalPages}`, { exact: true })).toBeVisible();
+  } finally { await context.close(); }
+});
+
 test("Home, category and search render product cards without JavaScript", async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
   try {
@@ -27,7 +43,7 @@ test("Server-rendered products remain visible while session verification is pend
   await page.route("**/api/backend/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith("/auth/session")) { await pending; await route.fulfill({ json: { user: null } }); }
-    else if (path.endsWith("/catalog")) { catalogs += 1; await route.fulfill({ json: retail }); }
+    else if (path.endsWith("/catalog/bootstrap")) { catalogs += 1; await route.fulfill({ json: retail }); }
     else await route.fulfill({ json: [] });
   });
   try {
@@ -59,7 +75,7 @@ test("Personalized catalog updates without waiting for orders/account, and clear
   await page.route("**/api/backend/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith("/auth/session")) await route.fulfill({ json: { user: guest ? null : activeUser } });
-    else if (path.endsWith("/catalog")) await route.fulfill({ json: guest ? retail : { ...retail, products: catalog.map((product) => ({ ...product, customerPrice: Math.round(product.price * 0.9) })) } });
+    else if (path.endsWith("/catalog/bootstrap")) await route.fulfill({ json: guest ? retail : { ...retail, products: catalog.map((product) => ({ ...product, customerPrice: Math.round(product.price * 0.9) })) } });
     else if (path.endsWith("/orders")) { await pending; await route.fulfill({ status: 500, json: { message: "Orders unavailable" } }); }
     else await route.fulfill({ status: 500, json: { message: "Account unavailable" } });
   });
@@ -83,7 +99,7 @@ test("A delayed B2B catalog cannot overwrite a newer guest session", async ({ pa
   await page.route("**/api/backend/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith("/auth/session")) await route.fulfill({ json: { user: guest ? null : activeUser } });
-    else if (path.endsWith("/catalog")) {
+    else if (path.endsWith("/catalog/bootstrap")) {
       catalogRequests += 1;
       if (!guest) {
         await pending;
@@ -95,10 +111,10 @@ test("A delayed B2B catalog cannot overwrite a newer guest session", async ({ pa
     await page.goto(base, { waitUntil: "domcontentloaded" });
     await expect.poll(() => catalogRequests).toBe(1);
     guest = true;
-    const guestResponse = page.waitForResponse((response) => response.url().endsWith("/catalog"));
+    const guestResponse = page.waitForResponse((response) => response.url().endsWith("/catalog/bootstrap"));
     await page.evaluate(key => window.dispatchEvent(new StorageEvent("storage", { key, newValue: JSON.stringify({ type: "logout" }) })), authEventKey);
     await (await guestResponse).finished();
-    const staleResponse = page.waitForResponse((response) => response.url().endsWith("/catalog"));
+    const staleResponse = page.waitForResponse((response) => response.url().endsWith("/catalog/bootstrap"));
     release();
     await (await staleResponse).finished();
     await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
@@ -119,7 +135,7 @@ test("Homepage frequently bought loads on demand and clears on logout", async ({
   await page.route("**/api/backend/**", async route => {
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith("/auth/session")) await route.fulfill({ json: { user: guest ? null : activeUser } });
-    else if (path.endsWith("/catalog")) await route.fulfill({ json: guest ? retail : personalized });
+    else if (path.endsWith("/catalog/bootstrap")) await route.fulfill({ json: guest ? retail : personalized });
     else if (path.endsWith("/account/frequently-bought")) {
       requests++;
       await pending;

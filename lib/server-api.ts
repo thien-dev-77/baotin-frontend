@@ -2,8 +2,9 @@ import "server-only";
 import { apiMode } from "@/lib/api-client";
 import type { Product } from "@/lib/catalog";
 import { catalog, categoryCatalog, findProduct } from "@/lib/catalog";
-import type { CatalogResponse } from "@/lib/api-types";
-import { readCatalogResponse, retailProducts } from "@/lib/commerce-api";
+import type { CatalogPageResponse, CatalogResponse } from "@/lib/api-types";
+import { readCatalogPage, readCatalogResponse, retailProducts } from "@/lib/commerce-api";
+import { previewCatalogPage } from "./catalog-query";
 import type { PublicContent } from "./content-types";
 import type { Category } from "./types";
 import { publicCache } from "./public-cache-policy";
@@ -37,11 +38,22 @@ const cachedContent = unstable_cache(async (backend: string): Promise<PublicCont
 
 // Cache validated retail DTOs only, never an upstream HTML/null response or cookies.
 const cachedCatalog = unstable_cache(async (backend: string): Promise<CatalogResponse> => {
-  const response = await fetch(`${backend}/api/catalog`, publicFetchOptions());
+  const response = await fetch(`${backend}/api/catalog/bootstrap`, publicFetchOptions());
   if (!response.ok) throw new Error("Không thể tải danh sách sản phẩm. Vui lòng thử lại.");
   const result = readCatalogResponse(await response.json());
   return { ...result, products: retailProducts(result.products) };
-}, ["public-catalog-v1"], { revalidate: publicCache.catalog.seconds, tags: [publicCache.catalog.tag] });
+}, ["public-catalog-bootstrap-v2"], { revalidate: publicCache.catalog.seconds, tags: [publicCache.catalog.tag] });
+
+const cachedSearch = unstable_cache(async (backend: string, query: string): Promise<CatalogPageResponse> => {
+  const response = await fetch(`${backend}/api/catalog/search?${query}`, publicFetchOptions());
+  if (!response.ok) throw new Error("Không thể tải danh sách sản phẩm. Vui lòng thử lại.");
+  const result = readCatalogPage(await response.json());
+  return { ...result, products: retailProducts(result.products) };
+}, ["public-catalog-search-v1"], { revalidate: publicCache.catalog.seconds, tags: [publicCache.catalog.tag] });
+
+export async function serverCatalogPage(params: URLSearchParams): Promise<CatalogPageResponse> {
+  return apiMode ? cachedSearch(backendURL(), params.toString()) : previewCatalogPage(catalog, categoryCatalog, params);
+}
 
 export async function serverCategory(slug: string): Promise<Category | undefined> {
   if (!apiMode) return categoryCatalog.find(category => category.slug === slug);
@@ -58,7 +70,7 @@ export const serverCatalog = cache(async (): Promise<CatalogResponse> => {
 
 export async function serverProduct(slug: string): Promise<Product | undefined> {
   if (!apiMode) return findProduct(slug);
-  const response = await fetch(`${backendURL()}/api/catalog/${encodeURIComponent(slug)}`, publicFetchOptions());
+  const response = await fetch(`${backendURL()}/api/catalog/product/${encodeURIComponent(slug)}`, publicFetchOptions());
   if (response.status === 404) return undefined;
   if (!response.ok) throw new Error("Không thể tải sản phẩm.");
   return response.json();

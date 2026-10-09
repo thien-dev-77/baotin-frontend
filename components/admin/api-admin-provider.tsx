@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LockKeyhole, LogIn, RefreshCw } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { api } from "@/lib/api-client";
 import { useCommerce } from "@/components/commerce-provider";
 import { Button, Field } from "@/components/ui";
@@ -11,68 +12,88 @@ import type { ApiAdminState } from "@/lib/api-types";
 import type { Branch, SessionUser } from "@/lib/types";
 import { AdminContext, type AdminValue, type PendingAdminAction } from "./admin-provider";
 import { PasswordInput } from "../password-form";
+import { adminResources, AdminResourceCache, resourcesChangedBy, resourcesForAdminPage, type AdminResource } from "@/lib/admin-resources";
 
-const empty: ApiAdminState = { products: [], customers: [], orders: [], approvals: [], warehouse: {}, receipts: [], paymentDueDates: {}, today: "" };
+const fetchResources = (branch: Branch, resources: readonly AdminResource[]) => api<Partial<ApiAdminState>>(`/admin/resources?${new URLSearchParams({ branch, include: resources.join(",") })}`);
 
 export function ApiAdminProvider({ children }: { children: React.ReactNode }) {
   const { ready: sessionReady, sessionUser, logout, notice, reloadCatalog } = useCommerce();
   // Session refreshes return new objects; reset only when access actually changes.
   const scopeKey = JSON.stringify(sessionUser ? { id: sessionUser.id, role: sessionUser.role, branches: sessionUser.branches } : null);
   const scope = useMemo(() => JSON.parse(scopeKey) as Pick<SessionUser, "id" | "role" | "branches"> | null, [scopeKey]);
-  const activeScope = useRef(scopeKey);
-  const [state, setState] = useState(empty);
-  const [readyScope, setReadyScope] = useState<string | null>(null);
-  const [branch, setBranch] = useState<Branch>("Quy Nhơn");
+  const path = usePathname();
+  const requiredKey = resourcesForAdminPage(path).join(",");
+  const required = useMemo(() => requiredKey ? requiredKey.split(",") as AdminResource[] : [], [requiredKey]);
+  const cache = useMemo(() => new AdminResourceCache(scopeKey), [scopeKey]);
+  const activeCache = useRef(cache);
+  const [, setCacheRevision] = useState(0);
+  const [chosenBranch, setBranch] = useState<Branch>("Quy Nhơn");
+  const branch = scope?.branches.includes(chosenBranch) ? chosenBranch : scope?.branches[0] || "Quy Nhơn";
+  const state = cache.state(branch);
   const [days, setDays] = useState(7);
   const [resourceRevision, setResourceRevision] = useState(0);
-  const [error, setError] = useState("");
+  const [resourceLoads, setResourceLoads] = useState<Record<string, boolean>>({});
+  const setResourceLoading = useCallback((id: string, loading: boolean) => {
+    setResourceLoads(previous => {
+      if (!!previous[id] === loading) return previous;
+      const next = { ...previous };
+      if (loading) next[id] = true;
+      else delete next[id];
+      return next;
+    });
+  }, []);
+  const [error, setError] = useState<{ branch: Branch; message: string } | null>(null);
   const saving = useRef(false);
   const [pendingAction, setPendingAction] = useState<PendingAdminAction | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const reloads = useRef(0);
-  const reloadVersion = useRef(0);
   const scopeVersion = useRef(0);
   const [loggingOut, setLoggingOut] = useState(false);
   const staff = scope && scope.role !== "b2b";
-  const ready = readyScope === scopeKey;
-  const reload = useCallback(async () => {
-    if (activeScope.current !== scopeKey) return;
-    const version = ++reloadVersion.current;
-    reloads.current++; setRefreshing(true);
+  const loadedResources = cache.loaded(branch);
+  const ready = required.every(resource => loadedResources.includes(resource));
+  const refreshing = cache.pending(branch) || Object.values(resourceLoads).some(Boolean);
+  const changed = useCallback(() => {
+    if (activeCache.current === cache) setCacheRevision(revision => revision + 1);
+  }, [cache]);
+  const ensureResources = useCallback(async (resources: readonly AdminResource[]) => {
+    if (activeCache.current !== cache || !staff) return;
     try {
-      const next = await api<ApiAdminState>("/admin/state");
-      if (version !== reloadVersion.current) return;
-      setState(next); setResourceRevision(version => version + 1); setError(""); setReadyScope(scopeKey);
+      await cache.load(branch, resources, fetchResources, changed);
+      if (activeCache.current === cache) setError(previous => previous?.branch === branch ? null : previous);
+    } catch (error) {
+      if (activeCache.current === cache) setError({ branch, message: error instanceof Error ? error.message : "Không thể tải dữ liệu quản trị." });
+      throw error;
     }
-    catch (error) { if (version === reloadVersion.current) setError(error instanceof Error ? error.message : "Không thể tải dashboard."); }
-    finally { if (--reloads.current === 0) setRefreshing(false); }
-  }, [scopeKey]);
+  }, [cache, branch, changed, staff]);
+  const reload = useCallback(async () => {
+    for (const target of scope?.branches || [branch]) cache.invalidate(target, adminResources);
+    setResourceRevision(revision => revision + 1);
+    await ensureResources(required).catch(() => undefined);
+  }, [branch, cache, required, scope, ensureResources]);
   useEffect(() => {
     const scopes = scopeVersion;
-    const reads = reloadVersion;
-    activeScope.current = scopeKey;
-    scopes.current++; reads.current++;
-    setReadyScope(null); setState(empty); setError(""); setPendingAction(null); saving.current = false;
-    if (!staff) return;
-    setBranch(scope.branches[0]);
-    void reload();
-    const focus = () => { if (!saving.current) void reload(); };
-    window.addEventListener("focus", focus);
-    return () => { scopes.current++; reads.current++; window.removeEventListener("focus", focus); };
-  }, [staff, scope, scopeKey, reload]);
+    activeCache.current = cache;
+    scopes.current++;
+    setError(null); setPendingAction(null); setResourceLoads({}); saving.current = false;
+    return () => { scopes.current++; };
+  }, [cache]);
+  useEffect(() => { void ensureResources(required).catch(() => undefined); }, [required, ensureResources]);
 
   const command = async (action: string, id: string | undefined, payload: object, orderId = id) => {
     if (saving.current) return { error: "Đang lưu thao tác trước. Vui lòng đợi." };
     saving.current = true;
     const currentScope = scopeVersion.current;
-    reloadVersion.current++;
     setPendingAction({ action, id, payload });
     try {
       const expectedRevision = state.orders.find((order) => order.id === orderId)?.revision;
-      const result = await api<{ id: string; state: ApiAdminState }>("/admin/commands", { method: "POST", body: JSON.stringify({ action, id, branch, payload, expectedRevision }) });
+      const result = await api<{ id: string }>("/admin/commands", { method: "POST", body: JSON.stringify({ action, id, branch, payload, expectedRevision, returnState: false }) });
       if (currentScope !== scopeVersion.current) return { error: "Phiên quản trị đã thay đổi. Vui lòng kiểm tra lại dữ liệu." };
-      reloadVersion.current++;
-      setState(result.state); setResourceRevision(version => version + 1); notice("Đã lưu thay đổi.");
+      const affected = resourcesChangedBy(action);
+      const toRefresh = affected.filter(resource => cache.loaded(branch).includes(resource));
+      for (const target of action === "publish-product" ? scope?.branches || [branch] : [branch]) cache.invalidate(target, affected);
+      setResourceRevision(version => version + 1);
+      await ensureResources(toRefresh).catch(() => undefined);
+      if (currentScope !== scopeVersion.current) return { error: "Phiên quản trị đã thay đổi. Vui lòng kiểm tra lại dữ liệu." };
+      notice("Đã lưu thay đổi.");
       if (action === "publish-product") void reloadCatalog().catch((error) => notice(error.message));
       return { id: result.id };
     } catch (error) {
@@ -86,7 +107,7 @@ export function ApiAdminProvider({ children }: { children: React.ReactNode }) {
   date.setUTCDate(date.getUTCDate() - days + 1);
   const since = date.toISOString().slice(0, 10);
   const value: AdminValue = {
-    ...state, products: state.products.map(product => ({ ...product, stock: state.stockByBranch?.[branch]?.[product.id] ?? product.stock })), ready, branch, setBranch, days, setDays, resourceRevision, pendingAction, refreshing, allowedBranches: sessionUser?.branches || [],
+    ...state, products: state.products.map(product => ({ ...product, stock: state.stockByBranch?.[branch]?.[product.id] ?? product.stock })), ready, branch, setBranch, days, setDays, resourceRevision, pendingAction, refreshing, loadedResources, ensureResources, setResourceLoading, allowedBranches: sessionUser?.branches || [],
     scopedOrders: state.orders.filter((order) => order.branch === branch && order.date >= since),
     scopedCustomers: state.customers.filter((customer) => customer.branch === branch),
     scopedApprovals: state.approvals.filter((approval) => approval.branch === branch).reverse(),
@@ -108,7 +129,7 @@ export function ApiAdminProvider({ children }: { children: React.ReactNode }) {
   if (!sessionReady) return <div role="status" className="p-10 text-center text-sm">Đang kiểm tra phiên đăng nhập...</div>;
   if (!sessionUser) return <StaffLogin />;
   if (!staff) return <div className="mx-auto max-w-md space-y-5 px-4 py-20"><LockKeyhole className="text-blue-brand" /><h1 className="text-xl font-bold text-primary">Tài khoản không có quyền quản trị</h1><Button loading={loggingOut} onClick={async () => { setLoggingOut(true); try { await logout(); } finally { setLoggingOut(false); } }}>Đổi tài khoản</Button><Link className="ml-4 text-sm text-blue-brand" href="/account">Tài khoản B2B</Link></div>;
-  return <AdminContext.Provider value={value}>{error && <div role="alert" className="flex items-center justify-center gap-3 bg-red-50 p-3 text-sm text-danger">{error}<Button variant="secondary" loading={refreshing} onClick={() => { void reload(); }}><RefreshCw size={16} />Thử lại</Button></div>}{children}</AdminContext.Provider>;
+  return <AdminContext.Provider value={value}>{error?.branch === branch && <div role="alert" className="flex items-center justify-center gap-3 bg-red-50 p-3 text-sm text-danger">{error.message}<Button variant="secondary" loading={refreshing} onClick={() => { void reload(); }}><RefreshCw size={16} />Thử lại</Button></div>}{children}</AdminContext.Provider>;
 }
 
 function StaffLogin() {

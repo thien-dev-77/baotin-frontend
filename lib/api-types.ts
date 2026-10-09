@@ -10,7 +10,9 @@ export type ApiAdminState = {
   stockByBranch?: Record<string, Record<string, number>>;
 };
 export type ApiSession = { user: SessionUser | null };
-export type CatalogResponse = { products: Product[]; categories: Category[] };
+export type CatalogResponse = { products: Product[]; categories: Category[]; brands?: string[] };
+export type CatalogFacets = Record<"brand" | "material" | "color" | "size" | "origin", string[]>;
+export type CatalogPageResponse = CatalogResponse & { total: number; page: number; pageSize: number; totalPages: number; facets: CatalogFacets };
 export type CheckoutDraft = {
   items: { productId: string; quantity: number }[];
   customer: Order["customer"]; delivery: string; payment: string; note: string; coupon: string; expectedTotal?: number;

@@ -14,9 +14,13 @@ import { useEffect, useRef, useState } from "react";
 import { useCommerce } from "@/components/commerce-provider";
 import { apiMode } from "@/lib/api-client";
 import { useApiResource } from "@/lib/use-api-resource";
+import { useProductSelection } from "@/lib/use-product-selection";
+import { readCatalogPage } from "@/lib/commerce-api";
+import type { CatalogPageResponse } from "@/lib/api-types";
 
 export function ProductDetail({ product: initialProduct }: { product: Product }) {
   const { products, categories } = useCommerce();
+  useProductSelection([initialProduct.id]);
   const product = products.find((item) => item.id === initialProduct.id) || initialProduct;
   const detailRef = useRef<HTMLElement>(null);
   const [tab, setTab] = useState("Mô tả sản phẩm");
@@ -26,7 +30,8 @@ export function ProductDetail({ product: initialProduct }: { product: Product })
   const rating = visibleReviews.length ? visibleReviews.reduce((sum, review) => sum + review.stars, 0) / visibleReviews.length : 0;
   const category = categories.find((item) => item.slug === product.category);
   const specifications = getProductSpecifications(product);
-  const { related, bundle } = getProductRecommendations(product, products);
+  const recommendations = useApiResource<CatalogPageResponse>(`/catalog/search?category=${encodeURIComponent(product.category)}&pageSize=5`, apiMode, undefined, readCatalogPage);
+  const { related, bundle } = getProductRecommendations(product, apiMode ? recommendations.data?.products || [] : products);
 
   useEffect(() => {
     const header = document.querySelector("header");

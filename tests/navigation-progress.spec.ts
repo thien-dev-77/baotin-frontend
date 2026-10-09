@@ -272,12 +272,12 @@ test("Admin links share the same navigation indicator", async ({ page }) => {
         customer: null,
       },
     },
-    "/catalog": { products: catalog, categories: categoryCatalog },
+    "/catalog/bootstrap": { products: catalog, categories: categoryCatalog },
     "/orders": [],
     "/account": { favorites: [] },
-    "/notifications": { items: [], total: 0, pageSize: 20, unreadCount: 0 },
+    "/notifications/count": { unreadCount: 0 },
     "/admin/pricing": { policies: [] },
-    "/admin/state": {
+    "/admin/resources": {
       products: catalog,
       categories: categoryCatalog,
       customers: [],

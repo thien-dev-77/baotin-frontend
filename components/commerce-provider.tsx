@@ -1,6 +1,6 @@
 "use client";
 
-import { CartLine, Customer, Order, Product, catalog, categoryCatalog, findProduct } from "@/lib/catalog";
+import { CartLine, Customer, Order, Product, catalog, categoryCatalog, getCatalogBrands } from "@/lib/catalog";
 import type { Category, SessionUser } from "@/lib/types";
 import type { CatalogResponse, CheckoutDraft, Quote } from "@/lib/api-types";
 import { api, apiMode, onUnauthorized } from "@/lib/api-client";
@@ -12,7 +12,8 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 
 type Store = { cart: CartLine[]; favorites: string[]; orders: Order[]; coupon: string };
 type Commerce = Store & {
-  products: Product[]; categories: Category[]; sessionUser: SessionUser | null; apiError: string;
+  products: Product[]; categories: Category[]; brands: string[]; sessionUser: SessionUser | null; apiError: string;
+  loadProducts: (ids: string[]) => Promise<Product[]>;
   refreshSession: (refreshProducts?: boolean) => Promise<void>; reloadCatalog: () => Promise<void>;
   loginWithPassword: (identity: string, password: string, remember?: boolean) => Promise<void>;
   registerWithPassword: (input: { name: string; company: string; phone: string; email: string; password: string }) => Promise<void>;
@@ -54,6 +55,9 @@ export function CommerceProvider({ children, initialCatalog, initialCatalogError
   const [toast, setToast] = useState("");
   const [products, setProducts] = useState<Product[]>(initialCatalog?.products || (apiMode ? [] : catalog));
   const [categories, setCategories] = useState<Category[]>(initialCatalog?.categories || (apiMode ? [] : categoryCatalog));
+  const [brands, setBrands] = useState(initialCatalog?.brands || getCatalogBrands(initialCatalog?.products || (apiMode ? [] : catalog)));
+  const productIds = useRef<string[]>([]);
+  useEffect(() => { productIds.current = products.map(product => product.id); }, [products]);
   const [catalogError, setCatalogError] = useState(initialCatalogError);
   const [accountError, setAccountError] = useState("");
   const apiError = catalogError || auth.error || accountError;
@@ -62,14 +66,31 @@ export function CommerceProvider({ children, initialCatalog, initialCatalogError
   const refreshVersion = useRef(0);
   const refreshRequest = useRef<Promise<void> | null>(null);
   const hydrated = useRef(false);
+  const loadProducts = useCallback(async (ids: string[]): Promise<Product[]> => {
+    if (!apiMode) return catalog.filter(product => ids.includes(product.id));
+    const version = refreshVersion.current;
+    const unique = Array.from(new Set(ids));
+    const loaded: Product[] = [];
+    for (let offset = 0; offset < unique.length; offset += 100) {
+      const params = new URLSearchParams();
+      unique.slice(offset, offset + 100).forEach(id => params.append("ids", id));
+      const result = await api<{ products: Product[] }>(`/catalog/selection?${params}`);
+      loaded.push(...readCatalogResponse({ ...result, categories: [] }).products);
+    }
+    if (version !== refreshVersion.current) return [];
+    setProducts(previous => [...previous.filter(product => !unique.includes(product.id)), ...loaded]);
+    return loaded;
+  }, []);
   const reloadCatalog = useCallback(async () => {
     if (!apiMode) return;
     const version = refreshVersion.current;
-    const result = readCatalogResponse(await api<unknown>("/catalog"));
+    const result = readCatalogResponse(await api<unknown>("/catalog/bootstrap"));
     if (version !== refreshVersion.current) return;
-    setProducts(result.products); setCategories(result.categories);
+    setProducts(result.products); setCategories(result.categories); setBrands(result.brands || getCatalogBrands(result.products));
+    await loadProducts(productIds.current.filter(id => !result.products.some(product => product.id === id)));
+    if (version !== refreshVersion.current) return;
     catalogLoaded.current = true; setCatalogError("");
-  }, []);
+  }, [loadProducts]);
   const loadUserData = useCallback(async (user: SessionUser | null, refreshProducts: boolean, version: number) => {
     if (version !== refreshVersion.current) return;
     const identity = user?.id || null;
@@ -134,7 +155,7 @@ export function CommerceProvider({ children, initialCatalog, initialCatalogError
       if (raw) {
         const parsed = JSON.parse(raw) as Store;
         const available = new Map((initialCatalog?.products || (apiMode ? [] : catalog)).map(product => [product.id, product]));
-        const hasCatalog = !apiMode || initialCatalog !== null;
+        const hasCatalog = !apiMode;
         setStore({
           coupon: parsed.coupon === "BAOTIN10" ? parsed.coupon : "",
           cart: Array.isArray(parsed.cart) ? parsed.cart.filter(line => line && typeof line.productId === "string" && Number.isInteger(line.quantity) && line.quantity > 0 && (!hasCatalog || available.has(line.productId))).map(line => ({ productId: line.productId, quantity: Math.min(line.quantity, available.get(line.productId)?.stock ?? line.quantity) })).filter(line => line.quantity > 0) : [],
@@ -179,6 +200,7 @@ export function CommerceProvider({ children, initialCatalog, initialCatalogError
   const add = (product: Product, quantity = 1) => {
     if (product.stock < 1) { notice("Sản phẩm hiện hết hàng."); return; }
     const amount = Number.isFinite(quantity) ? Math.max(1, Math.floor(quantity)) : 1;
+    setProducts(previous => [...previous.filter(item => item.id !== product.id), product]);
     setStore((state) => {
       const existing = state.cart.find((line) => line.productId === product.id);
       const nextQuantity = Math.min(product.stock, (existing?.quantity || 0) + amount);
@@ -245,7 +267,7 @@ export function CommerceProvider({ children, initialCatalog, initialCatalogError
   const setCoupon = (coupon: string) => setStore((state) => ({ ...state, coupon }));
   const placeOrder = (order: Order) => setStore((state) => ({ ...state, orders: [order, ...state.orders], cart: [], coupon: "" }));
 
-  return <Context.Provider value={{ ...store, products, categories, sessionUser, apiError, refreshSession, reloadCatalog, loginWithPassword, registerWithPassword, submitOrder, quoteOrder, updateProfile, customer, ready, notice, add, setQuantity, remove, toggleFavorite, login, logout, placeOrder, setCoupon }}>
+  return <Context.Provider value={{ ...store, products, categories, brands, loadProducts, sessionUser, apiError, refreshSession, reloadCatalog, loginWithPassword, registerWithPassword, submitOrder, quoteOrder, updateProfile, customer, ready, notice, add, setQuantity, remove, toggleFavorite, login, logout, placeOrder, setCoupon }}>
     {apiError && <div role="alert" className="border-b border-red-200 bg-red-50 px-4 py-3 text-center text-sm text-danger">{apiError}<button onClick={() => { void refreshSession(); }} className="ml-3 font-semibold underline">Thử lại</button></div>}
     {children}
     {toast && <div role="status" className="fixed bottom-6 left-3 right-3 z-[100] mx-auto flex max-w-md items-center gap-3 rounded-lg border border-border bg-white p-4 text-sm shadow-card-hover sm:left-auto sm:right-6"><CheckCircle2 className="shrink-0 text-success" size={20} /><span className="flex-1">{toast}</span><button aria-label="Đóng thông báo" className="bt-icon-button" onClick={() => setToast("")}><X size={16} /></button></div>}

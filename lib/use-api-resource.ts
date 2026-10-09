@@ -7,6 +7,7 @@ export function useApiResource<T>(
   path: string,
   enabled = apiMode,
   refreshToken?: number,
+  parser?: (value: unknown) => T,
 ) {
   const { sessionUser } = useCommerce();
   const key = JSON.stringify([
@@ -31,7 +32,8 @@ export function useApiResource<T>(
       loading: true,
     }));
     try {
-      const data = await api<T>(path);
+      const response = await api<unknown>(path);
+      const data = parser ? parser(response) : response as T;
       if (sequence.current === version) setState({ key, data, loading: false });
     } catch (cause) {
       if (sequence.current === version)
@@ -42,7 +44,7 @@ export function useApiResource<T>(
             cause instanceof Error ? cause.message : "Không thể tải dữ liệu.",
         }));
     }
-  }, [enabled, key, path]);
+  }, [enabled, key, path, parser]);
   useEffect(() => {
     const counter = sequence;
     void reload();

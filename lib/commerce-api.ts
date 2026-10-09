@@ -1,4 +1,4 @@
-import type { ApiSession, CatalogResponse } from "@/lib/api-types";
+import type { ApiSession, CatalogPageResponse, CatalogResponse } from "@/lib/api-types";
 import type { Product } from "@/lib/types";
 
 const isObject = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === "object" && !Array.isArray(value);
@@ -14,7 +14,7 @@ export function readApiSession(value: unknown): ApiSession {
 }
 
 export function readCatalogResponse(value: unknown): CatalogResponse {
-  if (!isObject(value) || !Array.isArray(value.products) || !Array.isArray(value.categories) || value.products.some((product) => !isObject(product) || typeof product.id !== "string" || typeof product.slug !== "string") || value.categories.some((category) => !isObject(category) || typeof category.slug !== "string" || !Array.isArray(category.subcategories))) {
+  if (!isObject(value) || !Array.isArray(value.products) || !Array.isArray(value.categories) || (value.brands !== undefined && (!Array.isArray(value.brands) || value.brands.some(brand => typeof brand !== "string"))) || value.products.some((product) => !isObject(product) || typeof product.id !== "string" || typeof product.slug !== "string") || value.categories.some((category) => !isObject(category) || typeof category.slug !== "string" || !Array.isArray(category.subcategories))) {
     throw new Error("Phản hồi danh sách sản phẩm không hợp lệ. Vui lòng thử lại.");
   }
   return value as CatalogResponse;
@@ -22,4 +22,18 @@ export function readCatalogResponse(value: unknown): CatalogResponse {
 
 export function retailProducts(products: Product[]): Product[] {
   return products.map(({ customerPrice, ...retail }) => retail);
+}
+
+export function readCatalogPage(value: unknown): CatalogPageResponse {
+  readCatalogResponse(value);
+  if (!isObject(value) || !Number.isSafeInteger(value.total) || Number(value.total) < 0 ||
+    !Number.isSafeInteger(value.page) || Number(value.page) < 1 || !Number.isSafeInteger(value.pageSize) || Number(value.pageSize) < 1 ||
+    !Number.isSafeInteger(value.totalPages) || Number(value.totalPages) < 1 || !isObject(value.facets) ||
+    ["brand", "material", "color", "size", "origin"].some(field => {
+      const items = (value.facets as Record<string, unknown>)[field];
+      return !Array.isArray(items) || items.some(item => typeof item !== "string");
+    })) {
+    throw new Error("Phản hồi trang sản phẩm không hợp lệ. Vui lòng thử lại.");
+  }
+  return value as CatalogPageResponse;
 }

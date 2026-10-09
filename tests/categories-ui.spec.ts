@@ -95,10 +95,10 @@ async function mockCategories(page: Page, role = "admin") {
       },
       "/account": { favorites: [] },
       "/orders": [],
-      "/notifications": { items: [], total: 0, unreadCount: 0, pageSize: 20 },
+      "/notifications/count": { unreadCount: 0 },
       "/admin/categories": { items: rows },
-      "/catalog": { products: catalog, categories: publicRows() },
-      "/admin/state": {
+      "/catalog/bootstrap": { products: catalog, categories: publicRows() },
+      "/admin/resources": {
         products: catalog,
         categories: rows,
         customers: [],

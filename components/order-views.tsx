@@ -11,6 +11,8 @@ import { useRouter } from "@bprogress/next/app";
 import { useState } from "react";
 import { apiMode } from "@/lib/api-client";
 import { OrderDocumentButtons } from "./order-document-buttons";
+import { useProductSelection } from "@/lib/use-product-selection";
+import { ResourceStatus } from "./admin/admin-resource";
 
 export function useCustomerOrders() {
   const { customer, orders } = useCommerce();
@@ -32,9 +34,11 @@ export function OrderHistory() {
 }
 export function OrderDetailView({ id, standalone = false }: { id: string; standalone?: boolean }) {
   const orders = useCustomerOrders();
-  const { ready, products, add, notice, orders: localOrders } = useCommerce();
+  const { ready, products, loadProducts, add, notice, orders: localOrders } = useCommerce();
   const router = useRouter();
   const order = (standalone ? localOrders.filter((o) => !o.customerId) : orders).find((o) => o.id === id);
+  const selection = useProductSelection(order?.items.map(line => line.productId) || []);
+  const [reordering, setReordering] = useState(false);
   if (!ready) return <CommerceLoading />;
   if (!order) return <EmptyState title="Không tìm thấy đơn hàng" href="/account/orders" action="Về danh sách đơn hàng" />;
   const index = order.status === "Chờ xác nhận" ? 0 : order.status === "Đang xử lý" ? 2 : order.status === "Đang giao" ? 3 : order.status === "Đã giao" ? 4 : -1;
@@ -42,12 +46,20 @@ export function OrderDetailView({ id, standalone = false }: { id: string; standa
   const lines = order.items.map(item => ({ ...item, product: productById.get(item.productId) }));
   const available = lines.filter(line => line.product && line.product.stock > 0);
   const unavailableCount = lines.length - available.length;
-  const reorder = () => {
-    for (const line of available) {
-      if (line.product) add(line.product, line.quantity);
-    }
-    notice(`Đã cập nhật giỏ hàng theo giá và tồn kho hiện tại.${unavailableCount ? ` ${unavailableCount} sản phẩm chưa thể mua lại và không được thêm.` : ""}`);
-    router.push("/cart");
+  const reorder = async () => {
+    setReordering(true);
+    try {
+      const current = new Map((await loadProducts(order.items.map(line => line.productId))).map(product => [product.id, product]));
+      let added = 0;
+      for (const line of order.items) {
+        const product = current.get(line.productId);
+        if (product && product.stock > 0) { add(product, line.quantity); added++; }
+      }
+      const skipped = order.items.length - added;
+      notice(added ? `Đã cập nhật giỏ hàng theo giá và tồn kho hiện tại.${skipped ? ` ${skipped} sản phẩm chưa thể mua lại và không được thêm.` : ""}` : "Các sản phẩm trong đơn hiện chưa thể mua lại.");
+      if (added) router.push("/cart");
+    } catch (error) { notice(error instanceof Error ? error.message : "Không thể đặt lại đơn."); }
+    finally { setReordering(false); }
   };
   const content = (
     <>
@@ -73,24 +85,27 @@ export function OrderDetailView({ id, standalone = false }: { id: string; standa
           <p className="mt-2 text-sm leading-7 text-text-secondary">{order.delivery}<br />{order.payment}<br />{order.note || "Không có ghi chú."}</p>
         </section>
       </div>
+      <ResourceStatus {...selection} />
       <section aria-label="Sản phẩm trong đơn hàng" className="divide-y divide-border border-y border-border">
-        {lines.map(({ product, ...line }) => (
+        {lines.map(({ product, ...line }) => {
+          const display = line.snapshot || product;
+          return (
           <div key={line.productId} className="flex items-center gap-3 py-4">
-            {product ? <Image alt="" src={product.image} className="h-16 w-16 shrink-0 rounded bg-section object-contain" quality={85} width={64} height={64} sizes="64px" data-image-src={product.image} /> : <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded bg-section text-text-muted"><Package size={24} aria-hidden="true" /></span>}
+            {display?.image ? <Image alt="" src={display.image} className="h-16 w-16 shrink-0 rounded bg-section object-contain" quality={85} width={64} height={64} sizes="64px" data-image-src={display.image} /> : <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded bg-section text-text-muted"><Package size={24} aria-hidden="true" /></span>}
             <div className="min-w-0 flex-1">
-              {product ? <Link href={`/products/${product.slug}`} className="break-words text-sm font-semibold text-primary">{product.name}</Link> : <p className="break-words text-sm font-semibold text-primary">Sản phẩm {line.productId}</p>}
-              <p className="mt-1 break-words text-xs text-text-muted">Mã: {product?.code || line.productId} · SL: {line.quantity}</p>
+              {product ? <Link href={`/products/${product.slug}`} className="break-words text-sm font-semibold text-primary">{display?.name}</Link> : <p className="break-words text-sm font-semibold text-primary">{display?.name || `Sản phẩm ${line.productId}`}</p>}
+              <p className="mt-1 break-words text-xs text-text-muted">Mã: {display?.code || line.productId} · SL: {line.quantity} {display?.unit}</p>
               {(!product || !product.stock) && <p className="mt-1 text-xs text-text-secondary">Hiện chưa thể mua lại.</p>}
             </div>
             <strong className="max-w-[40%] break-words text-right text-sm">{money(line.unitPrice * line.quantity)}</strong>
           </div>
-        ))}
+        ); })}
       </section>
-      {unavailableCount > 0 && <p role="status" className="mt-3 text-sm text-text-secondary">{unavailableCount} sản phẩm không có trong danh mục hiện tại hoặc đã hết hàng. Các dòng này vẫn được giữ trong đơn cũ.</p>}
+      {!selection.loading && !selection.error && unavailableCount > 0 && <p role="status" className="mt-3 text-sm text-text-secondary">{unavailableCount} sản phẩm không có trong danh mục hiện tại hoặc đã hết hàng. Các dòng này vẫn được giữ trong đơn cũ.</p>}
       <div className="ml-auto mt-6 max-w-sm"><OrderTotals subtotal={order.subtotal} shipping={order.shipping} discount={order.discount} total={order.total} /></div>
       <div className="mt-6 flex flex-wrap justify-between gap-3">
         <Link href="/account/orders" className="bt-button-secondary">Về danh sách đơn hàng</Link>
-        <Button disabled={!available.length} onClick={reorder}><RefreshCw size={16} />Đặt lại đơn này</Button>
+        <Button loading={reordering || selection.loading} disabled={!available.length || !!selection.error} onClick={() => void reorder()}><RefreshCw size={16} />Đặt lại đơn này</Button>
       </div>
     </>
   );

@@ -134,11 +134,11 @@ async function mockCustomers(page: Page, role = "admin") {
           customer: null,
         },
       },
-      "/catalog": { products: catalog, categories: categoryCatalog },
+      "/catalog/bootstrap": { products: catalog, categories: categoryCatalog },
       "/orders": [],
       "/account": { favorites: [] },
-      "/notifications": { items: [], total: 0, unreadCount: 0, pageSize: 20 },
-      "/admin/state": state(),
+      "/notifications/count": { unreadCount: 0 },
+      "/admin/resources": state(),
     };
     if (method !== "GET" || !(path in responses)) {
       errors.push(`Unexpected ${method} ${path}`);
@@ -304,7 +304,7 @@ test("Conflict preserves the edit draft and never hides the table", async ({
   await expect(page.locator("#admin-content table")).toBeVisible();
   api.check();
 });
-test("Background refresh keeps an open form and its draft", async ({
+test("Focus keeps an open form without reloading its resources", async ({
   page,
 }) => {
   const api = await mockCustomers(page);
@@ -316,8 +316,8 @@ test("Background refresh keeps an open form and its draft", async ({
   await dialog.getByLabel("Người liên hệ").fill("Liên hệ đang soạn");
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   await expect
-    .poll(() => api.calls.filter((call) => call === "GET /admin/state").length)
-    .toBeGreaterThan(1);
+    .poll(() => api.calls.filter((call) => call === "GET /admin/resources").length)
+    .toBe(1);
   await expect(dialog).toBeVisible();
   await expect(dialog.getByLabel("Người liên hệ")).toHaveValue(
     "Liên hệ đang soạn",
@@ -337,7 +337,7 @@ test("Delayed metadata refresh retains Sales names and action controls", async (
   await expect(row).toContainText("Sales Quy Nhơn");
   const gate = api.delay("GET", "/admin/customers");
   try {
-    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await page.getByRole("button", { name: "Làm mới dữ liệu", exact: true }).click();
     await expect.poll(() => gate.count).toBeGreaterThan(0);
     await expect(row).toContainText("Sales Quy Nhơn");
     await expect(

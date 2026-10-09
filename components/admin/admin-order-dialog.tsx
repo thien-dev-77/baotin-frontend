@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { AlertCircle, ArrowRight, Check, ClipboardPlus, Pencil, X } from "lucide-react";
-import { Button, Field, Modal } from "@/components/ui";
+import { AlertCircle, ArrowRight, Check, ClipboardPlus, Pencil, RefreshCw, X } from "lucide-react";
+import { Button, Field, LoadingSpinner, Modal } from "@/components/ui";
+import type { AdminResource } from "@/lib/admin-resources";
 import { useAdmin } from "@/components/admin/admin-provider";
 import { AdminStatus } from "@/components/admin/admin-ui";
 import { AdminOrderItems } from "@/components/admin/admin-order-items";
@@ -19,12 +20,28 @@ const nextActions: Record<string, string> = {
   "Chờ xác nhận": "Xác nhận đơn", "Chờ soạn hàng": "Bắt đầu soạn", "Đang soạn": "Hoàn tất soạn hàng",
   "Sẵn sàng giao": "Bàn giao vận chuyển", "Đang giao": "Xác nhận đã giao"
 };
+const detailResources: readonly AdminResource[] = ["orders", "products", "customers", "approvals", "receipts"];
 
 export function AdminOrderDialog({ id, onClose, warehouseMode = false }: { id: string | null; onClose: () => void; warehouseMode?: boolean }) {
-  const { orders, customers, approvals, products, warehouse, receipts, advanceOrder, cancelOrder, pendingAction } = useAdmin();
+  const { orders, customers, approvals, products, warehouse, receipts, advanceOrder, cancelOrder, pendingAction, loadedResources, ensureResources, resourceRevision } = useAdmin();
+  const detailReady = !loadedResources || detailResources.every(resource => loadedResources.includes(resource));
+  const [detailError, setDetailError] = useState("");
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    if (!id || !ensureResources) return;
+    let active = true;
+    setDetailLoading(true);
+    void ensureResources(detailResources).then(() => {
+      if (active) setDetailError("");
+    }).catch(error => {
+      if (active) setDetailError(error instanceof Error ? error.message : "Không thể tải chi tiết đơn.");
+    }).finally(() => { if (active) setDetailLoading(false); });
+    return () => { active = false; };
+  }, [id, ensureResources, resourceRevision, attempt]);
   const [cancelling, setCancelling] = useState(false);
   const [reason, setReason] = useState("");
-  useEffect(() => { setCancelling(false); setReason(""); }, [id]);
+  useEffect(() => { setCancelling(false); setReason(""); setDetailError(""); }, [id]);
   const order = orders.find((item) => item.id === id);
   const linked = order ? latestOrderApprovals(order, approvals) : [];
   const blocker = !order ? "" : order.status === "Chờ xác nhận" ? orderBlocker(order, customers, approvals, products) : warehouseBlocker(order, warehouse[order.id]);
@@ -32,8 +49,11 @@ export function AdminOrderDialog({ id, onClose, warehouseMode = false }: { id: s
   const hasReceipts = !!order && receipts.some((item) => item.orderId === order.id && item.status !== "Đã hủy");
   const action = order && (!warehouseMode || isWarehouseOrder(order)) ? nextActions[order.status] : undefined;
 
-  return <Modal open={!!order} onClose={onClose} busy={!!pendingAction} title={`Đơn hàng ${id || ""}`}>
-    {order && <>
+  return <Modal open={!!id} onClose={onClose} busy={!!pendingAction} title={`Đơn hàng ${id || ""}`}>
+    {detailError && <div role="alert" className="mb-4 flex flex-wrap items-center gap-3 text-sm text-danger">{detailError}<Button variant="secondary" loading={detailLoading} onClick={() => setAttempt(value => value + 1)}><RefreshCw size={16} />Tải lại chi tiết</Button></div>}
+    {!detailReady && !detailError && <div role="status" className="flex items-center gap-3 py-8 text-sm text-text-secondary"><LoadingSpinner />Đang tải chi tiết đơn hàng...</div>}
+    {detailReady && !order && <p role="status" className="py-8 text-sm text-text-secondary">Không tìm thấy đơn tại chi nhánh này.</p>}
+    {detailReady && order && <>
       {!warehouseMode && <OrderDocumentButtons id={order.id} admin />}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-2"><AdminStatus value={order.status} /><span className="text-xs text-text-muted">{adminDate(order.date)} · {order.branch}</span></div>
       <dl className="mb-5 grid grid-cols-2 gap-4 text-sm">

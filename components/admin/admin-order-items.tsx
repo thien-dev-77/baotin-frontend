@@ -18,14 +18,15 @@ export function AdminOrderItems({ order, showPrices = true }: { order: AdminOrde
   return <ul className="divide-y divide-border border-y border-border">
     {order.items.map((line) => {
       const product = products.find((item) => item.id === line.productId);
+      const display = line.snapshot || product;
       const saving = pendingAction?.action === "pick-item" && pendingAction.id === order.id && "productId" in pendingAction.payload && pendingAction.payload.productId === line.productId;
       return <li key={line.productId} className="flex items-start gap-3 py-3">
-        {product && <Image src={product.image} alt={product?.name || line.productId} width={56} height={56} className="h-14 w-14 shrink-0 rounded border border-border object-cover" quality={85} sizes="56px" data-image-src={product.image} />}
+        {display?.image && <Image src={display.image} alt={display.name} width={56} height={56} className="h-14 w-14 shrink-0 rounded border border-border object-cover" quality={85} sizes="56px" data-image-src={display.image} />}
         <div className="min-w-0 flex-1">
-          <Link href={`/products/${product?.slug}`} className="text-sm font-medium text-primary hover:text-blue-brand">{product?.name || line.productId}</Link>
-          <p className="mt-1 break-words text-xs text-text-muted">{line.productId} · Tồn mẫu: {product?.stock || 0}</p>
-          <p className="mt-1 text-xs">{showPrices ? `${line.quantity} × ${money(line.unitPrice)}` : `Cần soạn: ${line.quantity} ${product?.unit || "sản phẩm"}`}</p>
-          {picking && <label aria-busy={saving || undefined} className="mt-2 flex items-center gap-2 text-xs font-medium text-primary"><span className="relative inline-flex h-4 w-4 shrink-0"><input type="checkbox" aria-label={`Đã soạn ${line.productId}`} checked={isPicked(order, record, line.productId)} disabled={!!pendingAction || !editable} onChange={(event) => setPicked(order.id, line.productId, event.target.checked)} className={`h-4 w-4 accent-blue-brand ${saving ? "opacity-0" : ""}`} />{saving && <LoadingSpinner className="absolute inset-0 text-blue-brand" />}</span>Đã kiểm đủ {line.quantity} {product?.unit || "sản phẩm"}</label>}
+          {product?.published !== false && product ? <Link href={`/products/${product.slug}`} className="break-words text-sm font-medium text-primary hover:text-blue-brand">{display?.name}</Link> : <p className="break-words text-sm font-medium text-primary">{display?.name || line.productId}</p>}
+          <p className="mt-1 break-words text-xs text-text-muted">{display?.code || line.productId} · Tồn hiện tại: {product?.stock || 0}</p>
+          <p className="mt-1 text-xs">{showPrices ? `${line.quantity} × ${money(line.unitPrice)}` : `Cần soạn: ${line.quantity} ${display?.unit || "sản phẩm"}`}</p>
+          {picking && <label aria-busy={saving || undefined} className="mt-2 flex items-center gap-2 text-xs font-medium text-primary"><span className="relative inline-flex h-4 w-4 shrink-0"><input type="checkbox" aria-label={`Đã soạn ${line.productId}`} checked={isPicked(order, record, line.productId)} disabled={!!pendingAction || !editable} onChange={(event) => setPicked(order.id, line.productId, event.target.checked)} className={`h-4 w-4 accent-blue-brand ${saving ? "opacity-0" : ""}`} />{saving && <LoadingSpinner className="absolute inset-0 text-blue-brand" />}</span>Đã kiểm đủ {line.quantity} {display?.unit || "sản phẩm"}</label>}
         </div>
         {showPrices && <span className="shrink-0 text-xs font-semibold tabular-nums text-primary">{money(line.quantity * line.unitPrice)}</span>}
       </li>;

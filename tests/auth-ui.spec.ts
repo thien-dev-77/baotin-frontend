@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { catalog, categoryCatalog } from "../lib/catalog";
 import { authEventKey } from "../lib/store/auth-slice";
+import { previewCatalogPage } from "../lib/catalog-query";
 import type { SessionUser } from "../lib/types";
 
 const base = process.env.QA_BASE_URL || "http://127.0.0.1:3010";
@@ -32,13 +33,15 @@ async function mockAuth(page: Page, initialUser: SessionUser | null = staff) {
     if (key === "POST /auth/logout") user = null;
     const responses: Record<string, unknown> = {
       ...(path.startsWith("/reviews/") && request.method() === "GET" ? { [key]: { items: [] } } : {}),
+      "GET /catalog/search": previewCatalogPage(catalog, categoryCatalog, new URL(request.url()).searchParams, user?.customer),
+      "GET /catalog/selection": { products: catalog.filter(product => new URL(request.url()).searchParams.getAll("ids").includes(product.id)) },
       "GET /auth/session": { user }, "POST /auth/login": { user }, "POST /auth/register": { user }, "POST /auth/logout": { user },
-      "GET /catalog": { products: catalog, categories: categoryCatalog },
+      "GET /catalog/bootstrap": { products: catalog, categories: categoryCatalog },
       "GET /orders": [], "GET /account": { favorites: [] },
-      "GET /notifications": { items: [], total: 0, unreadCount: 0, pageSize: 20 },
+      "GET /notifications/count": { unreadCount: 0 },
       "GET /account/frequently-bought": { products: [] },
       "GET /admin/customers": { items: [], assignees: [], groups: [] },
-      "GET /admin/state": { products: catalog.map(product => ({ ...product, published: true, revision: 1 })), categories: categoryCatalog, orders: [], customers: [], approvals: [], receipts: [], warehouse: {}, paymentDueDates: {}, today: "2026-10-07" },
+      "GET /admin/resources": { products: catalog.map(product => ({ ...product, published: true, revision: 1 })), categories: categoryCatalog, orders: [], customers: [], approvals: [], receipts: [], warehouse: {}, paymentDueDates: {}, today: "2026-10-07" },
     };
     if (!(key in responses)) { errors.push(`Unexpected API request: ${key}`); await route.fulfill({ status: 500, json: { message: "Unexpected QA request" } }); return; }
     await route.fulfill({ json: responses[key] });
@@ -118,7 +121,7 @@ test("A protected 401 clears auth and the admin table without calling session ag
   const api = await mockAuth(page);
   await page.goto(`${base}/admin/products`);
   await expect(page.locator("#admin-content table")).toBeVisible();
-  api.respond("GET /admin/state", { message: "Token expired" }, 401);
+  api.respond("GET /admin/resources", { message: "Token expired" }, 401);
   await page.getByRole("button", { name: "Làm mới dữ liệu", exact: true }).click();
   await expect(page.locator('input[name="identity"]')).toBeVisible();
   await expect(page.locator("#admin-content table")).toHaveCount(0);
@@ -130,7 +133,7 @@ test("A forbidden action does not log out a verified user", async ({ page }) => 
   const api = await mockAuth(page);
   await page.goto(`${base}/admin/products`);
   await expect(page.locator("#admin-content table")).toBeVisible();
-  api.respond("GET /admin/state", { message: "No permission" }, 403);
+  api.respond("GET /admin/resources", { message: "No permission" }, 403);
   await page.getByRole("button", { name: "Làm mới dữ liệu", exact: true }).click();
   await expect(page.getByRole("alert").filter({ hasText: "No permission" })).toBeVisible();
   await expect(page.locator("#admin-content table")).toBeVisible();
@@ -228,16 +231,16 @@ test("A stale protected 401 does not clear a newer auth scope in the browser", a
   const api = await mockAuth(page);
   await page.goto(`${base}/admin/products`);
   await expect(page.locator("#admin-content table")).toBeVisible();
-  const release = api.delay("GET /admin/state", { message: "Old token expired" }, 401);
+  const release = api.delay("GET /admin/resources", { message: "Old token expired" }, 401);
   try {
     await page.getByRole("button", { name: "Làm mới dữ liệu", exact: true }).click();
-    await expect.poll(() => api.count("GET /admin/state")).toBe(2);
-    api.respond("GET /admin/state", { products: [], categories: [], orders: [], customers: [], approvals: [], receipts: [], warehouse: {}, paymentDueDates: {}, today: "2026-10-07" });
+    await expect.poll(() => api.count("GET /admin/resources")).toBe(2);
+    api.respond("GET /admin/resources", { products: [], categories: [], orders: [], customers: [], approvals: [], receipts: [], warehouse: {}, paymentDueDates: {}, today: "2026-10-07" });
     api.asUser({ ...staff, id: "qa-new-admin", name: "QA New Admin" });
     await page.evaluate(key => window.dispatchEvent(new StorageEvent("storage", { key, newValue: JSON.stringify({ type: "refresh" }) })), authEventKey);
     await expect(page.getByRole("button", { name: "Đăng xuất", exact: true })).toHaveAttribute("title", "QA New Admin");
     await expect(page.locator("#admin-content table")).toBeVisible();
-    const response = page.waitForResponse(response => response.url().endsWith("/admin/state") && response.status() === 401);
+    const response = page.waitForResponse(response => new URL(response.url()).pathname.endsWith("/admin/resources") && response.status() === 401);
     release(); await (await response).finished();
     await expect(page.getByRole("button", { name: "Làm mới dữ liệu", exact: true })).toBeEnabled();
     await expect(page.getByRole("button", { name: "Đăng xuất", exact: true })).toHaveAttribute("title", "QA New Admin");

@@ -98,9 +98,16 @@ webhook before requiring immediate cross-service visibility.
 
 ## Remaining Work
 
+Admin aggregate loading has also been replaced with route/branch-scoped reads;
+see [Admin Performance](admin-performance.md) for caching, command invalidation,
+query counts and deployment ordering.
+
 A cold SSR request still waits for the public API. Profile production query times,
 pool waits and hosting cold starts after deploy; this change does not establish
 their individual contributions. Hostinger bot challenges observed on raw HTTP
 clients are a separate infrastructure concern and were not disabled here.
-Large-catalog pagination, real sales rankings, curated product documents/bundles,
-pilot KPIs and authoritative Kiot synchronization remain separate feature work.
+Storefront pagination and bounded bootstrap are now implemented; see
+[orders-catalog-pagination.md](orders-catalog-pagination.md) for contracts and
+remaining server-side candidate-ranking costs. Other endpoints' pagination,
+real sales rankings, curated product documents/bundles and authoritative Kiot
+synchronization remain separate feature work.

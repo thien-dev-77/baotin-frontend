@@ -174,8 +174,9 @@ Chua co MFA. Khong cau hinh SMTP thi tra 503, khong bao gui email thanh cong gia
 | POST | /api/orders/quote | items(productId/quantity), delivery, coupon |
 | POST | /api/orders | Quote input + customer/payment/note/expectedTotal? |
 | GET | /api/orders | Own B2B hoac guest orders |
-| GET | /api/admin/state | Scoped state, today server |
-| POST | /api/admin/commands | action/branch/id?/expectedRevision?/payload |
+| GET | /api/admin/resources | branch/include; only requested resource groups |
+| GET | /api/admin/state | Legacy aggregate; current frontend no longer calls it |
+| POST | /api/admin/commands | action/branch/id?/expectedRevision?/payload/returnState=false |
 | POST | /api/admin/products | Create product, private/public content fields |
 | PATCH | /api/admin/products/:id | Edit product/gallery/visibility; current revision required |
 | POST | /api/media/product-images | Multipart images, up to 10 files |

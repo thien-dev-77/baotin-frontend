@@ -5,6 +5,7 @@ import { once } from "node:events";
 import { writeFile } from "node:fs/promises";
 import { catalog, categoryCatalog } from "../lib/catalog";
 import { heroSlides } from "../lib/home-data";
+import { previewCatalogPage } from "../lib/catalog-query";
 
 const frontend = "http://127.0.0.1:3041";
 const backend = "http://127.0.0.1:4011";
@@ -49,12 +50,18 @@ test("Production SSR cache, invalidation, live homepage and optimized fonts", as
       }
       const products = [newProduct, ...catalog].filter(item => (!hidden || item.id !== product.id) && (!newProductHidden || item.id !== newProduct.id)).map(item => item.id === product.id ? { ...item, name: currentName(), price: 112233 + version, ...(incoming.headers.cookie ? { customerPrice: 54321 } : {}) } : item);
       const categories = categoryCatalog.filter(item => !categoryHidden || item.slug !== "khoa");
-      if (url.pathname === "/api/catalog") {
+      if (url.pathname === "/api/catalog/bootstrap") {
         counts.catalog++;
         if (!incoming.headers["x-baotin-client"]) ssrCookies.push(incoming.headers.cookie);
         await new Promise(resolve => setTimeout(resolve, 200));
         if (malformedCatalog) { malformedCatalog = false; json(null); return; }
-        json({ products, categories });
+        json({ products: products.slice(1, 56), categories, brands: Array.from(new Set(products.map(product => product.brand))) });
+      } else if (url.pathname === "/api/catalog/search") {
+        counts.catalog++;
+        if (!incoming.headers["x-baotin-client"]) ssrCookies.push(incoming.headers.cookie);
+        json(previewCatalogPage(products, categories, url.searchParams));
+      } else if (url.pathname === "/api/catalog/selection") {
+        json({ products: products.filter(product => url.searchParams.getAll("ids").includes(product.id) || url.searchParams.get("code") === product.code) });
       } else if (url.pathname === "/api/content") {
         counts.content++;
         await new Promise(resolve => setTimeout(resolve, 200));
@@ -146,8 +153,8 @@ test("Production SSR cache, invalidation, live homepage and optimized fonts", as
     const brandResponse = await request.get(`${frontend}/brand/qa-moc-kim`);
     expect(brandResponse.status()).toBe(200);
     expect(await brandResponse.text()).toContain(newProduct.name);
-    // RootLayout and brand page share one public catalog read within the request.
-    expect(counts.catalog).toBe(beforeBrand + 1);
+    // Bootstrap metadata and the brand page are separate, cached bounded reads.
+    expect(counts.catalog).toBe(beforeBrand + 2);
     await mutation("admin/products/qa", { newProductHidden: true });
     expect((await request.get(`${frontend}/brand/qa-moc-kim`)).status()).toBe(404);
     await mutation("admin/products/qa", { newProductHidden: false });

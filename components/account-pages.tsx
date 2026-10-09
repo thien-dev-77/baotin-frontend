@@ -1,5 +1,6 @@
 "use client";
-import { catalog, findProduct, money, normalize } from "@/lib/catalog";
+import { money, normalize } from "@/lib/catalog";
+import { useProductSelection } from "@/lib/use-product-selection";
 import { useCommerce } from "@/components/commerce-provider";
 import { OrdersTable, useCustomerOrders } from "@/components/order-views";
 import { ProductGrid } from "@/components/product-card";
@@ -23,6 +24,7 @@ import { PasswordForm } from "./password-form";
 import { downloadAdminCsv } from "@/lib/admin-preview";
 import { FrequentlyBought, useFrequentlyBought } from "./frequently-bought";
 import { ResourceStatus } from "./admin/admin-resource";
+import { readCatalogResponse } from "@/lib/commerce-api";
 
 export function AccountDashboard() {
   const { customer } = useCommerce();
@@ -103,6 +105,7 @@ export function AccountDashboard() {
 }
 export function FavoritesView() {
   const { favorites, ready, products: catalog } = useCommerce();
+  const selection = useProductSelection(favorites);
   const products = catalog.filter((p) => favorites.includes(p.id));
   return (
     <section>
@@ -112,13 +115,13 @@ export function FavoritesView() {
           ready ? `${products.length} sản phẩm đã lưu` : "Đang tải danh sách..."
         }
       />
-      {!ready ? (
+      {!ready || selection.loading && !products.length ? (
         <div
           role="status"
           aria-label="Đang tải sản phẩm yêu thích"
           className="h-60 animate-pulse rounded-lg bg-section"
         />
-      ) : products.length ? (
+      ) : selection.error ? <ResourceStatus {...selection} /> : products.length ? (
         <ProductGrid products={products} />
       ) : (
         <EmptyState
@@ -135,6 +138,7 @@ export function FavoritesView() {
 export function AccountProducts() {
   const { add, notice, products: catalog } = useCommerce();
   const [query, setQuery] = useState("");
+  const [adding, setAdding] = useState(false);
   const frequentlyBought = useFrequentlyBought();
   const products = frequentlyBought.products.filter((p) =>
     normalize(`${p.name} ${p.code}`).includes(normalize(query)),
@@ -147,16 +151,22 @@ export function AccountProducts() {
       />
       <form
         className="mb-6 flex flex-wrap items-end gap-3 border-y border-border bg-section py-4 sm:px-4"
-        onSubmit={(event) => {
+        onSubmit={async (event) => {
           event.preventDefault();
+          if (adding) return;
           const form = new FormData(event.currentTarget);
-          const p = catalog.find(
-            (item) =>
-              normalize(item.code) ===
-              normalize(String(form.get("code")).trim()),
-          );
-          if (p) add(p, Number(form.get("quantity")));
-          else notice("Không tìm thấy mã hàng. Vui lòng kiểm tra lại.");
+          const code = String(form.get("code")).trim();
+          setAdding(true);
+          try {
+            const products = apiMode
+              ? readCatalogResponse({ ...await api<{ products: unknown[] }>(`/catalog/selection?code=${encodeURIComponent(code)}`), categories: [] }).products
+              : catalog;
+            const product = products.find(item => normalize(item.code) === normalize(code));
+            if (product) add(product, Number(form.get("quantity")));
+            else notice("Không tìm thấy mã hàng. Vui lòng kiểm tra lại.");
+          } catch (cause) {
+            notice(cause instanceof Error ? cause.message : "Không thể tìm mã hàng. Vui lòng thử lại.");
+          } finally { setAdding(false); }
         }}
       >
         <div className="min-w-[160px] flex-1">
@@ -182,7 +192,7 @@ export function AccountProducts() {
             />
           </Field>
         </div>
-        <Button type="submit">
+        <Button type="submit" loading={adding}>
           <ShoppingCart size={17} />
           Thêm vào giỏ
         </Button>

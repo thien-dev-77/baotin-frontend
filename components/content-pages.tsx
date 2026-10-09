@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { catalog, categoryCatalog, guideCatalog, money } from "@/lib/catalog";
+import { catalog, guideCatalog } from "@/lib/catalog";
 import { useCommerce } from "@/components/commerce-provider";
 import { ProductGrid } from "@/components/product-card";
 import { Breadcrumb, Button, Field, PageHeading } from "@/components/ui";
@@ -9,16 +9,18 @@ import {
   ArrowRight,
   BookOpen,
   Clock,
-  Download,
   Mail,
   MapPin,
   MessageCircle,
   Phone,
-  Printer,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { api, apiMode } from "@/lib/api-client";
+import { useApiResource } from "@/lib/use-api-resource";
+import { readCatalogPage } from "@/lib/commerce-api";
+import type { CatalogPageResponse } from "@/lib/api-types";
+import { ResourceStatus } from "./admin/admin-resource";
 
 export function GuideCard({ guide }: { guide: (typeof guideCatalog)[number] }) {
   return (
@@ -137,6 +139,8 @@ const sections: Record<string, [string, string][]> = {
 };
 export function GuideDetail({ slug }: { slug: string }) {
   const guide = guideCatalog.find((g) => g.slug === slug)!;
+  const suggestions = useApiResource<CatalogPageResponse>(`/catalog/search?category=${encodeURIComponent(guide.category)}&pageSize=4`, apiMode, undefined, readCatalogPage);
+  const products = apiMode ? suggestions.data?.products || [] : catalog.filter(p => p.category === guide.category).slice(0, 4);
   return (
     <main className="bt-container bt-page">
       <Breadcrumb
@@ -187,11 +191,8 @@ export function GuideDetail({ slug }: { slug: string }) {
         <h2 className="mb-4 text-lg font-bold text-primary">
           Sản phẩm được gợi ý
         </h2>
-        <ProductGrid
-          products={catalog
-            .filter((p) => p.category === guide.category)
-            .slice(0, 4)}
-        />
+        <ResourceStatus {...suggestions} />
+        <ProductGrid products={products} />
       </section>
       <section className="mt-8">
         <h2 className="mb-4 text-lg font-bold text-primary">
@@ -385,88 +386,6 @@ export function ContactView() {
           </form>
         </section>
       </div>
-    </main>
-  );
-}
-export function CatalogView() {
-  const { products: catalog, categories: categoryCatalog } = useCommerce();
-  const download = () => {
-    const rows = [
-      ["Mã hàng", "Sản phẩm", "Thương hiệu", "Giá bán lẻ", "Đơn vị"],
-      ...catalog.map((p) => [p.code, p.name, p.brand, String(p.price), p.unit]),
-    ];
-    const csv =
-      "\ufeff" +
-      rows
-        .map((row) => row.map((v) => `"${v.replace(/"/g, '""')}"`).join(","))
-        .join("\r\n");
-    const url = URL.createObjectURL(
-      new Blob([csv], { type: "text/csv;charset=utf-8" }),
-    );
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "bao-tin-catalog.csv";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-  return (
-    <main className="bt-container bt-page">
-      <Breadcrumb items={[{ label: "Catalog sản phẩm" }]} />
-      <PageHeading
-        title="Catalog sản phẩm Bảo Tín"
-        description={`${catalog.length} mã hàng · Phụ kiện nội thất chính hãng`}
-      >
-        <div className="print-hidden flex gap-2">
-          <Button variant="secondary" onClick={download}>
-            <Download size={16} />
-            Tải CSV
-          </Button>
-          <Button onClick={() => window.print()}>
-            <Printer size={16} />
-            In / Tải PDF
-          </Button>
-        </div>
-      </PageHeading>
-      {categoryCatalog.map((category) => (
-        <section key={category.slug} className="mb-6">
-          <h2 className="mb-3 text-lg font-bold text-primary">
-            {category.name}
-          </h2>
-          <div className="overflow-auto rounded-lg border border-border">
-            <table className="bt-table">
-              <thead>
-                <tr>
-                  <th>Mã hàng</th>
-                  <th>Sản phẩm</th>
-                  <th>Thương hiệu</th>
-                  <th>Giá bán lẻ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {catalog
-                  .filter((p) => p.category === category.slug)
-                  .map((p) => (
-                    <tr key={p.id}>
-                      <td className="whitespace-nowrap">{p.code}</td>
-                      <td>
-                        <Link
-                          href={`/products/${p.slug}`}
-                          className="text-primary hover:text-blue-brand"
-                        >
-                          {p.name}
-                        </Link>
-                      </td>
-                      <td>{p.brand}</td>
-                      <td className="whitespace-nowrap">
-                        {money(p.price)} /{p.unit}
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ))}
     </main>
   );
 }

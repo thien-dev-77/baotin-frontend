@@ -110,16 +110,17 @@ async function mockExperience(page: Page, user = staff) {
   };
   const resources: Record<string, unknown> = {
     "/auth/session": { user },
-    "/catalog": { products: catalog, categories: categoryCatalog },
+    "/catalog/bootstrap": { products: catalog, categories: categoryCatalog },
     "/orders": [],
     "/account": { favorites: [] },
+    "/notifications/count": { unreadCount: 1 },
     "/notifications": {
       items: [notification],
       total: 1,
       pageSize: 20,
       unreadCount: 1,
     },
-    "/admin/state": {
+    "/admin/resources": {
       products: catalog.map((product) => ({
         ...product,
         published: true,
@@ -387,6 +388,7 @@ test("Reading notifications refreshes the badge without checking auth again", as
       gate,
     );
   } finally {
+    api.resources["/notifications/count"] = { unreadCount: 0 };
     api.resources["/notifications"] = {
       items: [],
       total: 0,
@@ -404,6 +406,73 @@ test("Reading notifications refreshes the badge without checking auth again", as
   expect(api.calls.filter((call) => call === "GET /auth/session")).toHaveLength(
     1,
   );
+  api.check();
+});
+
+for (const user of [staff, customer]) {
+  test(`${user.role} only fetches the inbox after opening notifications`, async ({ page }) => {
+    const api = await mockExperience(page, user);
+    await page.clock.install();
+    const destination = user.role === "b2b"
+      ? ["/account/price-requests", "Yêu cầu giá đặc biệt"]
+      : ["/admin/content", "Nội dung website"];
+    await api.visit(destination[0], destination[1]);
+    const bell = page.getByRole("link", { name: "Thông báo, 1 chưa đọc" });
+    await expect(bell).toBeVisible();
+    expect(api.calls.filter((call) => call === "GET /notifications/count")).toHaveLength(1);
+    expect(api.calls).not.toContain("GET /notifications");
+    await bell.hover();
+    api.resources["/notifications/count"] = { unreadCount: 3 };
+    await page.clock.runFor(30001);
+    await expect(page.getByRole("link", { name: "Thông báo, 3 chưa đọc" })).toBeVisible();
+    expect(api.calls).not.toContain("GET /notifications");
+    await page.getByRole("link", { name: "Thông báo, 3 chưa đọc" }).click();
+    await expect(page.getByRole("heading", { name: "Thông báo", exact: true })).toBeVisible();
+    await expect(page.getByText("Đã xác nhận đơn hàng", { exact: true })).toBeVisible();
+    const listRequests = api.calls.filter((call) => call === "GET /notifications").length;
+    expect(listRequests).toBeGreaterThan(0);
+    await page.goBack();
+    await expect(page.getByRole("heading", { name: destination[1], exact: true })).toBeVisible();
+    await page.clock.runFor(30001);
+    expect(api.calls.filter((call) => call === "GET /notifications")).toHaveLength(listRequests);
+    expect(api.calls.filter((call) => call === "GET /auth/session")).toHaveLength(1);
+    api.check();
+  });
+}
+
+test("Opening a notification refreshes only the count after leaving its inbox", async ({ page }) => {
+  const api = await mockExperience(page);
+  await api.visit("/admin/notifications", "Thông báo");
+  await expect(page.getByRole("link", { name: "Thông báo, 1 chưa đọc" })).toBeVisible();
+  const gate = api.delay("/notifications/read", "PATCH", { updated: 1 });
+  const listRequests = api.calls.filter((call) => call === "GET /notifications").length;
+  try {
+    await page.getByRole("link", { name: /Đơn BT-QA Đã xác nhận/ }).click();
+    await expect.poll(() => gate.count).toBe(1);
+    await expect(page).toHaveURL(/\/admin\/orders\?order=BT-QA$/);
+    await expect(page.getByRole("heading", { name: "Thông báo", exact: true })).toHaveCount(0);
+  } finally {
+    api.resources["/notifications/count"] = { unreadCount: 0 };
+    gate.release();
+  }
+  await expect(page.getByRole("link", { name: "Thông báo, 0 chưa đọc" })).toBeVisible();
+  expect(api.calls.filter((call) => call === "GET /notifications")).toHaveLength(listRequests);
+  api.check();
+});
+
+test("Invalid notification counts retain the last valid badge", async ({ page }) => {
+  const api = await mockExperience(page);
+  await page.clock.install();
+  await api.visit("/admin/content", "Nội dung website");
+  await expect(page.getByRole("link", { name: "Thông báo, 1 chưa đọc" })).toBeVisible();
+  api.resources["/notifications/count"] = { unreadCount: -1 };
+  await page.clock.runFor(30001);
+  await expect.poll(() => api.calls.filter((call) => call === "GET /notifications/count").length).toBe(2);
+  await expect(page.getByRole("link", { name: "Thông báo, 1 chưa đọc" })).toBeVisible();
+  api.resources["/notifications/count"] = { unreadCount: 0 };
+  await page.clock.runFor(30001);
+  await expect(page.getByRole("link", { name: "Thông báo, 0 chưa đọc" })).toBeVisible();
+  expect(api.calls).not.toContain("GET /notifications");
   api.check();
 });
 
