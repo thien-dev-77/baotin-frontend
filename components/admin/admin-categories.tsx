@@ -30,6 +30,7 @@ import {
 } from "./admin-ui";
 import { ResourceStatus, useAdminResource } from "./admin-resource";
 import { CategoryEditor } from "./category-editor";
+import { CatalogTemplateDownload } from "./catalog-template-download";
 
 export function AdminCategories() {
   const resource = useAdminResource<CategoryDirectory>("/admin/categories");
@@ -68,6 +69,7 @@ export function AdminCategories() {
         subtitle={`${resource.data?.items.length || 0} danh mục`}
       >
         <div className="flex flex-wrap gap-2">
+          <CatalogTemplateDownload />
           <Button
             variant="secondary"
             loading={resource.loading}

@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 import { catalog, categoryCatalog } from "../lib/catalog";
 import type { AdminCategory } from "../lib/category-management";
+import { CATALOG_TEMPLATE_FILENAME, CATALOG_TEMPLATE_URL } from "../lib/catalog-template.mjs";
 
 const base = process.env.QA_BASE_URL || "http://127.0.0.1:3010";
 if (!["127.0.0.1", "localhost"].includes(new URL(base).hostname))
@@ -150,6 +151,24 @@ async function mockCategories(page: Page, role = "admin") {
   };
 }
 const dialog = (page: Page) => page.getByRole("dialog");
+
+test("Category Excel template downloads on mobile without submitting data", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 1000 });
+  const api = await mockCategories(page);
+  const link = page.getByRole("link", { name: "Tải mẫu Excel", exact: true });
+  await expect(link).toHaveAttribute("href", CATALOG_TEMPLATE_URL);
+  const downloading = page.waitForEvent("download");
+  await link.click();
+  const download = await downloading;
+  expect(download.suggestedFilename()).toBe(CATALOG_TEMPLATE_FILENAME);
+  expect(await download.failure()).toBeNull();
+  await expect(page).toHaveURL(`${base}/admin/categories`);
+  expect(api.calls.every((call) => call.startsWith("GET "))).toBe(true);
+  expect(api.errors).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await mkdir("/private/tmp/baotin-excel-template", { recursive: true });
+  await page.screenshot({ path: "/private/tmp/baotin-excel-template/categories-320.png", fullPage: true });
+});
 
 test("Add a category with a cover and groups; use it immediately in product forms and navigation", async ({
   page,

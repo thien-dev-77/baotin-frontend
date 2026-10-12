@@ -18,7 +18,7 @@ export function AdminTable({ headings, children, empty = false }: { headings: st
   return <div className="overflow-auto rounded-md border border-border bg-white" tabIndex={0} role="region" aria-label="Bảng dữ liệu"><table className="bt-admin-table"><thead><tr>{headings.map((heading, i) => <th key={`${heading}-${i}`} scope="col">{heading}</th>)}</tr></thead><tbody>{empty ? <tr><td colSpan={headings.length} className="!py-12 !text-center text-text-muted">Không có dữ liệu phù hợp.</td></tr> : children}</tbody></table></div>;
 }
 export function AdminPagination({ count, page, onChange }: { count: number; page: number; onChange: (value: number) => void }) {
-  return <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-text-muted"><span>{count ? `${(page - 1) * 10 + 1}-${Math.min(page * 10, count)} / ${count} kết quả` : "0 kết quả"}</span><div className="[&_nav]:!mt-0"><Pagination page={page} total={Math.ceil(count / 10)} onChange={onChange} /></div></div>;
+  return <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-text-muted"><span>{count ? `${(page - 1) * 10 + 1}-${Math.min(page * 10, count)} / ${count} kết quả` : "0 kết quả"}</span><div className="max-w-full [&_nav]:!mt-0 [&_nav]:flex-wrap"><Pagination page={page} total={Math.ceil(count / 10)} onChange={onChange} /></div></div>;
 }
 export function useAdminFilters(initialFilter = "all") {
   const [query, setQuery] = useState("");

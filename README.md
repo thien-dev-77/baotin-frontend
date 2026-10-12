@@ -7,6 +7,8 @@ Xem [Backend Integration](docs/backend-integration.md) cho contract API.
 Ban cap nhat uu tien 1-6: [Operations UI](docs/operations-rollout.md).
 Them/sua san pham, nhieu anh va hien thi rieng tu:
 [Product Management UI](docs/product-management.md).
+File Excel mau de chuan bi san pham va danh muc:
+[Catalog Excel Template](docs/catalog-excel-template.md).
 Next.js 16.3.8, React 19.3.0; dung Node LTS >=22.13.
 
 ```txt

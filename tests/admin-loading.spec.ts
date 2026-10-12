@@ -1,9 +1,10 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { catalog, categoryCatalog } from "../lib/catalog";
 import { adminApprovals, adminCustomers, adminOrders, previewDate } from "../lib/admin-preview";
 import type { ApiAdminState } from "../lib/api-types";
 import { authEventKey } from "../lib/store/auth-slice";
+import { CATALOG_TEMPLATE_FILENAME, CATALOG_TEMPLATE_URL } from "../lib/catalog-template.mjs";
 
 const base = process.env.QA_BASE_URL || "http://127.0.0.1:3010";
 if (!["127.0.0.1", "localhost"].includes(new URL(base).hostname)) throw new Error("Admin loading QA only runs locally.");
@@ -97,6 +98,34 @@ async function mockAdmin(page: Page) {
     },
     check: () => { expect(unexpected).toEqual([]); expect(errors).toEqual([]); },
   };
+}
+
+for (const width of [1440, 320]) {
+  test(`Product Excel template downloads without navigation or writes at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    const api = await mockAdmin(page);
+    await api.visit("/admin/products");
+    const link = page.getByRole("link", { name: "Tải mẫu Excel", exact: true });
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute("href", CATALOG_TEMPLATE_URL);
+    await expect(link).toHaveAttribute("download", CATALOG_TEMPLATE_FILENAME);
+    const requests = api.resourceReads.length;
+    const downloading = page.waitForEvent("download");
+    await link.click();
+    const download = await downloading;
+    expect(download.suggestedFilename()).toBe(CATALOG_TEMPLATE_FILENAME);
+    expect(await download.failure()).toBeNull();
+    const path = await download.path();
+    expect(path).not.toBeNull();
+    expect((await readFile(path!)).subarray(0, 4)).toEqual(Buffer.from([0x50, 0x4b, 0x03, 0x04]));
+    await expect(page).toHaveURL(`${base}/admin/products`);
+    await expect(page.locator("#admin-content table")).toBeVisible();
+    expect(api.resourceReads).toHaveLength(requests);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    await mkdir("/private/tmp/baotin-excel-template", { recursive: true });
+    await page.screenshot({ path: `/private/tmp/baotin-excel-template/products-${width}.png`, fullPage: true });
+    api.check();
+  });
 }
 
 test("Admin loads only the screen's resources, reuses cache and does not refresh on focus", async ({ page }) => {
