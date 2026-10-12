@@ -3,6 +3,7 @@ import { mkdir } from "node:fs/promises";
 import { catalog, categoryCatalog } from "../lib/catalog";
 import { adminCustomers, adminOrders } from "../lib/admin-preview";
 import { customerGroups } from "../lib/customer-management";
+import { adminReadFixture } from "./admin-read-fixtures";
 
 const base = process.env.QA_BASE_URL || "http://127.0.0.1:3010";
 if (!["localhost", "127.0.0.1"].includes(new URL(base).hostname))
@@ -103,10 +104,10 @@ async function mockCustomers(page: Page, role = "admin") {
       });
       return;
     }
-    if (method === "GET" && path === "/admin/customers") {
+    if (method === "GET" && path === "/admin/browse") {
       const branch = url.searchParams.get("branch");
       await route.fulfill({
-        json: {
+        json: adminReadFixture(url, state(), {
           items: rows
             .filter((row) => row.branch === branch)
             .map((row) => ({
@@ -119,7 +120,7 @@ async function mockCustomers(page: Page, role = "admin") {
           assignees: [
             { id: "qa-sales", name: "Sales Quy Nhơn", disabled: false },
           ],
-        },
+        }),
       });
       return;
     }
@@ -316,7 +317,7 @@ test("Focus keeps an open form without reloading its resources", async ({
   await dialog.getByLabel("Người liên hệ").fill("Liên hệ đang soạn");
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   await expect
-    .poll(() => api.calls.filter((call) => call === "GET /admin/resources").length)
+    .poll(() => api.calls.filter((call) => call === "GET /admin/browse").length)
     .toBe(1);
   await expect(dialog).toBeVisible();
   await expect(dialog.getByLabel("Người liên hệ")).toHaveValue(
@@ -335,7 +336,7 @@ test("Delayed metadata refresh retains Sales names and action controls", async (
       has: page.getByRole("button", { name: "Xem khách KH001", exact: true }),
     });
   await expect(row).toContainText("Sales Quy Nhơn");
-  const gate = api.delay("GET", "/admin/customers");
+  const gate = api.delay("GET", "/admin/browse");
   try {
     await page.getByRole("button", { name: "Làm mới dữ liệu", exact: true }).click();
     await expect.poll(() => gate.count).toBeGreaterThan(0);

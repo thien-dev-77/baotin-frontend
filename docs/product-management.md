@@ -15,11 +15,13 @@ does not fake a successful save. Existing preview records remain readable.
 
 - `components/admin/admin-products.tsx`: product list only.
 - `components/admin/product-editor.tsx`: form, validation and save flow.
+- `components/admin/product-pricing-fields.tsx`: list price, B2C/B2B discounts
+  and read-only final prices; see [pricing contract](product-pricing.md).
 - `components/admin/product-image-upload.tsx`: multi-file upload, gallery,
   cover selection, move-left/right and removal.
 
-The editor includes name, SKU, brand, category/subcategory, unit, slug, retail
-and old prices, description, technical specification, material, size, color,
+The editor includes name, SKU, brand, category/subcategory, unit, slug, list
+price and independent B2C/B2B discounts, description, technical specification, material, size, color,
 origin, featured flag and public/private mode. Name initially generates a slug;
 manual slug edits are preserved. Stock is read-only and linked to the ledger.
 

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { catalog, categoryCatalog } from "../lib/catalog";
+import { adminReadFixture } from "./admin-read-fixtures";
 
 const base = process.env.QA_BASE_URL || "http://localhost:3010";
 if (!["localhost", "127.0.0.1"].includes(new URL(base).hostname)) {
@@ -293,6 +294,8 @@ test("Admin links share the same navigation indicator", async ({ page }) => {
     const path = new URL(route.request().url()).pathname.slice(
       "/api/backend".length,
     );
+    const read = route.request().method() === "GET" ? adminReadFixture(new URL(route.request().url()), responses["/admin/resources"] as Parameters<typeof adminReadFixture>[1]) : undefined;
+    if (read) { await route.fulfill({ json: read }); return; }
     if (route.request().method() !== "GET" || !(path in responses)) {
       errors.push(`Unexpected QA request: ${path}`);
       await route.fulfill({

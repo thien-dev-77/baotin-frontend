@@ -301,6 +301,7 @@ export function CategoryEditor({
           type="button"
           variant="secondary"
           disabled={!!busy}
+          data-dismiss-modal
           onClick={onCancel}
         >
           Hủy

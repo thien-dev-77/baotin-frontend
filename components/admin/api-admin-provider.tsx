@@ -13,6 +13,7 @@ import type { Branch, SessionUser } from "@/lib/types";
 import { AdminContext, type AdminValue, type PendingAdminAction } from "./admin-provider";
 import { PasswordInput } from "../password-form";
 import { adminResources, AdminResourceCache, resourcesChangedBy, resourcesForAdminPage, type AdminResource } from "@/lib/admin-resources";
+import { AdminReadCache } from "@/lib/admin-read-cache";
 
 const fetchResources = (branch: Branch, resources: readonly AdminResource[]) => api<Partial<ApiAdminState>>(`/admin/resources?${new URLSearchParams({ branch, include: resources.join(",") })}`);
 
@@ -25,6 +26,8 @@ export function ApiAdminProvider({ children }: { children: React.ReactNode }) {
   const requiredKey = resourcesForAdminPage(path).join(",");
   const required = useMemo(() => requiredKey ? requiredKey.split(",") as AdminResource[] : [], [requiredKey]);
   const cache = useMemo(() => new AdminResourceCache(scopeKey), [scopeKey]);
+  const readCache = useMemo(() => new AdminReadCache(scopeKey), [scopeKey]);
+  const revisions = useRef({ orders: new Map<string, number>(), customers: new Map<string, number>(), approvals: new Map<string, string>() });
   const activeCache = useRef(cache);
   const [, setCacheRevision] = useState(0);
   const [chosenBranch, setBranch] = useState<Branch>("Quy Nhơn");
@@ -54,26 +57,34 @@ export function ApiAdminProvider({ children }: { children: React.ReactNode }) {
   const changed = useCallback(() => {
     if (activeCache.current === cache) setCacheRevision(revision => revision + 1);
   }, [cache]);
+  const rememberData = useCallback((data: Partial<ApiAdminState>) => {
+    if (activeCache.current !== cache) return;
+    for (const order of data.orders || []) if (order.revision) revisions.current.orders.set(order.id, Math.max(order.revision, revisions.current.orders.get(order.id) || 0));
+    for (const customer of data.customers || []) if (customer.revision) revisions.current.customers.set(customer.id, Math.max(customer.revision, revisions.current.customers.get(customer.id) || 0));
+    for (const approval of data.approvals || []) revisions.current.approvals.set(approval.id, approval.orderId);
+  }, [cache]);
   const ensureResources = useCallback(async (resources: readonly AdminResource[]) => {
     if (activeCache.current !== cache || !staff) return;
     try {
       await cache.load(branch, resources, fetchResources, changed);
+      rememberData(cache.state(branch));
       if (activeCache.current === cache) setError(previous => previous?.branch === branch ? null : previous);
     } catch (error) {
       if (activeCache.current === cache) setError({ branch, message: error instanceof Error ? error.message : "Không thể tải dữ liệu quản trị." });
       throw error;
     }
-  }, [cache, branch, changed, staff]);
+  }, [cache, branch, changed, staff, rememberData]);
   const reload = useCallback(async () => {
     for (const target of scope?.branches || [branch]) cache.invalidate(target, adminResources);
     setResourceRevision(revision => revision + 1);
-    await ensureResources(required).catch(() => undefined);
-  }, [branch, cache, required, scope, ensureResources]);
+    await Promise.all([ensureResources(required).catch(() => undefined), readCache.refresh()]);
+  }, [branch, cache, required, scope, ensureResources, readCache]);
   useEffect(() => {
     const scopes = scopeVersion;
     activeCache.current = cache;
     scopes.current++;
     setError(null); setPendingAction(null); setResourceLoads({}); saving.current = false;
+    revisions.current = { orders: new Map(), customers: new Map(), approvals: new Map() };
     return () => { scopes.current++; };
   }, [cache]);
   useEffect(() => { void ensureResources(required).catch(() => undefined); }, [required, ensureResources]);
@@ -84,14 +95,19 @@ export function ApiAdminProvider({ children }: { children: React.ReactNode }) {
     const currentScope = scopeVersion.current;
     setPendingAction({ action, id, payload });
     try {
-      const expectedRevision = state.orders.find((order) => order.id === orderId)?.revision;
+      const expectedRevision = orderId ? revisions.current.orders.get(orderId) : undefined;
       const result = await api<{ id: string }>("/admin/commands", { method: "POST", body: JSON.stringify({ action, id, branch, payload, expectedRevision, returnState: false }) });
       if (currentScope !== scopeVersion.current) return { error: "Phiên quản trị đã thay đổi. Vui lòng kiểm tra lại dữ liệu." };
       const affected = resourcesChangedBy(action);
       const toRefresh = affected.filter(resource => cache.loaded(branch).includes(resource));
       for (const target of action === "publish-product" ? scope?.branches || [branch] : [branch]) cache.invalidate(target, affected);
       setResourceRevision(version => version + 1);
-      await ensureResources(toRefresh).catch(() => undefined);
+      await Promise.all([ensureResources(toRefresh).catch(() => undefined), readCache.refresh(path => {
+        if (path.startsWith("/admin/browse?")) return affected.includes(new URLSearchParams(path.split("?")[1]).get("resource") as AdminResource) || (new URLSearchParams(path.split("?")[1]).get("resource") === "warehouse" && affected.includes("orders"));
+        if (path.startsWith("/admin/orders/")) return affected.some(resource => ["orders", "products", "customers", "approvals", "receipts"].includes(resource));
+        if (path.startsWith("/admin/dashboard")) return affected.some(resource => ["orders", "customers", "approvals"].includes(resource));
+        return affected.some(resource => path.startsWith(`/admin/${resource}`));
+      })]);
       if (currentScope !== scopeVersion.current) return { error: "Phiên quản trị đã thay đổi. Vui lòng kiểm tra lại dữ liệu." };
       notice("Đã lưu thay đổi.");
       if (action === "publish-product") void reloadCatalog().catch((error) => notice(error.message));
@@ -107,7 +123,7 @@ export function ApiAdminProvider({ children }: { children: React.ReactNode }) {
   date.setUTCDate(date.getUTCDate() - days + 1);
   const since = date.toISOString().slice(0, 10);
   const value: AdminValue = {
-    ...state, products: state.products.map(product => ({ ...product, stock: state.stockByBranch?.[branch]?.[product.id] ?? product.stock })), ready, branch, setBranch, days, setDays, resourceRevision, pendingAction, refreshing, loadedResources, ensureResources, setResourceLoading, allowedBranches: sessionUser?.branches || [],
+    ...state, products: state.products.map(product => ({ ...product, stock: state.stockByBranch?.[branch]?.[product.id] ?? product.stock })), ready, branch, setBranch, days, setDays, resourceRevision, pendingAction, refreshing, loadedResources, ensureResources, setResourceLoading, readCache, rememberData, allowedBranches: sessionUser?.branches || [],
     scopedOrders: state.orders.filter((order) => order.branch === branch && order.date >= since),
     scopedCustomers: state.customers.filter((customer) => customer.branch === branch),
     scopedApprovals: state.approvals.filter((approval) => approval.branch === branch).reverse(),
@@ -119,8 +135,8 @@ export function ApiAdminProvider({ children }: { children: React.ReactNode }) {
     voidReceipt: async (id, reason) => (await command("void-receipt", id, { reason })).error || "",
     setPaymentDueDate: async (id, date) => (await command("due-date", id, { date })).error || "",
     advanceOrder: (id) => simple("advance-order", id, {}), cancelOrder: (id, reason) => simple("cancel-order", id, { reason }),
-    decideApproval: (id, approved, reason) => simple("decide-approval", id, { approved, reason }, state.approvals.find((item) => item.id === id)?.orderId),
-    setCustomerStatus: (id, status) => simple("customer-status", id, { status, revision: state.customers.find(customer => customer.id === id)?.revision }),
+    decideApproval: (id, approved, reason) => simple("decide-approval", id, { approved, reason }, revisions.current.approvals.get(id)),
+    setCustomerStatus: (id, status) => simple("customer-status", id, { status, revision: revisions.current.customers.get(id) }),
     setPublished: (id, published) => simple("publish-product", id, { published }),
     setPicked: (id, productId, picked) => simple("pick-item", id, { productId, picked }),
     reportShortage: (id, productId, quantity, note) => simple("report-shortage", id, { productId, quantity, note }),

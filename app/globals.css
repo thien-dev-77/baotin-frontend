@@ -122,6 +122,20 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
 .bt-admin-table th { padding: 12px 16px; background: #fafbfc; color: var(--color-text-secondary); font-size: 12px; font-weight: 500; white-space: nowrap; }
 .bt-admin-table td { border-top: 1px solid var(--color-border); padding: 12px 16px; vertical-align: middle; }
 .bt-admin-table tbody tr:hover { background: #fafcff; }
+.bt-admin-products-table th { min-width: 96px; max-width: 160px; white-space: normal; line-height: 18px; }
+.bt-admin-products-table th:last-child { min-width: 72px; }
+.bt-admin-save-bar { position: sticky; bottom: 0; z-index: 20; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 24px; border-top: 1px solid var(--color-border); background: white; padding: 12px 0 max(12px, env(safe-area-inset-bottom)); }
+@media (max-width: 767px) {
+  .bt-admin-table-actions { border-collapse: separate; border-spacing: 0; }
+  .bt-admin-table-actions th:first-child, .bt-admin-table-actions td:first-child:not([colspan]) { position: sticky; left: 0; z-index: 2; width: 176px; min-width: 176px; max-width: 176px; padding-inline: 10px; background: white; box-shadow: 1px 0 0 var(--color-border); overflow-wrap: anywhere; }
+  .bt-admin-table-actions td:first-child > div { width: 156px; min-width: 0; }
+  .bt-admin-table-actions td:first-child img, .bt-admin-table-actions td:first-child > div > span { width: 32px; height: 32px; }
+  .bt-admin-table-actions td:first-child > div { gap: 8px; }
+  .bt-admin-table-actions th:last-child, .bt-admin-table-actions td:last-child:not([colspan]) { position: sticky; right: 0; z-index: 2; background: white; box-shadow: -1px 0 0 var(--color-border); padding-inline: 8px; }
+  .bt-admin-table-actions th:first-child, .bt-admin-table-actions th:last-child { z-index: 3; background: #fafbfc; }
+  .bt-admin-save-bar { padding-inline: 12px; margin-inline: -12px; }
+  .bt-admin-save-bar > button { flex: 1; }
+}
 .bt-admin-chart { display: flex; align-items: end; gap: 12px; }
 .bt-admin-chart-column { display: flex; min-width: 0; flex: 1; flex-direction: column; align-items: center; }
 .bt-admin-chart-track { display: flex; width: 100%; height: 142px; align-items: end; justify-content: center; border-bottom: 1px solid var(--color-border); }

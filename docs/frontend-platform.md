@@ -72,7 +72,7 @@ Tham khao [BProgress](https://bprogress.vercel.app/docs/next/quick-start).
 
 ## Component va du lieu
 
-`app/layout.tsx` cung cap Inter va `CommerceProvider`. `SiteFrame` render header/footer ban hang mot lan cho cac route storefront/account, va bo qua cho `/admin`.
+`app/layout.tsx` cung cap Inter, Redux, navigation progress va guard bao ve form admin. `app/(storefront)/layout.tsx` load catalog SSR, cung cap `CommerceProvider` va `SiteFrame` cho storefront/account. `app/admin/layout.tsx` co provider rieng, khong cho catalog va khong load du lieu tai khoan ban hang. URL cac trang khong thay doi.
 Dashboard dung `AdminProvider`/`AdminShell` rieng, state mau tach biet; xem `docs/admin-preview.md`.
 Inventory mock, backlog UI, mapping du lieu va huong dan agent lap ke hoach API
 sau duyet giao dien: [api-handoff.md](api-handoff.md). Chua co API hien huu;

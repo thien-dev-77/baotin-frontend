@@ -9,24 +9,39 @@ import { AdminOrderDialog } from "@/components/admin/admin-order-dialog";
 import { adminDate, downloadAdminCsv } from "@/lib/admin-preview";
 import { hasShortage, isPicked, warehouseStages } from "@/lib/admin-warehouse";
 import { normalize } from "@/lib/catalog";
+import { apiMode } from "@/lib/api-client";
+import { useAdminBrowse, type AdminBrowseState } from "@/lib/admin-browse";
+import { AdminReadModel } from "./admin-read-model";
+import { ResourceStatus } from "./admin-resource";
+import { useAdminExport } from "@/lib/admin-export";
 
 export function AdminWarehouse({ initialStatus = "all", initialOrder = "" }: { initialStatus?: string; initialOrder?: string }) {
+  const browse = useAdminBrowse("warehouse");
+  return <AdminReadModel data={browse.data}><WarehouseList browse={browse} initialStatus={initialStatus} initialOrder={initialOrder} /></AdminReadModel>;
+}
+function WarehouseList({ browse, initialStatus, initialOrder }: { browse: AdminBrowseState; initialStatus: string; initialOrder: string }) {
+  const exporting = useAdminExport("warehouse");
   const { warehouseOrders, warehouse, branch } = useAdmin();
-  const filters = useAdminFilters([...warehouseStages, "issues"].some((value) => value === initialStatus) ? initialStatus : "all");
+  const previewFilters = useAdminFilters([...warehouseStages, "issues"].some((value) => value === initialStatus) ? initialStatus : "all");
+  const filters = apiMode ? browse : previewFilters;
   const [selected, setSelected] = useState<string | null>(initialOrder || null);
-  const rows = warehouseOrders.filter((order) => (filters.filter === "all" || (filters.filter === "issues" ? hasShortage(warehouse[order.id]) : order.status === filters.filter)) && normalize(`${order.id} ${order.customerName} ${order.items.map((item) => item.productId).join(" ")}`).includes(normalize(filters.query)));
-  const page = Math.min(filters.page, Math.max(1, Math.ceil(rows.length / 10)));
+  const rows = apiMode ? warehouseOrders : warehouseOrders.filter((order) => (filters.filter === "all" || (filters.filter === "issues" ? hasShortage(warehouse[order.id]) : order.status === filters.filter)) && normalize(`${order.id} ${order.customerName} ${order.items.map((item) => item.productId).join(" ")}`).includes(normalize(filters.query)));
+  const count = apiMode ? browse.data?.pagination.total || 0 : rows.length;
+  const page = apiMode ? browse.data?.pagination.page || browse.page : Math.min(filters.page, Math.max(1, Math.ceil(rows.length / 10)));
+  const summary = browse.data?.warehouseSummary;
+  const counts = summary ? [summary.waiting, summary.picking, summary.ready, summary.issues] : [...warehouseStages, "Có báo thiếu"].map(label => warehouseOrders.filter(order => label === "Có báo thiếu" ? hasShortage(warehouse[order.id]) : order.status === label).length);
   const modes = [{ value: "all", label: "Tất cả" }, ...warehouseStages.map((status) => ({ value: status, label: status })), { value: "issues", label: "Có báo thiếu" }];
-  function exportRows() {
-    downloadAdminCsv("bao-tin-hang-doi-kho-mau.csv", [["Mã đơn", "Khách hàng", "Chi nhánh", "Ngày đặt", "Số mã hàng", "Tổng số lượng", "Trạng thái", "Báo thiếu"], ...rows.map((item) => [item.id, item.customerName, item.branch, item.date, item.items.length, item.items.reduce((sum, line) => sum + line.quantity, 0), item.status, hasShortage(warehouse[item.id]) ? "Chưa xử lý" : "Không"])]);
+  function exportRows(items = rows, records = warehouse) {
+    downloadAdminCsv("bao-tin-hang-doi-kho-mau.csv", [["Mã đơn", "Khách hàng", "Chi nhánh", "Ngày đặt", "Số mã hàng", "Tổng số lượng", "Trạng thái", "Báo thiếu"], ...items.map((item) => [item.id, item.customerName, item.branch, item.date, item.items.length, item.items.reduce((sum, line) => sum + line.quantity, 0), item.status, hasShortage(records[item.id]) ? "Chưa xử lý" : "Không"])]);
   }
   return <>
-    <AdminHeading title="Soạn hàng & giao hàng" subtitle={`${branch} · ${warehouseOrders.length} đơn đã xác nhận, chưa bàn giao`}><Button variant="secondary" onClick={exportRows} disabled={!rows.length}><Download size={16} />Xuất CSV</Button></AdminHeading>
-    <dl className="mb-5 grid grid-cols-2 gap-4 border-y border-border bg-white px-4 py-4 sm:grid-cols-4">{[...warehouseStages, "Có báo thiếu"].map((label) => <div key={label}><dt className="text-xs text-text-muted">{label}</dt><dd className={`mt-2 text-2xl font-bold tabular-nums ${label === "Có báo thiếu" ? "text-danger" : "text-primary"}`}>{warehouseOrders.filter((order) => label === "Có báo thiếu" ? hasShortage(warehouse[order.id]) : order.status === label).length}</dd></div>)}</dl>
+    <AdminHeading title="Soạn hàng & giao hàng" subtitle={`${branch} · ${summary?.total ?? warehouseOrders.length} đơn đã xác nhận, chưa bàn giao`}><Button variant="secondary" loading={exporting.loading} onClick={() => apiMode ? void exporting.run(pages => exportRows(pages.flatMap(page => page.orders || []), Object.assign({}, ...pages.map(page => page.warehouse || {})))) : exportRows()} disabled={!rows.length}><Download size={16} />Xuất CSV</Button></AdminHeading>
+    <dl className="mb-5 grid grid-cols-2 gap-4 border-y border-border bg-white px-4 py-4 sm:grid-cols-4">{[...warehouseStages, "Có báo thiếu"].map((label, index) => <div key={label}><dt className="text-xs text-text-muted">{label}</dt><dd className={`mt-2 text-2xl font-bold tabular-nums ${label === "Có báo thiếu" ? "text-danger" : "text-primary"}`}>{counts[index]}</dd></div>)}</dl>
     <div className="mb-4 flex flex-wrap items-center gap-3"><AdminSearch value={filters.query} onChange={filters.setQuery} placeholder="Tìm mã đơn, khách hàng, mã hàng..." /></div>
     <div role="group" aria-label="Trạng thái soạn hàng" className="mb-4 flex flex-wrap gap-1">{modes.map((mode) => <button type="button" key={mode.value} aria-pressed={filters.filter === mode.value} onClick={() => filters.setFilter(mode.value)} className={`min-h-10 rounded px-3 py-2 text-xs font-medium ${filters.filter === mode.value ? "bg-primary text-white" : "text-text-secondary hover:bg-white"}`}>{mode.label}</button>)}</div>
-    <AdminTable headings={["Mã đơn / ngày", "Khách hàng", "Đã kiểm", "Trạng thái", "Báo thiếu", "Thao tác"]} empty={!rows.length}>
-      {rows.slice((page - 1) * 10, page * 10).map((order) => {
+    {apiMode && <ResourceStatus {...browse} />}
+    <AdminTable headings={["Mã đơn / ngày", "Khách hàng", "Đã kiểm", "Trạng thái", "Báo thiếu", "Thao tác"]} empty={!rows.length} loading={apiMode && !browse.data && browse.loading}>
+      {(apiMode ? rows : rows.slice((page - 1) * 10, page * 10)).map((order) => {
         const picked = order.items.filter((item) => isPicked(order, warehouse[order.id], item.productId)).length;
         return <tr key={order.id}>
           <td><button type="button" onClick={() => setSelected(order.id)} className="font-semibold text-blue-brand hover:underline">{order.id}</button><span className="mt-1 block text-xs text-text-muted">{adminDate(order.date)}</span></td>
@@ -38,7 +53,7 @@ export function AdminWarehouse({ initialStatus = "all", initialOrder = "" }: { i
         </tr>;
       })}
     </AdminTable>
-    <AdminPagination count={rows.length} page={page} onChange={filters.setPage} />
+    <AdminPagination count={count} page={page} pageSize={apiMode ? browse.pageSize : 10} onChange={filters.setPage} onPageSize={apiMode ? size => browse.set({ pageSize: size }) : undefined} />
     <AdminOrderDialog id={selected} onClose={() => setSelected(null)} warehouseMode />
   </>;
 }

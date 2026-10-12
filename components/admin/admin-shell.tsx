@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import {
   LogOut,
   Box,
@@ -32,6 +32,7 @@ import { apiMode } from "@/lib/api-client";
 import { useCommerce } from "@/components/commerce-provider";
 import { Bell, FileText, MessageSquare, Star, BarChart3 } from "lucide-react";
 import { NotificationBell } from "../notifications";
+import { UnsavedGuardContext } from "@/lib/unsaved-form";
 
 const links = [
   { href: "/admin/notifications", label: "Thông báo", icon: Bell },
@@ -74,6 +75,7 @@ const rolesFor: Record<string, string[]> = {
   "/admin/users": ["admin"],
 };
 export function AdminShell({ children }: { children: React.ReactNode }) {
+  const unsaved = useContext(UnsavedGuardContext);
   const path = usePathname();
   const {
     ready,
@@ -99,6 +101,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const globalScreen = ["/admin/users", "/admin/settings", "/admin/notifications", "/admin/content", "/admin/reviews", "/admin/categories"].includes(path);
   const showPeriod =
     !path.startsWith("/admin/products") &&
+    path !== "/admin/orders" &&
     ![
       "/admin/pricing",
       "/admin/ledger",
@@ -261,7 +264,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 aria-label="Chi nhánh"
                 value={branch}
                 disabled={!!pendingAction}
-                onChange={(event) => setBranch(event.target.value as Branch)}
+                onChange={(event) => { const next = event.target.value as Branch; if (unsaved) unsaved.leave(() => setBranch(next)); else setBranch(next); }}
                 className="bt-input !h-9 !w-auto !pr-7"
               >
                 {allowedBranches.map((item) => (

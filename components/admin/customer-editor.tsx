@@ -245,7 +245,7 @@ export function CustomerEditor({
           </p>
         )}
         <div className="flex justify-end gap-2 border-t border-border pt-4">
-          <Button variant="secondary" disabled={busy} onClick={onClose}>
+          <Button variant="secondary" disabled={busy} data-dismiss-modal onClick={onClose}>
             Hủy
           </Button>
           <Button type="submit" loading={busy}>
@@ -336,7 +336,7 @@ export function CustomerAccountForm({
           </p>
         )}
         <div className="flex justify-end gap-2 border-t border-border pt-4">
-          <Button variant="secondary" disabled={busy} onClick={onClose}>
+          <Button variant="secondary" disabled={busy} data-dismiss-modal onClick={onClose}>
             Hủy
           </Button>
           <Button type="submit" loading={busy}>

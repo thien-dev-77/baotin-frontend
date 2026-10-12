@@ -19,7 +19,7 @@ export function AdminSalesProducts({ open, onClose, products, customer, selected
   const [page, setPage] = useState(1);
   const rows = products.filter((item) => (category === "all" || item.category === category) && normalize(`${item.name} ${item.code} ${item.brand}`).includes(normalize(query)));
   const current = Math.min(page, Math.max(1, Math.ceil(rows.length / 10)));
-  return <Modal open={open} onClose={onClose} title="Thêm sản phẩm">
+  return <Modal open={open} onClose={onClose} title="Thêm sản phẩm" trackChanges={false}>
     <div onKeyDownCapture={(event) => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); onClose(); } }}>
     <div className="mb-3 flex flex-wrap gap-2"><AdminSearch value={query} onChange={(value) => { setQuery(value); setPage(1); }} placeholder="Tìm tên, SKU, thương hiệu..." /><select aria-label="Danh mục chọn sản phẩm" className="bt-input" value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }}><option value="all">Tất cả danh mục</option>{categories.map((item) => <option key={item.slug} value={item.slug}>{item.name}</option>)}</select></div>
     <ul className="divide-y divide-border">

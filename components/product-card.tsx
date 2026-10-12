@@ -6,17 +6,20 @@ import Link from "next/link";
 import Image from "next/image";
 import { useCommerce } from "@/components/commerce-provider";
 import { apiMode } from "@/lib/api-client";
+import { productPrices } from "@/lib/product-pricing";
 
 export function PriceDisplay({ product, compact = false }: { product: Product; compact?: boolean }) {
   const { customer } = useCommerce();
   const isB2b = apiMode ? customer?.status === "active" && product.customerPrice !== undefined : Boolean(customer);
   const price = priceFor(product, customer);
-  return <div className="min-w-0"><div className={`flex flex-wrap items-baseline gap-x-1 ${compact ? "text-base" : "text-lg"} font-bold ${product.oldPrice ? "text-danger" : "text-primary"}`}><span className="bt-price-amount">{money(price)}</span><span className="text-xs font-normal text-text-secondary">/{product.unit}</span></div>{product.oldPrice && <del className="text-xs text-text-muted">{money(product.oldPrice)}</del>}{isB2b ? <p className="mt-1 text-[11px] font-medium text-success">Giá B2B</p> : customer ? <p className="mt-1 text-[11px] text-text-muted">Chờ kích hoạt B2B</p> : <Link href="/login" className="mt-1 block text-[11px] leading-4 text-blue-brand hover:underline">Đăng nhập B2B để xem giá</Link>}</div>;
+  return <div className="min-w-0"><div className={`flex flex-wrap items-baseline gap-x-1 ${compact ? "text-base" : "text-lg"} font-bold ${product.oldPrice && product.oldPrice > price ? "text-danger" : "text-primary"}`}><span className="bt-price-amount">{money(price)}</span><span className="text-xs font-normal text-text-secondary">/{product.unit}</span></div>{product.oldPrice && product.oldPrice > price && <del className="text-xs text-text-muted">{money(product.oldPrice)}</del>}{isB2b ? <p className="mt-1 text-[11px] font-medium text-success">Giá B2B</p> : customer ? <p className="mt-1 text-[11px] text-text-muted">Chờ kích hoạt B2B</p> : <Link href="/login" className="mt-1 block text-[11px] leading-4 text-blue-brand hover:underline">Đăng nhập B2B để xem giá</Link>}</div>;
 }
 export function ProductCard({ product, list = false }: { product: Product; list?: boolean }) {
-  const { favorites, toggleFavorite } = useCommerce();
+  const { favorites, toggleFavorite, customer } = useCommerce();
   const liked = favorites.includes(product.id);
-  const discount = product.oldPrice ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
+  const prices = productPrices(product);
+  const referencePrice = prices.configured ? prices.listPrice : product.oldPrice;
+  const discount = referencePrice ? Math.max(0, Math.round((1 - priceFor(product, customer) / referencePrice) * 100)) : 0;
   return <article className={`bt-product-card group ${list ? "flex" : "flex flex-col"}`}>
     <div className={`bt-product-card-media relative shrink-0 bg-[#f8fafc] ${list ? "h-[160px] w-[96px] sm:w-[120px]" : "h-[150px] md:h-[180px]"}`}>
       <Link href={`/products/${product.slug}`} prefetch={false} className="bt-product-card-image-link"><Image src={product.image} data-image-src={product.image} alt={product.name} fill quality={85} sizes={list ? "(min-width: 640px) 120px, 96px" : "(min-width: 1280px) 240px, (min-width: 1024px) 20vw, (min-width: 640px) 33vw, 50vw"} className="object-cover transition duration-200 group-hover:scale-[1.02]" /></Link>

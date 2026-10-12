@@ -5,49 +5,67 @@ import { RefreshCw } from "lucide-react";
 import { api, apiMode } from "@/lib/api-client";
 import { Button, LoadingSpinner } from "../ui";
 import { useAdmin } from "./admin-provider";
+import { useCommerce } from "../commerce-provider";
 
-export function useAdminResource<T>(path: string) {
-  const { resourceRevision, setResourceLoading } = useAdmin();
+export function useAdminResource<T>(path: string, enabled = true, parser?: (value: unknown) => T, dataScope = path) {
+  const { resourceRevision, setResourceLoading, readCache } = useAdmin();
+  const { sessionUser } = useCommerce();
+  const scope = JSON.stringify([sessionUser?.id, sessionUser?.role, sessionUser?.branches]);
+  const key = `${scope}:${path}`;
+  const identity = `${scope}:${dataScope}`;
   const resourceId = useId();
   const [result, setResult] = useState<{
-    path: string;
+    key: string;
+    identity: string;
     data?: T;
     error?: string;
     loading: boolean;
-  }>({ path, loading: true });
+  }>({ key, identity, data: readCache?.peek<T>(path), loading: enabled && readCache?.peek(path) === undefined });
   const sequence = useRef(0);
   useEffect(() => {
-    setResourceLoading?.(resourceId, result.path !== path || result.loading);
+    setResourceLoading?.(resourceId, enabled && (result.key !== key || result.loading));
     return () => { setResourceLoading?.(resourceId, false); };
-  }, [path, resourceId, result.path, result.loading, setResourceLoading]);
-  const reload = useCallback(async () => {
+  }, [key, enabled, resourceId, result.key, result.loading, setResourceLoading]);
+  const load = useCallback(async (force = false) => {
     const version = ++sequence.current;
-    setResult(previous => ({ ...(previous.path === path ? previous : { path }), loading: true }));
+    if (!enabled) return;
+    setResult(previous => ({ key, identity, data: readCache?.peek<T>(path) ?? (previous.identity === identity ? previous.data : undefined), error: previous.key === key ? previous.error : undefined, loading: true }));
     try {
       if (!apiMode) throw new Error("Chức năng này cần kết nối backend.");
-      const data = await api<T>(path);
-      if (version === sequence.current) setResult({ path, data, loading: false });
+      const fetcher = async () => {
+        const value = await api<unknown>(path);
+        return parser ? parser(value) : value as T;
+      };
+      const data = readCache ? await readCache.load(path, fetcher, force) : await fetcher();
+      if (version === sequence.current) setResult({ key, identity, data, loading: false });
     } catch (error) {
       if (version === sequence.current)
         setResult(previous => ({
-          ...(previous.path === path ? previous : { path }),
+          ...(previous.identity === identity ? previous : { key, identity }),
           loading: false,
           error:
             error instanceof Error ? error.message : "Không thể tải dữ liệu.",
         }));
     }
-  }, [path]);
+  }, [path, key, identity, enabled, readCache, parser]);
+  const reload = useCallback(async () => {
+    readCache?.invalidate(candidate => candidate === path);
+    await load(true);
+  }, [readCache, path, load]);
   useEffect(() => {
     const counter = sequence;
-    void reload();
+    void load();
+    const stop = enabled ? readCache?.watch(path, () => load(true)) : undefined;
     return () => {
+      stop?.();
       counter.current++;
     };
-  }, [reload, resourceRevision]);
+  }, [load, enabled, readCache, path]);
+  useEffect(() => { if (!readCache && resourceRevision) void reload(); }, [readCache, resourceRevision, reload]);
   return {
-    data: result.path === path ? result.data : undefined,
-    error: result.path === path ? result.error : undefined,
-    loading: result.path !== path || result.loading,
+    data: enabled ? (readCache?.peek<T>(path) ?? (result.identity === identity ? result.data : undefined)) : undefined,
+    error: result.key === key ? result.error : undefined,
+    loading: enabled && (result.key !== key || result.loading),
     reload,
   };
 }

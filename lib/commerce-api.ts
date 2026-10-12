@@ -21,7 +21,7 @@ export function readCatalogResponse(value: unknown): CatalogResponse {
 }
 
 export function retailProducts(products: Product[]): Product[] {
-  return products.map(({ customerPrice, ...retail }) => retail);
+  return products.map(({ customerPrice: _customerPrice, b2bDiscount: _b2bDiscount, ...retail }) => retail);
 }
 
 export function readCatalogPage(value: unknown): CatalogPageResponse {

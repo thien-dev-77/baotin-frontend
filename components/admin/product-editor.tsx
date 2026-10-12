@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState } from "react";
 import { ArrowLeft, ExternalLink, Globe, LockKeyhole, RefreshCw, Save } from "lucide-react";
 import { api, apiMode } from "@/lib/api-client";
@@ -12,6 +12,9 @@ import { Button, EmptyState, Field } from "@/components/ui";
 import { useAdmin } from "./admin-provider";
 import { AdminHeading } from "./admin-ui";
 import { ProductImageUpload } from "./product-image-upload";
+import { useUnsavedForm } from "@/lib/unsaved-form";
+import { discountedPrice, productPrices, MAX_PRODUCT_PRICE, MAX_PRODUCT_DISCOUNT } from "@/lib/product-pricing";
+import { ProductPricingFields, type ProductPricingDraft } from "./product-pricing-fields";
 
 type AdminProduct = ApiAdminState["products"][number];
 
@@ -30,6 +33,9 @@ function ProductEditor({ product: currentProduct, onReload }: { product?: AdminP
   const { categories: apiCategories, reset: reload, refreshing } = useAdmin();
   const { notice, reloadCatalog } = useCommerce();
   const router = useRouter();
+  const returnTo = useSearchParams().get("returnTo");
+  const listUrl = returnTo === "/admin/products" || returnTo?.startsWith("/admin/products?") ? returnTo : "/admin/products";
+  const formRef = useRef<HTMLFormElement>(null);
   const [category, setCategory] = useState(product?.category || "");
   const [subcategory, setSubcategory] = useState(product?.subcategory || "");
   const [slug, setSlug] = useState(product?.slug || "");
@@ -39,6 +45,14 @@ function ProductEditor({ product: currentProduct, onReload }: { product?: AdminP
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const initialPrices = productPrices(product || { price: 0 });
+  const [pricing, setPricing] = useState<ProductPricingDraft>(() => ({ listPrice: String(initialPrices.listPrice), b2cDiscount: String(Math.min(MAX_PRODUCT_DISCOUNT, initialPrices.b2cDiscount)), b2bDiscount: String(initialPrices.b2bDiscount ?? 0) }));
+  const [pricingEdited, setPricingEdited] = useState(!product || initialPrices.configured);
+  const listPrice = Number(pricing.listPrice), b2cDiscount = Number(pricing.b2cDiscount), b2bDiscount = Number(pricing.b2bDiscount);
+  const validPricing = Number.isSafeInteger(listPrice) && listPrice >= 0 && listPrice <= MAX_PRODUCT_PRICE && [b2cDiscount, b2bDiscount].every(value => Number.isFinite(value) && value >= 0 && value <= MAX_PRODUCT_DISCOUNT && Math.abs(value * 100 - Math.round(value * 100)) < 0.000001);
+  const b2cPrice = pricingEdited ? validPricing ? discountedPrice(listPrice, b2cDiscount) : 0 : initialPrices.b2cPrice;
+  const b2bPrice = pricingEdited ? validPricing ? discountedPrice(listPrice, b2bDiscount) : 0 : initialPrices.b2bPrice;
+  const { dirty, markSaved, close } = useUnsavedForm(formRef, true, busy || uploading, JSON.stringify(images));
   const categories = apiCategories || categoryCatalog;
   const stale = product && currentProduct?.revision !== product.revision;
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -48,12 +62,13 @@ function ProductEditor({ product: currentProduct, onReload }: { product?: AdminP
     const text = (name: string) => String(form.get(name) || "").trim();
     const payload = {
       name: text("name"), code: text("code"), slug: slug.trim(), category, subcategory,
-      brand: text("brand"), unit: text("unit"), price: Number(text("price")),
-      ...(text("oldPrice") ? { oldPrice: Number(text("oldPrice")) } : {}),
+      brand: text("brand"), unit: text("unit"), price: b2cPrice,
+      ...(pricingEdited ? { listPrice, b2cDiscount, b2bDiscount } : product?.oldPrice !== undefined ? { oldPrice: product.oldPrice } : {}),
       specification: text("specification"), material: text("material"), size: text("size"), color: text("color"), origin: text("origin"),
       description: text("description"), gallery: images, featured: form.has("featured"), published,
       ...(product ? { revision: product.revision } : {})
     };
+    if (pricingEdited && (!validPricing || Object.values(pricing).some(value => value.trim() === ""))) { setError("Kiểm tra giá niêm yết và chiết khấu."); return; }
     if (published && (!images.length || !payload.specification || payload.price <= 0)) {
       setError("Sản phẩm công khai cần ít nhất một ảnh, thông số và giá bán lớn hơn 0."); return;
     }
@@ -63,18 +78,18 @@ function ProductEditor({ product: currentProduct, onReload }: { product?: AdminP
       await reload();
       await reloadCatalog().catch(cause => notice(cause instanceof Error ? cause.message : "Không thể tải catalog."));
       notice(product ? "Đã lưu sản phẩm." : "Đã thêm sản phẩm.");
-      router.push("/admin/products"); router.refresh();
+      markSaved(); router.push(listUrl); router.refresh();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Không thể lưu sản phẩm."); await reload(); }
     finally { setBusy(false); }
   };
   return <>
-    <Link href="/admin/products" className="mb-4 inline-flex items-center gap-2 text-sm text-text-secondary hover:text-blue-brand"><ArrowLeft size={16} />Sản phẩm</Link>
+    <Link href={listUrl} className="mb-4 inline-flex items-center gap-2 text-sm text-text-secondary hover:text-blue-brand"><ArrowLeft size={16} />Sản phẩm</Link>
     <AdminHeading title={product ? "Sửa sản phẩm" : "Thêm sản phẩm"} subtitle={product?.code} />
-    <form onSubmit={save} className="min-w-0">
+    <form ref={formRef} onSubmit={save} data-unsaved={dirty || undefined} className="min-w-0">
       {error && <p role="alert" className="mb-5 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-danger">{error}</p>}
-      {stale && <div role="alert" className="mb-5 flex flex-wrap items-center justify-between gap-3 border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Sản phẩm đã được cập nhật ở phiên khác.<Button type="button" variant="secondary" loading={refreshing} disabled={busy || uploading} onClick={() => void onReload()}><RefreshCw size={16} />Tải lại sản phẩm</Button></div>}
+      {stale && <div role="alert" className="mb-5 flex flex-wrap items-center justify-between gap-3 border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Sản phẩm đã được cập nhật ở phiên khác.<Button type="button" variant="secondary" loading={refreshing} disabled={busy || uploading} onClick={() => close(() => void onReload())}><RefreshCw size={16} />Tải lại sản phẩm</Button></div>}
       {!apiMode && <p role="alert" className="mb-5 text-sm text-text-secondary">Chưa kết nối API. Không thể lưu sản phẩm.</p>}
-      <div className="grid min-w-0 gap-8 xl:grid-cols-[minmax(0,1fr)_280px]">
+      <fieldset disabled={busy || uploading} className="grid min-w-0 gap-8 xl:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0 space-y-7">
           <section className="border-b border-border pb-7">
             <h2 className="mb-4 text-base font-semibold text-primary">Thông tin sản phẩm</h2>
@@ -88,13 +103,7 @@ function ProductEditor({ product: currentProduct, onReload }: { product?: AdminP
               <Field label="Đường dẫn" required><input className="bt-input" required maxLength={200} pattern="[a-z0-9]+(-[a-z0-9]+)*" value={slug} onChange={event => { customSlug.current = true; setSlug(event.target.value); }} /></Field>
             </div>
           </section>
-          <section className="border-b border-border pb-7">
-            <h2 className="mb-4 text-base font-semibold text-primary">Giá bán</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Giá bán lẻ (đ)" required><input className="bt-input" type="number" name="price" required min={published ? 1 : 0} max={999999999999} step={1} defaultValue={product?.price || 0} /></Field>
-              <Field label="Giá trước giảm (đ)"><input className="bt-input" type="number" name="oldPrice" min={0} max={999999999999} step={1} defaultValue={product?.oldPrice} /></Field>
-            </div>
-          </section>
+          <ProductPricingFields value={pricing} onChange={value => { setPricing(value); setPricingEdited(true); setError(""); }} b2cPrice={b2cPrice} b2bPrice={b2bPrice} legacy={!pricingEdited} />
           <section className="border-b border-border pb-7">
             <h2 className="mb-4 text-base font-semibold text-primary">Nội dung & thông số</h2>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -114,11 +123,10 @@ function ProductEditor({ product: currentProduct, onReload }: { product?: AdminP
             <label className="mt-5 flex items-center gap-2 text-sm text-primary"><input type="checkbox" name="featured" defaultChecked={product?.featured} className="h-4 w-4 accent-blue-brand" />Sản phẩm nổi bật</label>
           </section>
           {product && <section className="border-b border-border pb-5"><h2 className="mb-2 text-base font-semibold text-primary">Tồn khả dụng</h2><p className="text-sm text-text-secondary">{currentProduct?.stock || 0} {product.unit}</p><Link href="/admin/ledger" className="mt-3 inline-flex text-sm font-medium text-blue-brand">Sổ tồn kho</Link></section>}
-          <Button type="submit" loading={busy} disabled={uploading || !apiMode || Boolean(stale)} className="w-full"><Save size={17} />Lưu sản phẩm</Button>
           {product?.published && <Link href={`/products/${product.slug}`} target="_blank" rel="noopener noreferrer" className="bt-button-secondary w-full"><ExternalLink size={16} />Xem sản phẩm</Link>}
-          <Link href="/admin/products" className="bt-button-ghost w-full">Hủy</Link>
         </aside>
-      </div>
+      </fieldset>
+      <div className="bt-admin-save-bar"><Button type="button" variant="secondary" disabled={busy || uploading} onClick={() => close(() => router.push(listUrl))}>Hủy</Button><Button type="submit" loading={busy} disabled={uploading || !apiMode || Boolean(stale)}><Save size={17} />Lưu sản phẩm</Button></div>
     </form>
   </>;
 }

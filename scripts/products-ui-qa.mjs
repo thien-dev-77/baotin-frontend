@@ -1,4 +1,4 @@
-import { chromium } from "@playwright/test";
+import { chromium, expect } from "@playwright/test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { readFile, mkdir, unlink } from "node:fs/promises";
@@ -43,7 +43,11 @@ try {
   await page.getByLabel("Thương hiệu", { exact: false }).fill("Bảo Tín");
   await page.getByLabel("Danh mục", { exact: false }).selectOption("led-tu-ke");
   await page.getByLabel("Nhóm sản phẩm", { exact: true }).selectOption("LED dây");
-  await page.getByLabel("Giá bán lẻ", { exact: false }).fill("125000");
+  await page.getByLabel("Giá niêm yết (VNĐ)", { exact: false }).fill("125000");
+  await page.getByLabel("Chiết khấu B2C (%)", { exact: false }).fill("20");
+  await page.getByLabel("Chiết khấu B2B (%)", { exact: false }).fill("35");
+  assert.equal(await page.getByLabel("Giá sau CK B2C (VNĐ)", { exact: true }).inputValue(), "100000");
+  assert.equal(await page.getByLabel("Giá sau CK B2B (VNĐ)", { exact: true }).inputValue(), "81250");
   await page.getByLabel("Thông số kỹ thuật", { exact: false }).fill("12V · 8W · 3000K");
   await page.getByLabel("Mô tả sản phẩm", { exact: true }).fill("Mô tả đã lưu từ giao diện.");
   const files = await Promise.all(["red", "green", "blue"].map(async color => ({ name: `${color}.png`, mimeType: "image/png", buffer: await sharp({ create: { width: 400, height: 300, channels: 3, background: color } }).png().toBuffer() })));
@@ -61,8 +65,13 @@ try {
   assert.equal(saved.status(), 201, await saved.text());
   const result = await saved.json(); created = result.id;
   assert.equal(result.product.published, false);
+  assert.equal(result.product.listPrice, 125000);
+  assert.equal(result.product.b2cDiscount, 20);
+  assert.equal(result.product.b2bDiscount, 35);
+  assert.equal(result.product.price, 100000);
+  assert.equal(result.product.oldPrice, 125000);
   assert.deepEqual(result.product.gallery, [uploaded[2], uploaded[0]]);
-  await page.waitForURL(`${base}/admin/products`);
+  await page.waitForURL(url => url.pathname === "/admin/products");
   assert.equal((await context.request.get(`${base}/api/backend/catalog/${code.toLowerCase()}`)).status(), 404);
   assert.equal((await context.request.get(`${base}/products/${code.toLowerCase()}`)).status(), 404);
   await page.getByLabel("Tìm sản phẩm, mã hàng, thương hiệu...", { exact: true }).fill(code);
@@ -74,7 +83,7 @@ try {
   const editResponse = page.waitForResponse(response => response.url().endsWith(`/admin/products/${created}`) && response.request().method() === "PATCH");
   await page.getByRole("button", { name: "Lưu sản phẩm", exact: true }).click();
   assert.equal((await editResponse).status(), 200);
-  await page.waitForURL(`${base}/admin/products`);
+  await page.waitForURL(url => url.pathname === "/admin/products");
   const anonymous = await browser.newContext({ javaScriptEnabled: false });
   const publicPage = await anonymous.newPage();
   const publicResponse = await publicPage.goto(`${base}/products/${code.toLowerCase()}`);
@@ -95,6 +104,8 @@ try {
         await view.evaluate(async () => { await document.fonts.ready; });
         assert.ok(await view.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Overflow: ${name} at ${width}`);
         if (name === "edit") {
+          await expect(view.getByLabel("Giá sau CK B2C (VNĐ)", { exact: true })).toHaveValue("100000");
+          await expect(view.getByLabel("Giá sau CK B2B (VNĐ)", { exact: true })).toHaveValue("81250");
           await view.locator("ol img").first().scrollIntoViewIfNeeded();
           await view.waitForFunction(() => [...document.querySelectorAll("ol img")].every(img => img.complete && img.naturalWidth > 0));
           assert.equal(await view.getByRole("button", { name: "Lưu sản phẩm", exact: true }).isEnabled(), true);
@@ -107,10 +118,10 @@ try {
         const hidden = view.waitForResponse(response => response.url().endsWith(`/admin/products/${created}`) && response.request().method() === "PATCH");
         await view.getByRole("button", { name: "Lưu sản phẩm", exact: true }).click();
         assert.equal((await hidden).status(), 200);
-        await view.waitForURL(`${base}/admin/products`);
+        await view.waitForURL(url => url.pathname === "/admin/products");
         await view.getByLabel("Trạng thái sản phẩm", { exact: true }).selectOption("hidden");
         await view.getByLabel("Tìm sản phẩm, mã hàng, thương hiệu...", { exact: true }).fill(code);
-        assert.ok((await view.locator("tbody").innerText()).includes("Riêng tư"));
+        await expect(view.locator("tbody tr").filter({ hasText: code })).toContainText("Riêng tư");
         assert.equal((await device.request.get(`${base}/products/${code.toLowerCase()}`)).status(), 404);
       }
     } finally { await device.close(); }

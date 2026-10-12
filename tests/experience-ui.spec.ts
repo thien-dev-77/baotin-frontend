@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { adminReadFixture } from "./admin-read-fixtures";
 import { mkdir } from "node:fs/promises";
 import { catalog, categoryCatalog } from "../lib/catalog";
 import { adminCustomers, adminOrders } from "../lib/admin-preview";
@@ -233,6 +234,8 @@ async function mockExperience(page: Page, user = staff) {
       await route.fulfill({ json: { items: [] } });
       return;
     }
+    const read = method === "GET" ? adminReadFixture(new URL(request.url()), resources["/admin/resources"] as Parameters<typeof adminReadFixture>[1]) : undefined;
+    if (read) { await route.fulfill({ json: read }); return; }
     if (method !== "GET" || !(path in resources)) {
       errors.push(`Unexpected request: ${method} ${path}`);
       await route.fulfill({

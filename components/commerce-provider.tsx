@@ -43,7 +43,7 @@ export function readPreviewCustomer(identity: string): Customer | null {
   } catch { return null; }
 }
 
-export function CommerceProvider({ children, initialCatalog, initialCatalogError = "" }: { children: React.ReactNode; initialCatalog: CatalogResponse | null; initialCatalogError?: string }) {
+export function CommerceProvider({ children, initialCatalog, initialCatalogError = "", catalogEnabled = true, accountEnabled = true }: { children: React.ReactNode; initialCatalog: CatalogResponse | null; initialCatalogError?: string; catalogEnabled?: boolean; accountEnabled?: boolean }) {
   const authStore = useAppStore();
   const auth = useAppSelector(state => state.auth);
   const [store, setStore] = useState<Store>(initial);
@@ -82,7 +82,7 @@ export function CommerceProvider({ children, initialCatalog, initialCatalogError
     return loaded;
   }, []);
   const reloadCatalog = useCallback(async () => {
-    if (!apiMode) return;
+    if (!apiMode || !catalogEnabled) return;
     const version = refreshVersion.current;
     const result = readCatalogResponse(await api<unknown>("/catalog/bootstrap"));
     if (version !== refreshVersion.current) return;
@@ -90,7 +90,7 @@ export function CommerceProvider({ children, initialCatalog, initialCatalogError
     await loadProducts(productIds.current.filter(id => !result.products.some(product => product.id === id)));
     if (version !== refreshVersion.current) return;
     catalogLoaded.current = true; setCatalogError("");
-  }, [loadProducts]);
+  }, [loadProducts, catalogEnabled]);
   const loadUserData = useCallback(async (user: SessionUser | null, refreshProducts: boolean, version: number) => {
     if (version !== refreshVersion.current) return;
     const identity = user?.id || null;
@@ -103,20 +103,20 @@ export function CommerceProvider({ children, initialCatalog, initialCatalogError
     setAccountError("");
     const current = () => version === refreshVersion.current;
     const accountFailure = (error: unknown) => { if (current()) setAccountError(error instanceof Error ? error.message : "Không thể tải dữ liệu tài khoản."); };
-    const loadCatalog = refreshProducts || !catalogLoaded.current || user?.customer?.status === "active";
+    const loadCatalog = catalogEnabled && (refreshProducts || !catalogLoaded.current || user?.customer?.status === "active");
     // Publish each response independently so orders/preferences cannot block products.
     await Promise.all([
       loadCatalog ? reloadCatalog().catch((error) => { if (current()) setCatalogError(error instanceof Error ? error.message : "Không thể tải sản phẩm."); }) : Promise.resolve(),
-      api<Order[]>("/orders").then((orders) => {
+      accountEnabled ? api<Order[]>("/orders").then((orders) => {
         if (!Array.isArray(orders)) throw new Error("Phản hồi đơn hàng không hợp lệ. Vui lòng thử lại.");
         if (current()) setStore((state) => ({ ...state, orders }));
-      }).catch(accountFailure),
-      user ? api<{ favorites: string[] }>("/account").then((account) => {
+      }).catch(accountFailure) : Promise.resolve(),
+      accountEnabled && user ? api<{ favorites: string[] }>("/account").then((account) => {
         if (!Array.isArray(account.favorites)) throw new Error("Phản hồi tài khoản không hợp lệ. Vui lòng thử lại.");
         if (current()) setStore((state) => ({ ...state, favorites: account.favorites }));
       }).catch(accountFailure) : Promise.resolve()
     ]);
-  }, [reloadCatalog]);
+  }, [reloadCatalog, catalogEnabled, accountEnabled]);
   const clearAuth = useCallback(() => {
     refreshVersion.current++;
     refreshRequest.current = null;
@@ -170,7 +170,8 @@ export function CommerceProvider({ children, initialCatalog, initialCatalogError
     } catch { /* Storage is optional; the shopping flow remains available without it. */ }
     setStorageReady(true);
     if (apiMode && !authStore.getState().auth.ready) void refreshSession(false);
-  }, [authStore, initialCatalog, refreshSession]);
+    else if (apiMode) void loadUserData(authStore.getState().auth.user, false, refreshVersion.current);
+  }, [authStore, initialCatalog, refreshSession, loadUserData]);
   useEffect(() => {
     if (!apiMode) return;
     const unsubscribe = onUnauthorized(() => {

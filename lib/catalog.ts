@@ -3,7 +3,8 @@ import { lockGroups, lockProducts } from "@/lib/lock-catalog";
 import type { Category, Product, Customer, Order, OrderStatus } from "./types";
 export type { Category, Product, Customer, CartLine, OrderStatus, Order } from "./types";
 import { priceFor as previewPrice } from "./pricing";
-export const priceFor = (product: Product, customer: Customer | null) => process.env.NEXT_PUBLIC_API_MODE === "true" ? (customer?.status === "active" ? product.customerPrice ?? product.price : product.price) : previewPrice(product, customer);
+import { retailPrice } from "./product-pricing";
+export const priceFor = (product: Product, customer: Customer | null) => process.env.NEXT_PUBLIC_API_MODE === "true" ? (customer?.status === "active" ? product.customerPrice ?? retailPrice(product) : retailPrice(product)) : previewPrice(product, customer);
 
 
 export const categoryCatalog: Category[] = [

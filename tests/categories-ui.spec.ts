@@ -3,6 +3,8 @@ import { mkdir } from "node:fs/promises";
 import { catalog, categoryCatalog } from "../lib/catalog";
 import type { AdminCategory } from "../lib/category-management";
 import { CATALOG_TEMPLATE_FILENAME, CATALOG_TEMPLATE_URL } from "../lib/catalog-template.mjs";
+import { adminReadFixture } from "./admin-read-fixtures";
+import { authEventKey } from "../lib/store/auth-slice";
 
 const base = process.env.QA_BASE_URL || "http://127.0.0.1:3010";
 if (!["127.0.0.1", "localhost"].includes(new URL(base).hostname))
@@ -111,6 +113,8 @@ async function mockCategories(page: Page, role = "admin") {
         today: "2026-10-07",
       },
     };
+    const read = method === "GET" ? adminReadFixture(new URL(request.url()), responses["/admin/resources"] as Parameters<typeof adminReadFixture>[1]) : undefined;
+    if (read) { await route.fulfill({ json: read }); return; }
     if (method !== "GET" || !(path in responses)) {
       errors.push(`Unexpected ${method} ${path}`);
       await route.fulfill({
@@ -208,6 +212,10 @@ test("Add a category with a cover and groups; use it immediately in product form
   await page.locator("#product-category").selectOption("thiet-bi-phong-tam");
   await expect(page.locator("#product-subcategory")).toContainText("Vòi nước");
   await page.getByRole("link", { name: "Website bán hàng" }).click();
+  await page.getByRole("dialog", { name: "Bỏ thay đổi chưa lưu?" }).getByRole("button", { name: "Bỏ thay đổi", exact: true }).click();
+  await expect(page).toHaveURL(base + "/");
+  // Mocked client writes do not invalidate the real SSR server's catalog cache.
+  await page.evaluate(key => window.dispatchEvent(new StorageEvent("storage", { key, newValue: JSON.stringify({ type: "refresh" }) })), authEventKey);
   await expect(
     page
       .getByRole("navigation", { name: "Danh mục bên cạnh banner" })
@@ -404,6 +412,7 @@ test("Desktop and mobile editor remain within the viewport", async ({
     await dialog(page)
       .getByRole("button", { name: "Hủy", exact: true })
       .click();
+    await page.getByRole("dialog", { name: "Bỏ thay đổi chưa lưu?" }).getByRole("button", { name: "Bỏ thay đổi", exact: true }).click();
   }
   expect(qa.errors).toEqual([]);
 });

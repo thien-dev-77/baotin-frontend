@@ -1,4 +1,67 @@
-# Admin Data Loading - 08 October 2026
+# Admin Data Loading - 12 October 2026
+
+## Paged Read Models And Admin UX
+
+This section supersedes the list/dashboard behavior in the historical resource
+contract below. Deploy the backend first, then the matching frontend.
+
+- Main product, order, customer, credit and warehouse screens now call
+  `GET /api/admin/browse?resource=...&branch=...&page=1&pageSize=10`.
+  Accepted page sizes: 10, 25, 50. Search and filters run in SQL. Responses include
+  `pagination: { resource, total, page, pageSize, totalPages, ids }`.
+- Orders default to all time, with optional inclusive `from` / `to` dates.
+  Old pending orders are no longer excluded by the dashboard's reporting period.
+- Customer pages receive directory/account metadata, Sales assignees and finance
+  summaries with the page itself. They do not also call `/admin/customers`.
+- Warehouse totals count the whole authorized branch, not just the current page.
+- `GET /api/admin/orders/:id?branch=...` loads one order and its needed SKUs,
+  customer, approvals and receipts. Existing command/revision guards remain.
+- `GET /api/admin/dashboard?branch=...&days=7` returns metrics, chart bins and at
+  most five recent orders. Pending queues are all-time; revenue follows the period.
+- `app/(storefront)/layout.tsx` owns public SSR catalog loading. The root layout
+  and admin layout no longer wait for the storefront catalog. Admin commerce does
+  not load public orders, preferences or B2B catalog data.
+- `AdminReadCache` caches dedicated reads for 60 seconds per auth scope, branch
+  and query, deduplicates requests, and refreshes mounted affected readers after
+  writes. It never persists private responses or JWTs in browser storage.
+- Same-scope query changes and refreshes retain rows while fetching; branch or
+  access changes clear old rows. Errors retain usable data and a busy retry button.
+- Filters/pagination are in the URL; product editor return links retain them.
+  Search is debounced 300 ms. Pagination renders a bounded window of page buttons.
+- CSV export still exports all matching rows, reading batches of 50 only when
+  requested. It aborts on unmount and rejects detected mid-export list changes.
+- Quote requests contain pricing fields only, debounce 300 ms and abort superseded
+  reads. Notes/contact edits do not requote. Saving still validates full contacts.
+- Product/Sales forms protect unsaved changes and keep save actions visible on
+  mobile. Admin modals protect X/Escape/backdrop and marked cancel buttons.
+  Browser reload uses its native warning; Back/Forward uses Navigation API where
+  supported, with a history fallback. No private draft is persisted.
+  The guard mounts in the root layout before auth resolves, so fallback history
+  listeners are installed early; form protection is enabled on admin routes only.
+- Mobile action tables keep identity and action columns visible when scrolled.
+
+Local disposable-schema sample (55 additional QA products, not production):
+
+| Read | JSON bytes |
+| --- | ---: |
+| Legacy full state | 84,407 |
+| Order page | 6,947 |
+| Product page plus categories | 8,116 |
+| Customer page plus directory/finance | 9,303 |
+| Dashboard summary | 609 |
+
+These sizes vary with fixtures/page size. They do not establish production latency.
+Tests: `admin-ux`, `admin-read-cache`, `admin-loading`, auth/customer/category/
+experience/navigation regressions, backend admin/operations tests and production
+SSR performance tests. Test APIs and databases are local only.
+
+The old resource endpoint is retained for compatibility and editor dictionaries,
+pricing, approvals, accounting and integration flows. Dedicated content/review/
+consultation APIs keep their existing list contracts. This is not a claim that
+every admin collection has server pagination. Very large editor dictionaries and
+CSV exports can still benefit from search-based pickers or streaming exports.
+
+## Historical Resource Contract
 
 ## API Contract
 
@@ -89,7 +152,6 @@ In the browser Network panel, verify no `/admin/state` calls, branch-specific
 resource requests, no focus reload, cache reuse and targeted post-write refresh.
 Measure production TTFB and query/pool/network latency again after deployment.
 
-Lists within each selected resource are not yet server-paginated. Large order
-histories/product dictionaries can still require pagination and separate
-server-side dashboard aggregates. Dedicated resources keep their existing
-contracts; this change does not claim to paginate every admin screen.
+The new paged read models above replace unbounded resource reads for main lists
+and dashboards. The legacy endpoint remains broad for compatibility and workflows
+which require reference dictionaries.

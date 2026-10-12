@@ -99,6 +99,10 @@ test("Production SSR cache, invalidation, live homepage and optimized fonts", as
       if (attempt === 99) throw new Error(`QA frontend startup timed out: ${logs}`);
       await new Promise(resolve => setTimeout(resolve, 100));
     }
+    const beforeAdmin = { ...counts };
+    const adminResponse = await request.get(`${frontend}/admin/products`);
+    expect(adminResponse.status()).toBe(200);
+    expect(counts).toEqual(beforeAdmin);
     await mutation("admin/commands");
     await mutation("admin/content/qa");
     const first = await html("cache-miss");

@@ -3,6 +3,7 @@
 import { AlertCircle, ChevronLeft, ChevronRight, LoaderCircle, Minus, Plus, RefreshCw, Search, X } from "lucide-react";
 import Link from "next/link";
 import { Children, isValidElement, useEffect, useId, useRef } from "react";
+import { useUnsavedForm } from "@/lib/unsaved-form";
 
 export function LoadingSpinner({ size = 16, className = "" }: { size?: number; className?: string }) {
   return <LoaderCircle size={size} aria-hidden="true" data-loading-spinner="" className={`shrink-0 animate-spin motion-reduce:animate-none ${className}`} />;
@@ -39,8 +40,10 @@ export function Field({ label, required, error, children, htmlFor }: { label: st
   const content = <>{children}{error && <span className="mt-1 block text-xs text-danger">{error}</span>}</>;
   return htmlFor ? <div className="block min-w-0 text-sm font-medium text-primary"><label htmlFor={htmlFor}>{text}</label>{content}</div> : <label className="block min-w-0 text-sm font-medium text-primary">{text}{content}</label>;
 }
-export function Modal({ open, onClose, title, children, drawer = false, sheet = false, fullscreen = false, busy = false }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode; drawer?: boolean; sheet?: boolean; fullscreen?: boolean; busy?: boolean }) {
+export function Modal({ open, onClose, title, children, drawer = false, sheet = false, fullscreen = false, busy = false, trackChanges = true }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode; drawer?: boolean; sheet?: boolean; fullscreen?: boolean; busy?: boolean; trackChanges?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const { dirty, close } = useUnsavedForm(ref, open && trackChanges, busy);
+  const dismiss = () => close(onClose);
   const titleId = useId();
   useEffect(() => {
     const dialog = ref.current;
@@ -52,12 +55,13 @@ export function Modal({ open, onClose, title, children, drawer = false, sheet = 
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = previous; };
   }, [open]);
-  return <dialog ref={ref} aria-labelledby={titleId} onCancel={(event) => { event.preventDefault(); if (!busy) onClose(); }} onClick={(event) => { if (!busy && event.target === ref.current) { const rect = ref.current!.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) onClose(); } }} className={`bt-dialog${drawer ? " bt-drawer" : ""}${sheet ? " bt-sheet" : ""}${fullscreen ? " bt-fullscreen" : ""}`}><div className="flex items-center justify-between gap-3 border-b border-border p-4"><h2 id={titleId} className="text-base font-bold text-primary">{title}</h2><button type="button" onClick={onClose} disabled={busy} className="bt-icon-button" aria-label="Đóng"><X size={20} /></button></div><div className="p-4">{open ? children : null}</div></dialog>;
+  return <dialog ref={ref} aria-labelledby={titleId} onCancel={(event) => { event.preventDefault(); dismiss(); }} onClickCapture={event => { if (dirty && event.target instanceof Element && event.target.closest("[data-dismiss-modal]")) { event.preventDefault(); event.stopPropagation(); dismiss(); } }} onClick={(event) => { if (!busy && event.target === ref.current) { const rect = ref.current!.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dismiss(); } }} className={`bt-dialog${drawer ? " bt-drawer" : ""}${sheet ? " bt-sheet" : ""}${fullscreen ? " bt-fullscreen" : ""}`}><div className="flex items-center justify-between gap-3 border-b border-border p-4"><h2 id={titleId} className="text-base font-bold text-primary">{title}</h2><button type="button" onClick={dismiss} disabled={busy} className="bt-icon-button" aria-label="Đóng"><X size={20} /></button></div><div className="p-4">{open ? children : null}</div></dialog>;
 }
 export function Tabs({ options, value, onChange }: { options: string[]; value: string; onChange: (value: string) => void }) {
   return <div className="scrollbar-hide flex gap-1 overflow-x-auto border-b border-border" role="tablist">{options.map((option, index) => <button key={option} type="button" role="tab" aria-selected={value === option} tabIndex={value === option ? 0 : -1} onClick={() => onChange(option)} onKeyDown={(event) => { if (event.key === "ArrowRight" || event.key === "ArrowLeft") { event.preventDefault(); const next = options[(index + (event.key === "ArrowRight" ? 1 : -1) + options.length) % options.length]; onChange(next); const buttons = event.currentTarget.parentElement?.querySelectorAll("button"); buttons?.[options.indexOf(next)]?.focus(); } }} className={`shrink-0 border-b-2 px-3 py-3 text-sm ${value === option ? "border-blue-brand font-semibold text-blue-brand" : "border-transparent text-text-secondary hover:text-blue-brand"}`}>{option}</button>)}</div>;
 }
 export function Pagination({ page, total, onChange }: { page: number; total: number; onChange: (page: number) => void }) {
   if (total <= 1) return null;
-  return <nav aria-label="Phân trang" className="mt-7 flex justify-center gap-1"><button className="bt-icon-button" disabled={page === 1} onClick={() => onChange(page - 1)} aria-label="Trang trước"><ChevronLeft size={18} /></button>{Array.from({ length: total }, (_, index) => index + 1).map((number) => <button key={number} aria-current={page === number ? "page" : undefined} className={`flex h-9 w-9 items-center justify-center rounded-md text-sm ${page === number ? "bg-blue-brand font-semibold text-white" : "hover:bg-section"}`} onClick={() => onChange(number)}>{number}</button>)}<button className="bt-icon-button" disabled={page === total} onClick={() => onChange(page + 1)} aria-label="Trang sau"><ChevronRight size={18} /></button></nav>;
+  const pages = total <= 7 ? Array.from({ length: total }, (_, index) => index + 1) : Array.from(new Set([1, page - 1, page, page + 1, total].filter(number => number >= 1 && number <= total))).sort((a, b) => a - b);
+  return <nav aria-label="Phân trang" className="mt-7 flex justify-center gap-1"><button className="bt-icon-button" disabled={page === 1} onClick={() => onChange(page - 1)} aria-label="Trang trước"><ChevronLeft size={18} /></button>{pages.map((number, index) => <span key={number} className="flex items-center gap-1">{index > 0 && number - pages[index - 1] > 1 && <span className="px-1 text-text-muted" aria-hidden="true">...</span>}<button aria-label={`Trang ${number}`} aria-current={page === number ? "page" : undefined} className={`flex h-9 w-9 items-center justify-center rounded-md text-[11px] ${page === number ? "bg-blue-brand font-semibold text-white" : "hover:bg-section"}`} onClick={() => onChange(number)}>{number}</button></span>)}<button className="bt-icon-button" disabled={page === total} onClick={() => onChange(page + 1)} aria-label="Trang sau"><ChevronRight size={18} /></button></nav>;
 }

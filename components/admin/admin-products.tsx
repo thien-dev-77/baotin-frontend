@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Download, FolderTree, ImageIcon, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui";
 import { useCommerce } from "@/components/commerce-provider";
@@ -12,39 +13,69 @@ import { downloadAdminCsv } from "@/lib/admin-preview";
 import { categoryCatalog, money, normalize } from "@/lib/catalog";
 import { apiMode } from "@/lib/api-client";
 import { CatalogTemplateDownload } from "./catalog-template-download";
+import { useAdminBrowse, type AdminBrowseState } from "@/lib/admin-browse";
+import { AdminReadModel } from "./admin-read-model";
+import { ResourceStatus } from "./admin-resource";
+import { useAdminExport } from "@/lib/admin-export";
+import { productPrices, formatDiscount } from "@/lib/product-pricing";
 
 export function AdminProducts() {
+  const browse = useAdminBrowse("products");
+  return <AdminReadModel data={browse.data}><ProductsList browse={browse} /></AdminReadModel>;
+}
+function ProductsList({ browse }: { browse: AdminBrowseState }) {
   const { products, categories: apiCategories } = useAdmin();
   const { sessionUser } = useCommerce();
+  const search = useSearchParams().toString();
+  const returnTo = encodeURIComponent(`/admin/products${search ? `?${search}` : ""}`);
+  const exporting = useAdminExport("products");
   const canEdit = !apiMode || ["admin", "boss", "sales"].includes(sessionUser?.role || "");
+  const showPrices = !apiMode || sessionUser?.role !== "warehouse";
   const categories = apiCategories || categoryCatalog;
-  const filters = useAdminFilters();
-  const [category, setCategory] = useState("all");
-  const rows = products.filter(item => normalize(`${item.name} ${item.code} ${item.brand}`).includes(normalize(filters.query)) && (category === "all" || item.category === category) && (filters.filter === "all" || (filters.filter === "published" ? item.published : !item.published)));
-  const page = Math.min(filters.page, Math.max(1, Math.ceil(rows.length / 10)));
-  const exportRows = () => downloadAdminCsv("bao-tin-san-pham.csv", [["Mã hàng", "Tên sản phẩm", "Thương hiệu", "Giá bán lẻ", "Tồn khả dụng", "Hiển thị"], ...rows.map(item => [item.code, item.name, item.brand, item.price, item.stock, item.published ? "Công khai" : "Riêng tư"])]);
+  const previewFilters = useAdminFilters();
+  const [previewCategory, setPreviewCategory] = useState("all");
+  const filters = apiMode ? browse : previewFilters;
+  const category = apiMode ? browse.category : previewCategory;
+  const setCategory = (value: string) => apiMode ? browse.set({ category: value }) : setPreviewCategory(value);
+  const rows = apiMode ? products : products.filter(item => normalize(`${item.name} ${item.code} ${item.brand}`).includes(normalize(filters.query)) && (category === "all" || item.category === category) && (filters.filter === "all" || (filters.filter === "published" ? item.published : !item.published)));
+  const count = apiMode ? browse.data?.pagination.total || 0 : rows.length;
+  const page = apiMode ? browse.data?.pagination.page || browse.page : Math.min(filters.page, Math.max(1, Math.ceil(rows.length / 10)));
+  const exportRows = (items = rows) => downloadAdminCsv("bao-tin-san-pham.csv", [["Mã hàng", "Tên sản phẩm", "Thương hiệu", ...(showPrices ? ["Giá niêm yết (VNĐ)", "Chiết khấu B2C (%)", "Giá sau CK B2C (VNĐ)", "Chiết khấu B2B (%)", "Giá sau CK B2B (VNĐ)"] : []), "Tồn khả dụng", "Hiển thị"], ...items.map(item => {
+    const prices = productPrices(item);
+    return [item.code, item.name, item.brand, ...(showPrices ? [prices.listPrice, prices.b2cDiscount, prices.b2cPrice, prices.b2bDiscount ?? "", prices.b2bPrice ?? ""] : []), item.stock, item.published ? "Công khai" : "Riêng tư"];
+  })]);
   return <>
-    <AdminHeading title="Sản phẩm" subtitle={`Danh mục website · ${products.length} sản phẩm`}>
-      <div className="flex flex-wrap gap-2"><Link href="/admin/categories" className="bt-button-secondary"><FolderTree size={16} />Danh mục</Link><CatalogTemplateDownload /><Button variant="secondary" onClick={exportRows} disabled={!rows.length}><Download size={16} />Xuất CSV</Button>{canEdit && <Link href="/admin/products/new" className="bt-button-primary"><Plus size={17} />Thêm sản phẩm</Link>}</div>
+    <AdminHeading title="Sản phẩm" subtitle={`Danh mục website · ${count} sản phẩm`}>
+      <div className="flex flex-wrap gap-2"><Link href="/admin/categories" className="bt-button-secondary"><FolderTree size={16} />Danh mục</Link><CatalogTemplateDownload /><Button variant="secondary" loading={exporting.loading} onClick={() => apiMode ? void exporting.run(pages => exportRows(pages.flatMap(page => page.products || []))) : exportRows()} disabled={!rows.length}><Download size={16} />Xuất CSV</Button>{canEdit && <Link href={`/admin/products/new?returnTo=${returnTo}`} className="bt-button-primary"><Plus size={17} />Thêm sản phẩm</Link>}</div>
     </AdminHeading>
     <div className="mb-4 flex flex-wrap gap-3">
       <AdminSearch value={filters.query} onChange={filters.setQuery} placeholder="Tìm sản phẩm, mã hàng, thương hiệu..." />
-      <select aria-label="Danh mục sản phẩm" value={category} onChange={event => { setCategory(event.target.value); filters.setPage(1); }} className="bt-input !w-auto max-w-full"><option value="all">Tất cả danh mục</option>{categories.map(item => <option key={item.slug} value={item.slug}>{item.name}</option>)}</select>
+      <select aria-label="Danh mục sản phẩm" value={category} onChange={event => { setCategory(event.target.value); if (!apiMode) filters.setPage(1); }} className="bt-input !w-auto max-w-full"><option value="all">Tất cả danh mục</option>{categories.map(item => <option key={item.slug} value={item.slug}>{item.name}</option>)}</select>
       <select aria-label="Trạng thái sản phẩm" value={filters.filter} onChange={event => filters.setFilter(event.target.value)} className="bt-input !w-auto max-w-full"><option value="all">Tất cả trạng thái</option><option value="published">Công khai</option><option value="hidden">Riêng tư</option></select>
     </div>
-    <AdminTable headings={["Sản phẩm", "Danh mục", "Giá bán lẻ", "Tồn khả dụng", "Hiển thị", "Thao tác"]} empty={!rows.length}>
-      {rows.slice((page - 1) * 10, page * 10).map(item => <tr key={item.id}>
+    {apiMode && <ResourceStatus {...browse} />}
+    <AdminTable className="bt-admin-products-table" headings={["Sản phẩm", "Danh mục", ...(showPrices ? ["Giá niêm yết (VNĐ)", "Chiết khấu B2C (%)", "Giá sau CK B2C (VNĐ)", "Chiết khấu B2B (%)", "Giá sau CK B2B (VNĐ)"] : []), "Tồn khả dụng", "Hiển thị", "Thao tác"]} empty={!rows.length} loading={apiMode && !browse.data && browse.loading}>
+      {(apiMode ? rows : rows.slice((page - 1) * 10, page * 10)).map(item => {
+        const prices = productPrices(item);
+        return <tr key={item.id}>
         <td><div className="flex min-w-[240px] items-center gap-3">
           {item.image ? <Image src={item.image} alt={item.name} width={44} height={44} className="h-11 w-11 shrink-0 rounded border border-border object-cover" loading="lazy" quality={85} sizes="44px" data-image-src={item.image} /> : <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded border border-border bg-section text-text-muted"><ImageIcon size={18} /></span>}
-          <div>{canEdit ? <Link href={`/admin/products/${encodeURIComponent(item.id)}/edit`} className="font-medium text-primary hover:text-blue-brand">{item.name}</Link> : <span className="font-medium text-primary">{item.name}</span>}<span className="mt-1 block text-xs text-text-muted">{item.code} · {item.brand}</span></div>
+          <div>{canEdit ? <Link href={`/admin/products/${encodeURIComponent(item.id)}/edit?returnTo=${returnTo}`} className="font-medium text-primary hover:text-blue-brand">{item.name}</Link> : <span className="font-medium text-primary">{item.name}</span>}<span className="mt-1 block text-xs text-text-muted">{item.code} · {item.brand}</span></div>
         </div></td>
         <td>{categories.find(category => category.slug === item.category)?.name}</td>
-        <td className="whitespace-nowrap tabular-nums">{money(item.price)}<span className="ml-1 text-xs text-text-muted">/{item.unit}</span></td>
+        {showPrices && <>
+          <td className="whitespace-nowrap tabular-nums">{money(prices.listPrice)}{!prices.configured && <span className="mt-1 block text-[11px] text-text-muted">Giá trước giảm</span>}</td>
+          <td className="tabular-nums">{formatDiscount(prices.b2cDiscount)}</td>
+          <td className="whitespace-nowrap font-medium tabular-nums text-primary">{money(prices.b2cPrice)}<span className="ml-1 text-xs font-normal text-text-muted">/{item.unit}</span></td>
+          <td className="tabular-nums">{prices.b2bDiscount === undefined ? <span className="text-xs text-text-muted">Chưa cấu hình</span> : formatDiscount(prices.b2bDiscount)}</td>
+          <td className="whitespace-nowrap tabular-nums">{prices.b2bPrice === undefined ? <span className="text-xs text-text-muted">Theo bảng giá</span> : <>{money(prices.b2bPrice)}<span className="mt-1 block text-[11px] text-text-muted">Giá mặc định</span></>}</td>
+        </>}
         <td><span className={item.stock === 0 ? "font-semibold text-danger" : "tabular-nums"}>{item.stock}</span></td>
         <td><AdminStatus value={item.published ? "Công khai" : "Riêng tư"} /></td>
-        <td>{canEdit && <Link href={`/admin/products/${encodeURIComponent(item.id)}/edit`} title="Sửa sản phẩm" aria-label={`Sửa sản phẩm ${item.code}`} className="bt-icon-button"><Pencil size={16} /></Link>}</td>
-      </tr>)}
+        <td>{canEdit && <Link href={`/admin/products/${encodeURIComponent(item.id)}/edit?returnTo=${returnTo}`} title="Sửa sản phẩm" aria-label={`Sửa sản phẩm ${item.code}`} className="bt-icon-button"><Pencil size={16} /></Link>}</td>
+      </tr>;
+      })}
     </AdminTable>
-    <AdminPagination count={rows.length} page={page} onChange={filters.setPage} />
+    <AdminPagination count={count} page={page} pageSize={apiMode ? browse.pageSize : 10} onChange={filters.setPage} onPageSize={apiMode ? size => browse.set({ pageSize: size }) : undefined} />
   </>;
 }

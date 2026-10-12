@@ -5,7 +5,8 @@
   "scripts": {
     "catalog:template": "node scripts/generate-catalog-template.mjs",
     "test:catalog-template": "node --test tests/catalog-template.test.mjs",
-    "test:domain": "playwright test tests/domain.spec.ts tests/commerce-api.spec.ts tests/backend-proxy.spec.ts tests/auth-state.spec.ts tests/public-cache.spec.ts tests/admin-resources.spec.ts --workers=1",
+    "test:domain": "playwright test tests/domain.spec.ts tests/product-pricing.spec.ts tests/commerce-api.spec.ts tests/backend-proxy.spec.ts tests/auth-state.spec.ts tests/public-cache.spec.ts tests/admin-resources.spec.ts --workers=1",
+    "test:pricing": "playwright test tests/product-pricing.spec.ts tests/product-pricing-ui.spec.ts --workers=1",
     "test:auth": "playwright test tests/auth-ui.spec.ts --workers=1",
     "test:experience": "playwright test tests/experience-ui.spec.ts --workers=1",
     "test:customers": "playwright test tests/customers-ui.spec.ts --workers=1",

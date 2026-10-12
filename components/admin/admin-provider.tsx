@@ -13,6 +13,7 @@ import { ApiAdminProvider } from "./api-admin-provider";
 import { branches } from "@/lib/admin-preview";
 import type { ApiAdminState } from "@/lib/api-types";
 import type { AdminResource } from "@/lib/admin-resources";
+import type { AdminReadCache } from "@/lib/admin-read-cache";
 
 function useAdminState() {
   const [overrides, setOverrides] = useState<AdminPreviewOverrides>(emptyAdminOverrides);
@@ -195,6 +196,8 @@ export type AdminValue = Omit<{ [K in keyof MockValue]: K extends ActionKey ? Aw
   loadedResources?: readonly AdminResource[];
   ensureResources?: (resources: readonly AdminResource[]) => Promise<void>;
   setResourceLoading?: (id: string, loading: boolean) => void;
+  readCache?: AdminReadCache;
+  rememberData?: (data: Partial<ApiAdminState>) => void;
 };
 export const AdminContext = createContext<AdminValue | null>(null);
 export function AdminProvider({ children }: { children: React.ReactNode }) {

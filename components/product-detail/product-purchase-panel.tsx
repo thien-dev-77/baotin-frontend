@@ -8,6 +8,7 @@ import { CheckCircle2, Heart, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { apiMode } from "@/lib/api-client";
+import { productPrices, effectiveDiscount, formatDiscount } from "@/lib/product-pricing";
 
 export function ProductPurchasePanel({ product }: { product: Product }) {
   const { customer, add, toggleFavorite, favorites } = useCommerce();
@@ -15,6 +16,7 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
   const price = priceFor(product, customer);
   const isB2b = apiMode ? customer?.status === "active" && product.customerPrice !== undefined : Boolean(customer);
   const liked = favorites.includes(product.id);
+  const pricing = productPrices(product);
   const loginHref = `/login?next=/products/${product.slug}`;
 
   return (
@@ -31,8 +33,9 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
         <div className="flex flex-wrap items-baseline gap-2">
           <strong className="text-[26px] text-danger">{money(price)}</strong>
           <span className="text-sm text-text-secondary">/{product.unit}</span>
-          {product.oldPrice && <del className="text-xs text-text-muted">{money(product.oldPrice)}</del>}
+          {product.oldPrice && product.oldPrice > price && <del className="text-xs text-text-muted">{money(product.oldPrice)}</del>}
         </div>
+        {pricing.configured && <dl aria-label="Giá niêm yết và chiết khấu" className="mt-4 space-y-2 border-y border-border py-3 text-xs"><div className="flex flex-wrap justify-between gap-2"><dt className="text-text-secondary">Giá niêm yết</dt><dd className="tabular-nums">{money(pricing.listPrice)}</dd></div><div className="flex justify-between gap-2"><dt className="text-text-secondary">Chiết khấu B2C</dt><dd>{formatDiscount(pricing.b2cDiscount)}</dd></div><div className="flex flex-wrap justify-between gap-2"><dt className="text-text-secondary">Giá sau CK B2C</dt><dd className="font-semibold tabular-nums">{money(pricing.b2cPrice)}</dd></div>{isB2b ? <><div className="flex justify-between gap-2"><dt className="text-text-secondary">Chiết khấu B2B</dt><dd>{price > pricing.listPrice ? "Giá riêng" : formatDiscount(effectiveDiscount(pricing.listPrice, price))}</dd></div><div className="flex flex-wrap justify-between gap-2"><dt className="text-text-secondary">Giá sau CK B2B</dt><dd className="font-semibold tabular-nums text-blue-brand">{money(price)}</dd></div></> : <div className="flex flex-wrap justify-between gap-2"><dt className="text-text-secondary">Giá / CK B2B</dt><dd><Link href={loginHref} className="text-blue-brand">Đăng nhập B2B</Link></dd></div>}</dl>}
         <p className={`mt-3 flex items-center gap-1.5 text-xs font-semibold ${product.stock > 0 ? "text-success" : "text-text-muted"}`}>
           <CheckCircle2 size={14} />
           {product.stock > 0 ? `Còn hàng (${product.stock} ${product.unit})` : "Tạm hết hàng"}

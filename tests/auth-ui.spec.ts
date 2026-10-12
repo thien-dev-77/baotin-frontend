@@ -3,6 +3,7 @@ import { catalog, categoryCatalog } from "../lib/catalog";
 import { authEventKey } from "../lib/store/auth-slice";
 import { previewCatalogPage } from "../lib/catalog-query";
 import type { SessionUser } from "../lib/types";
+import { adminReadFixture } from "./admin-read-fixtures";
 
 const base = process.env.QA_BASE_URL || "http://127.0.0.1:3010";
 if (!["localhost", "127.0.0.1"].includes(new URL(base).hostname)) throw new Error("Auth QA only runs locally.");
@@ -43,6 +44,8 @@ async function mockAuth(page: Page, initialUser: SessionUser | null = staff) {
       "GET /admin/customers": { items: [], assignees: [], groups: [] },
       "GET /admin/resources": { products: catalog.map(product => ({ ...product, published: true, revision: 1 })), categories: categoryCatalog, orders: [], customers: [], approvals: [], receipts: [], warehouse: {}, paymentDueDates: {}, today: "2026-10-07" },
     };
+    const read = request.method() === "GET" ? adminReadFixture(new URL(request.url()), responses["GET /admin/resources"] as Parameters<typeof adminReadFixture>[1]) : undefined;
+    if (read) { await route.fulfill({ json: read }); return; }
     if (!(key in responses)) { errors.push(`Unexpected API request: ${key}`); await route.fulfill({ status: 500, json: { message: "Unexpected QA request" } }); return; }
     await route.fulfill({ json: responses[key] });
   });
@@ -121,7 +124,7 @@ test("A protected 401 clears auth and the admin table without calling session ag
   const api = await mockAuth(page);
   await page.goto(`${base}/admin/products`);
   await expect(page.locator("#admin-content table")).toBeVisible();
-  api.respond("GET /admin/resources", { message: "Token expired" }, 401);
+  api.respond("GET /admin/browse", { message: "Token expired" }, 401);
   await page.getByRole("button", { name: "Làm mới dữ liệu", exact: true }).click();
   await expect(page.locator('input[name="identity"]')).toBeVisible();
   await expect(page.locator("#admin-content table")).toHaveCount(0);
@@ -133,7 +136,7 @@ test("A forbidden action does not log out a verified user", async ({ page }) => 
   const api = await mockAuth(page);
   await page.goto(`${base}/admin/products`);
   await expect(page.locator("#admin-content table")).toBeVisible();
-  api.respond("GET /admin/resources", { message: "No permission" }, 403);
+  api.respond("GET /admin/browse", { message: "No permission" }, 403);
   await page.getByRole("button", { name: "Làm mới dữ liệu", exact: true }).click();
   await expect(page.getByRole("alert").filter({ hasText: "No permission" })).toBeVisible();
   await expect(page.locator("#admin-content table")).toBeVisible();
@@ -231,16 +234,16 @@ test("A stale protected 401 does not clear a newer auth scope in the browser", a
   const api = await mockAuth(page);
   await page.goto(`${base}/admin/products`);
   await expect(page.locator("#admin-content table")).toBeVisible();
-  const release = api.delay("GET /admin/resources", { message: "Old token expired" }, 401);
+  const release = api.delay("GET /admin/browse", { message: "Old token expired" }, 401);
   try {
     await page.getByRole("button", { name: "Làm mới dữ liệu", exact: true }).click();
-    await expect.poll(() => api.count("GET /admin/resources")).toBe(2);
-    api.respond("GET /admin/resources", { products: [], categories: [], orders: [], customers: [], approvals: [], receipts: [], warehouse: {}, paymentDueDates: {}, today: "2026-10-07" });
+    await expect.poll(() => api.count("GET /admin/browse")).toBe(2);
+    api.respond("GET /admin/browse", { products: [], categories: [], orders: [], customers: [], approvals: [], receipts: [], warehouse: {}, paymentDueDates: {}, today: "2026-10-07", pagination: { resource: "products", total: 0, page: 1, pageSize: 10, totalPages: 1, ids: [] } });
     api.asUser({ ...staff, id: "qa-new-admin", name: "QA New Admin" });
     await page.evaluate(key => window.dispatchEvent(new StorageEvent("storage", { key, newValue: JSON.stringify({ type: "refresh" }) })), authEventKey);
     await expect(page.getByRole("button", { name: "Đăng xuất", exact: true })).toHaveAttribute("title", "QA New Admin");
     await expect(page.locator("#admin-content table")).toBeVisible();
-    const response = page.waitForResponse(response => new URL(response.url()).pathname.endsWith("/admin/resources") && response.status() === 401);
+    const response = page.waitForResponse(response => new URL(response.url()).pathname.endsWith("/admin/browse") && response.status() === 401);
     release(); await (await response).finished();
     await expect(page.getByRole("button", { name: "Làm mới dữ liệu", exact: true })).toBeEnabled();
     await expect(page.getByRole("button", { name: "Đăng xuất", exact: true })).toHaveAttribute("title", "QA New Admin");

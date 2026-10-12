@@ -25,7 +25,7 @@ import {
 import { downloadAdminCsv } from "@/lib/admin-preview";
 import { money, normalize } from "@/lib/catalog";
 import { apiMode } from "@/lib/api-client";
-import { useApiResource } from "@/lib/use-api-resource";
+import { useAdminBrowse, type AdminBrowseState } from "@/lib/admin-browse";
 import {
   customerGroups,
   type CustomerDirectory,
@@ -33,7 +33,9 @@ import {
 } from "@/lib/customer-management";
 import { useCommerce } from "../commerce-provider";
 import { ResourceStatus } from "./admin-resource";
+import { useAdminExport } from "@/lib/admin-export";
 import { CustomerAccountForm, CustomerEditor } from "./customer-editor";
+import { AdminReadModel } from "./admin-read-model";
 
 export function AdminCustomers({
   credit = false,
@@ -42,6 +44,11 @@ export function AdminCustomers({
   credit?: boolean;
   initialStatus?: string;
 }) {
+  const browse = useAdminBrowse("customers");
+  return <AdminReadModel data={browse.data}><CustomersList credit={credit} initialStatus={initialStatus} browse={browse} /></AdminReadModel>;
+}
+function CustomersList({ credit, initialStatus, browse }: { credit: boolean; initialStatus: string; browse: AdminBrowseState }) {
+  const exporting = useAdminExport("customers");
   const {
     scopedCustomers,
     customers,
@@ -49,26 +56,28 @@ export function AdminCustomers({
     branch,
     setCustomerStatus,
     pendingAction,
-    resourceRevision,
     reset,
   } = useAdmin();
   const { sessionUser, notice } = useCommerce();
   const canEdit =
     !!sessionUser && ["admin", "boss", "sales"].includes(sessionUser.role);
-  const resource = useApiResource<CustomerDirectory>(
-    `/admin/customers?branch=${encodeURIComponent(branch)}`,
-    apiMode && !credit,
-    resourceRevision,
-  );
+  const resource = browse;
   const directory =
-    resource.data?.items && resource.data.assignees && resource.data.groups
-      ? resource.data
+    resource.data?.directory
+      ? resource.data.directory
       : undefined;
-  const filters = useAdminFilters(initialStatus);
+  const previewFilters = useAdminFilters(initialStatus);
+  const filters = apiMode ? browse : previewFilters;
   const [selected, setSelected] = useState<string | null>(null);
-  const [group, setGroup] = useState("");
-  const [pilot, setPilot] = useState("");
-  const [salesId, setSalesId] = useState("");
+  const [previewGroup, setPreviewGroup] = useState("");
+  const [previewPilot, setPreviewPilot] = useState("");
+  const [previewSales, setPreviewSales] = useState("");
+  const group = apiMode ? browse.group : previewGroup;
+  const pilot = apiMode ? browse.pilot : previewPilot;
+  const salesId = apiMode ? browse.sales : previewSales;
+  const setGroup = (value: string) => apiMode ? browse.set({ group: value }) : setPreviewGroup(value);
+  const setPilot = (value: string) => apiMode ? browse.set({ pilot: value }) : setPreviewPilot(value);
+  const setSalesId = (value: string) => apiMode ? browse.set({ sales: value }) : setPreviewSales(value);
   const [editing, setEditing] = useState<{
     branch: typeof branch;
     customer: ManagedCustomer | null;
@@ -91,7 +100,7 @@ export function AdminCustomers({
         ...scopedCustomers.map((item) => item.group),
       ]),
     );
-  const rows = scopedCustomers.filter(
+  const rows = apiMode ? scopedCustomers : scopedCustomers.filter(
     (item) =>
       normalize(
         `${item.id} ${item.name} ${item.contact} ${item.phone} ${item.email || ""}`,
@@ -110,10 +119,11 @@ export function AdminCustomers({
               ? !item.assignedSalesId
               : item.assignedSalesId === salesId)))),
   );
-  const page = Math.min(filters.page, Math.max(1, Math.ceil(rows.length / 10)));
-  const debt = scopedCustomers.reduce((sum, item) => sum + item.debt, 0);
-  const overdue = scopedCustomers.reduce((sum, item) => sum + item.overdue, 0);
-  function exportRows() {
+  const count = apiMode ? browse.data?.pagination.total || 0 : rows.length;
+  const page = apiMode ? browse.data?.pagination.page || browse.page : Math.min(filters.page, Math.max(1, Math.ceil(rows.length / 10)));
+  const debt = apiMode ? browse.data?.summary?.debt || 0 : scopedCustomers.reduce((sum, item) => sum + item.debt, 0);
+  const overdue = apiMode ? browse.data?.summary?.overdue || 0 : scopedCustomers.reduce((sum, item) => sum + item.overdue, 0);
+  function exportRows(items = rows) {
     downloadAdminCsv(credit ? "bao-tin-cong-no.csv" : "bao-tin-khach-b2b.csv", [
       [
         "Mã khách",
@@ -129,7 +139,7 @@ export function AdminCustomers({
         "Sales phụ trách",
         "Khách thử nghiệm",
       ],
-      ...rows.map((item) => [
+      ...items.map((item) => [
         item.id,
         item.name,
         item.branch,
@@ -149,12 +159,13 @@ export function AdminCustomers({
     <>
       <AdminHeading
         title={credit ? "Công nợ B2B" : "Khách hàng B2B"}
-        subtitle={`${branch} · ${scopedCustomers.length} khách hàng${credit ? "" : ` · ${scopedCustomers.filter((item) => item.pilot).length} khách thử nghiệm`}`}
+        subtitle={`${branch} · ${count} khách hàng`}
       >
         <div className="flex flex-wrap gap-2">
           <Button
             variant="secondary"
-            onClick={exportRows}
+            loading={exporting.loading}
+            onClick={() => apiMode ? void exporting.run(pages => exportRows(pages.flatMap(page => page.customers || []))) : exportRows()}
             disabled={!rows.length}
           >
             <Download size={16} />
@@ -190,7 +201,7 @@ export function AdminCustomers({
           <div>
             <dt className="text-xs text-text-muted">Khách vượt hạn mức</dt>
             <dd className="mt-2 text-xl font-bold text-primary">
-              {scopedCustomers.filter((item) => item.debt > item.limit).length}
+              {apiMode ? browse.data?.summary?.overLimit || 0 : scopedCustomers.filter((item) => item.debt > item.limit).length}
             </dd>
           </div>
         </dl>
@@ -271,7 +282,7 @@ export function AdminCustomers({
           </select>
         </div>
       )}
-      {!credit && apiMode && <ResourceStatus {...resource} />}
+      {apiMode && <ResourceStatus {...resource} />}
       <AdminTable
         headings={
           credit
@@ -293,8 +304,9 @@ export function AdminCustomers({
               ]
         }
         empty={!rows.length}
+        loading={apiMode && !browse.data && browse.loading}
       >
-        {rows.slice((page - 1) * 10, page * 10).map((item) => (
+        {(apiMode ? rows : rows.slice((page - 1) * 10, page * 10)).map((item) => (
           <tr key={item.id}>
             <td>
               <button
@@ -393,9 +405,11 @@ export function AdminCustomers({
         ))}
       </AdminTable>
       <AdminPagination
-        count={rows.length}
+        count={count}
         page={page}
+        pageSize={apiMode ? browse.pageSize : 10}
         onChange={filters.setPage}
+        onPageSize={apiMode ? size => browse.set({ pageSize: size }) : undefined}
       />
       <Modal
         open={!!customer}
