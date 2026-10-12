@@ -9,10 +9,35 @@ Them/sua san pham, nhieu anh va hien thi rieng tu:
 [Product Management UI](docs/product-management.md).
 File Excel mau de chuan bi san pham va danh muc:
 [Catalog Excel Template](docs/catalog-excel-template.md).
+Gia niem yet, CK B2C/B2B va thu tu uu tien bang gia:
+[Product Pricing](docs/product-pricing.md).
+Phan trang, cache rieng va trang thai tai admin:
+[Admin Performance](docs/admin-performance.md).
 Next.js 16.3.8, React 19.3.0; dung Node LTS >=22.13.
+
+## Cap Nhat 12/10/2026
+
+Code moi duoc push len nhanh **develop** cua ca frontend va backend.
+Chon nhanh nay tren GitHub de xem README/code moi; chua merge vao main.
+
+- Admin san pham co 5 cot: gia niem yet, CK B2C, gia sau CK B2C,
+  CK B2B va gia sau CK B2B. Form nhap gia/CK, hai gia sau CK chi doc.
+- CK B2C va B2B tinh doc lap tu gia niem yet. Backend tu tinh gia;
+  bang gia theo khach/nhom/chi nhanh van uu tien hon CK B2B mac dinh.
+- Sua noi dung san pham cu khong tu doi gia. Chi chuyen sang cong thuc moi
+  khi sua phan gia/CK; don hang da luu giu nguyen gia snapshot.
+- Card va trang chi tiet dung gia thuc te API tra ve. Khach chua dang nhap
+  khong thay CK B2B; nhan giam gia tren card khop voi gia cua khach.
+- CSV va [Excel mau v2](public/templates/bao-tin-catalog-mau-v2.xlsx) co du
+  thong tin gia. Excel co cong thuc va o ket qua duoc khoa; chua co upload/import Excel.
+- Admin danh sach dung API phan trang va dashboard rieng, khong tai toan bo
+  `/admin/state`. Tai lai nen giu bang, bo loc va vi tri cuon; form canh bao
+  thay doi chua luu. Da sua loi lan nhap dau o CK bi quay ve gia tri cu.
 
 ```txt
 app/       Next.js App Router
+  (storefront)/ Layout SSR va cac route ban hang/tai khoan
+  admin/       Layout rieng, khong fetch catalog storefront
 components/ UI storefront, account va dashboard
 lib/       Types, frontend adapters, validation va mock hien co
 scripts/   Playwright QA
@@ -34,7 +59,7 @@ Website: http://localhost:3010. Quan tri: http://localhost:3010/admin.
 Thu tien va doi chieu: http://localhost:3010/admin/accounting.
 Frontend env: NEXT_PUBLIC_API_MODE=true, BACKEND_URL=http://127.0.0.1:4000.
 Chay API tu repo backend theo
-[backend README](https://github.com/thien-dev-77/baotin-backend/blob/main/README.md).
+[backend README](https://github.com/thien-dev-77/baotin-backend/blob/develop/README.md).
 Backend can chay cho API va anh: Next proxy /api/backend/* -> /api/*,
 /images/* -> /media/images/* va /media/* -> /media/*.
 Proxy dung Route Handlers + server fetch, khong dung external rewrites.
@@ -44,8 +69,10 @@ khong cache response rong hoac session; upstream null/HTML/rong tra 502 JSON.
 DATABASE_URL, JWT_SECRET va SEED_PASSWORD chi o backend, khong o frontend env.
 
 API mode render catalog cong khai tren server cho home, category, search va
-cac product cards: RootLayout fetch catalog truc tiep tu BACKEND_URL,
-cache DTO cong khai 15 giay, timeout 8 giay, khong forward cookie hay customerPrice vao HTML.
+cac product cards: layout `app/(storefront)/layout.tsx` fetch catalog truc tiep
+tu BACKEND_URL. RootLayout chi chua providers chung; layout admin khong tai
+catalog storefront. Cache DTO cong khai 15 giay, timeout 8 giay, khong forward
+cookie hay gia/CK B2B vao HTML cong khai.
 CMS cache 60 giay; lenh ghi thanh cong qua proxy expire cache ngay. API browser,
 account/admin, checkout va chi tiet san pham van no-store.
 CommerceProvider nhan du lieu ban dau, sau hydrate chi bo sung session/gia B2B,
@@ -73,9 +100,11 @@ npm run build
 npm run typecheck
 npm run test:domain
 # Sau khi chay frontend voi API mode va backend local
-QA_BASE_URL=http://localhost:3041 npm run test:ssr
+QA_BASE_URL=http://127.0.0.1:3010 npm run test:ssr
 # API mode: browser QA voi API mock, khong sua database
 QA_BASE_URL=http://127.0.0.1:3010 npm run test:admin-loading
+QA_BASE_URL=http://127.0.0.1:3010 npm run test:pricing
+npm run test:catalog-template
 ```
 
 Connected browser QA can repo backend rieng. Chay tu goc repo FE:
@@ -103,6 +132,14 @@ dev server dang chay. Chay typecheck sau build khi Next da sinh xong types.
 
 ## Deploy
 
+Ban cap nhat hien tai nam tren **develop**, khong phai main.
+Chon Repository `thien-dev-77/baotin-frontend` va Branch `develop` tren server.
+Deploy backend `thien-dev-77/baotin-backend` tu nhanh `develop` truoc,
+kiem tra health, sau do build/redeploy frontend de DTO gia/CK tuong thich.
+Commit README tren develop khong cap nhat deployment dang theo doi main.
+Neu chua thay thay doi, kiem tra branch va commit trong deployment log;
+chay redeploy tu commit moi sau khi luu dung cau hinh branch.
+
 Chon **Root Directory = .** (hoac de trong), khong chon frontend/.
 Install `npm ci`, build `npm run build`, start `npm run start` khi tu host Node.
 Frontend env tai goc theo .env.example; BACKEND_URL tro toi backend host.
@@ -118,6 +155,9 @@ Production can persistent media volume o BE va HTTPS cookies.
 - [Thong bao, CMS va cac luong UI/API moi](docs/experience-rollout.md)
 - [Quan ly khach B2B, Sales phu trach va khach thu nghiem](docs/customer-management.md)
 - [Quan ly danh muc, anh dai dien va nhom san pham](docs/category-management.md)
+- [Gia niem yet, CK B2C/B2B va bang gia rieng](docs/product-pricing.md)
+- [Toi uu tai du lieu va UX admin](docs/admin-performance.md)
+- [Excel mau catalog v2](docs/catalog-excel-template.md)
 - [Cau truc code](docs/code-structure.md)
 - [Bat dau cong viec](docs/start-work.md)
 - [Design system](docs/design-system.md)
@@ -131,8 +171,8 @@ stock/credit ledger, reservations, account management/recovery va website edit/r
 KiotViet connector can credentials va acceptance; SMTP can cau hinh de gui that.
 Chua co auto Kiot stock/debt/status sync hay bank/refund.
 Khong cong bo du lieu seed/secrets. Tai lieu media ghi ro anh minh hoa va
-dieu kien xac minh truoc production. Runtime audit FE/BE hien 0 vulnerabilities;
-FE full audit con 7 high dev tools/braces chua co ban fix. Khong audit force downgrade.
+dieu kien xac minh truoc production. Chay `npm audit --omit=dev` va `npm audit`
+tren dependency lock hien tai truoc deployment; khong audit force downgrade.
 
 ## Performance
 
