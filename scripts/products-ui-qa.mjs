@@ -21,6 +21,7 @@ await mkdir(screenshots, { recursive: true });
 const browser = await chromium.launch();
 const errors = [];
 let created = "";
+let createdVariant = "";
 let uploaded = [];
 const code = `UI-QA-${randomUUID()}`;
 const headers = { Origin: base, "X-BaoTin-Client": "web" };
@@ -79,6 +80,12 @@ try {
   await page.getByRole("heading", { name: "Sửa sản phẩm", exact: true }).waitFor();
   assert.equal(await page.getByLabel("Mô tả sản phẩm", { exact: true }).inputValue(), "Mô tả đã lưu từ giao diện.");
   await page.getByLabel("Mô tả sản phẩm", { exact: true }).fill("Mô tả mới được cập nhật.");
+  await page.getByRole("button", { name: "Thêm thuộc tính", exact: true }).click();
+  await page.getByLabel("Tên thuộc tính 1", { exact: true }).fill("Kích thước khoang tủ (T)");
+  await page.getByLabel("Giá trị 1", { exact: true }).fill("600mm");
+  await page.getByRole("button", { name: "Thêm thuộc tính", exact: true }).click();
+  await page.getByLabel("Tên thuộc tính 2", { exact: true }).fill("Màu sắc");
+  await page.getByLabel("Giá trị 2", { exact: true }).fill("Bạc");
   await page.getByRole("radio", { name: "Công khai", exact: true }).check();
   const editResponse = page.waitForResponse(response => response.url().endsWith(`/admin/products/${created}`) && response.request().method() === "PATCH");
   await page.getByRole("button", { name: "Lưu sản phẩm", exact: true }).click();
@@ -90,6 +97,46 @@ try {
   assert.equal(publicResponse.status(), 200);
   assert.ok((await publicPage.locator("main").innerText()).includes("Mô tả mới được cập nhật."));
   await anonymous.close();
+  await page.goto(`${base}/admin/products/${created}/edit`);
+  await page.getByRole("link", { name: "Tạo biến thể", exact: true }).click();
+  await page.getByRole("heading", { name: "Thêm biến thể", exact: true }).waitFor();
+  await page.getByLabel("Mã hàng", { exact: false }).fill(`${code}-800`);
+  await page.getByLabel("Đường dẫn", { exact: false }).fill(`${code.toLowerCase()}-800`);
+  await page.getByLabel("Giá trị 1", { exact: true }).fill("800mm");
+  await page.getByLabel("Giá trị 2", { exact: true }).fill("Đen");
+  await page.getByLabel("Giá niêm yết (VNĐ)", { exact: false }).fill("150000");
+  await page.getByRole("radio", { name: "Công khai", exact: true }).check();
+  const variantSave = page.waitForResponse(response => response.url().endsWith("/admin/products") && response.request().method() === "POST");
+  await page.getByRole("button", { name: "Lưu sản phẩm", exact: true }).click();
+  const variantResponse = await variantSave;
+  assert.equal(variantResponse.status(), 201, await variantResponse.text());
+  const variant = await variantResponse.json(); createdVariant = variant.id;
+  assert.equal(variant.product.variantGroupId, created);
+  assert.equal(variant.product.size, "800mm");
+  assert.equal(variant.product.color, "Đen");
+  assert.equal(variant.product.price, 120000);
+  await sql.query(`INSERT INTO "${schema}".inventory_balances (id,branch,"productId","onHand") VALUES ($1,$2,$3,3)`, [`Quy Nhơn:${createdVariant}`, "Quy Nhơn", createdVariant]);
+  await page.waitForURL(url => url.pathname === "/admin/products");
+  for (const width of [1440, 390]) {
+    const guest = await browser.newContext({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
+    try {
+      const view = await guest.newPage();
+      view.on("pageerror", error => errors.push(error.message));
+      await view.goto(`${base}/products/${code.toLowerCase()}`);
+      await expect(view.getByRole("group", { name: /Kích thước khoang tủ/ })).toBeVisible();
+      await expect(view.getByRole("link", { name: "800mm", exact: true })).toBeVisible();
+      await expect(view.getByRole("group", { name: /Màu sắc/ })).toContainText("Bạc");
+      assert.ok(await view.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Variant overflow at ${width}`);
+      await view.screenshot({ path: `${screenshots}/variant-${width}.png`, fullPage: true });
+      await view.getByRole("link", { name: "800mm", exact: true }).click();
+      await view.waitForURL(url => url.pathname === `/products/${code.toLowerCase()}-800`);
+      await expect(view.getByRole("complementary", { name: "Mua sản phẩm" })).toContainText("120.000");
+      await expect(view.getByRole("group", { name: /Kích thước khoang tủ/ })).toContainText("800mm");
+      await expect(view.getByRole("group", { name: /Màu sắc/ })).toContainText("Đen");
+      await view.getByRole("button", { name: "Thêm vào giỏ hàng", exact: true }).click();
+      assert.ok((await view.evaluate(() => JSON.parse(localStorage.getItem("baotin-commerce-api-v1") || "{}").cart || [])).some(item => item.productId === createdVariant));
+    } finally { await guest.close(); }
+  }
   await context.close();
 
   for (const width of [1440, 768, 390, 320]) {
@@ -127,10 +174,15 @@ try {
     } finally { await device.close(); }
   }
   assert.deepEqual(errors, []);
-  console.log("Product UI QA passed: create/edit, multi-upload, cover/removal, public/private SSR, filters, image rendering and 1440/768/390/320 layouts.");
+  console.log("Product UI QA passed: create/edit, flexible variants, SKU cart selection, multi-upload, public/private SSR, filters and responsive layouts.");
   console.log(`Screenshots: ${screenshots}`);
 } finally {
   await browser.close();
+  if (createdVariant) {
+    await sql.query(`DELETE FROM "${schema}".inventory_balances WHERE "productId"=$1`, [createdVariant]);
+    await sql.query(`DELETE FROM "${schema}".audit_events WHERE "resourceId"=$1`, [createdVariant]);
+    await sql.query(`DELETE FROM "${schema}".products WHERE id=$1 AND data->>'code'=$2`, [createdVariant, `${code}-800`]);
+  }
   if (created) {
     await sql.query(`DELETE FROM "${schema}".audit_events WHERE "resourceId"=$1`, [created]);
     await sql.query(`DELETE FROM "${schema}".products WHERE id=$1 AND data->>'code'=$2`, [created, code]);

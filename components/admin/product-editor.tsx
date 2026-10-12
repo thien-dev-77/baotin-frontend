@@ -15,37 +15,49 @@ import { ProductImageUpload } from "./product-image-upload";
 import { useUnsavedForm } from "@/lib/unsaved-form";
 import { discountedPrice, productPrices, MAX_PRODUCT_PRICE, MAX_PRODUCT_DISCOUNT } from "@/lib/product-pricing";
 import { ProductPricingFields, type ProductPricingDraft } from "./product-pricing-fields";
+import { ProductVariantFields } from "./product-variant-fields";
+import { variantDimension } from "@/lib/product-variants";
 
 type AdminProduct = ApiAdminState["products"][number];
 
 export function ProductEditorPage({ id }: { id?: string }) {
-  const { products, reset: reload } = useAdmin();
+  const { products, reset: reload, loadedResources } = useAdmin();
   const { sessionUser } = useCommerce();
   const [version, setVersion] = useState(0);
+  const variantOf = useSearchParams().get("variantOf");
+  const template = !id && variantOf ? products.find(item => item.id === variantOf) : undefined;
   const product = id ? products.find(item => item.id === id) : undefined;
   if (apiMode && !["admin", "boss", "sales"].includes(sessionUser?.role || "")) return <p role="alert" className="text-sm text-danger">Tài khoản không có quyền quản lý sản phẩm.</p>;
+  if (id && !product && !loadedResources?.includes("products")) return <p role="status" className="text-sm text-text-secondary">Đang tải sản phẩm...</p>;
+  if (variantOf && !template && !loadedResources?.includes("products")) return <p role="status" className="text-sm text-text-secondary">Đang tải sản phẩm gốc...</p>;
+  if (variantOf && !template) return <EmptyState title="Không tìm thấy sản phẩm gốc" href="/admin/products" action="Về danh sách" />;
+  if (template && !template.variantGroupId) return <EmptyState title="Sản phẩm gốc chưa có thuộc tính biến thể" href={`/admin/products/${encodeURIComponent(template.id)}/edit`} action="Sửa sản phẩm gốc" />;
   if (id && !product) return <EmptyState title="Không tìm thấy sản phẩm" href="/admin/products" action="Về danh sách" />;
-  return <ProductEditor key={`${id || "new"}-${version}`} product={product} onReload={async () => { await reload(); setVersion(value => value + 1); }} />;
+  return <ProductEditor key={`${id || variantOf || "new"}-${version}`} product={product} template={template} onReload={async () => { await reload(); setVersion(value => value + 1); }} />;
 }
 
-function ProductEditor({ product: currentProduct, onReload }: { product?: AdminProduct; onReload: () => Promise<void> }) {
+function ProductEditor({ product: currentProduct, template, onReload }: { product?: AdminProduct; template?: AdminProduct; onReload: () => Promise<void> }) {
   const [product] = useState(currentProduct);
-  const { categories: apiCategories, reset: reload, refreshing } = useAdmin();
+  const source = product || template;
+  const { products, categories: apiCategories, reset: reload, refreshing } = useAdmin();
   const { notice, reloadCatalog } = useCommerce();
   const router = useRouter();
   const returnTo = useSearchParams().get("returnTo");
   const listUrl = returnTo === "/admin/products" || returnTo?.startsWith("/admin/products?") ? returnTo : "/admin/products";
   const formRef = useRef<HTMLFormElement>(null);
-  const [category, setCategory] = useState(product?.category || "");
-  const [subcategory, setSubcategory] = useState(product?.subcategory || "");
+  const [category, setCategory] = useState(source?.category || "");
+  const [subcategory, setSubcategory] = useState(source?.subcategory || "");
   const [slug, setSlug] = useState(product?.slug || "");
   const customSlug = useRef(Boolean(product));
-  const [images, setImages] = useState<string[]>(product?.gallery || []);
+  const [images, setImages] = useState<string[]>(source?.gallery || []);
   const [published, setPublished] = useState(product?.published || false);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
-  const initialPrices = productPrices(product || { price: 0 });
+  const initialPrices = productPrices(source || { price: 0 });
+  const [variantAttributes, setVariantAttributes] = useState(() => product?.variantAttributes || template?.variantAttributes?.map(attribute => ({ name: attribute.name, value: "" })) || []);
+  const variantGroupId = product?.variantGroupId || template?.variantGroupId || template?.id;
+  const siblings = variantGroupId ? products.filter(item => item.variantGroupId === variantGroupId) : [];
   const [pricing, setPricing] = useState<ProductPricingDraft>(() => ({ listPrice: String(initialPrices.listPrice), b2cDiscount: String(Math.min(MAX_PRODUCT_DISCOUNT, initialPrices.b2cDiscount)), b2bDiscount: String(initialPrices.b2bDiscount ?? 0) }));
   const [pricingEdited, setPricingEdited] = useState(!product || initialPrices.configured);
   const listPrice = Number(pricing.listPrice), b2cDiscount = Number(pricing.b2cDiscount), b2bDiscount = Number(pricing.b2bDiscount);
@@ -64,8 +76,11 @@ function ProductEditor({ product: currentProduct, onReload }: { product?: AdminP
       name: text("name"), code: text("code"), slug: slug.trim(), category, subcategory,
       brand: text("brand"), unit: text("unit"), price: b2cPrice,
       ...(pricingEdited ? { listPrice, b2cDiscount, b2bDiscount } : product?.oldPrice !== undefined ? { oldPrice: product.oldPrice } : {}),
-      specification: text("specification"), material: text("material"), size: text("size"), color: text("color"), origin: text("origin"),
+      specification: text("specification"), material: text("material"),
+      size: variantDimension(variantAttributes, "size")?.value.trim() || text("size"),
+      color: variantDimension(variantAttributes, "color")?.value.trim() || text("color"), origin: text("origin"),
       description: text("description"), gallery: images, featured: form.has("featured"), published,
+      ...(variantAttributes.length || variantGroupId ? { variantGroupId: variantGroupId || "self", variantAttributes: variantAttributes.map(attribute => ({ name: attribute.name.trim(), value: attribute.value.trim() })) } : {}),
       ...(product ? { revision: product.revision } : {})
     };
     if (pricingEdited && (!validPricing || Object.values(pricing).some(value => value.trim() === ""))) { setError("Kiểm tra giá niêm yết và chiết khấu."); return; }
@@ -84,7 +99,7 @@ function ProductEditor({ product: currentProduct, onReload }: { product?: AdminP
   };
   return <>
     <Link href={listUrl} className="mb-4 inline-flex items-center gap-2 text-sm text-text-secondary hover:text-blue-brand"><ArrowLeft size={16} />Sản phẩm</Link>
-    <AdminHeading title={product ? "Sửa sản phẩm" : "Thêm sản phẩm"} subtitle={product?.code} />
+    <AdminHeading title={product ? "Sửa sản phẩm" : template ? "Thêm biến thể" : "Thêm sản phẩm"} subtitle={product?.code || template?.code} />
     <form ref={formRef} onSubmit={save} data-unsaved={dirty || undefined} className="min-w-0">
       {error && <p role="alert" className="mb-5 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-danger">{error}</p>}
       {stale && <div role="alert" className="mb-5 flex flex-wrap items-center justify-between gap-3 border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Sản phẩm đã được cập nhật ở phiên khác.<Button type="button" variant="secondary" loading={refreshing} disabled={busy || uploading} onClick={() => close(() => void onReload())}><RefreshCw size={16} />Tải lại sản phẩm</Button></div>}
@@ -94,22 +109,23 @@ function ProductEditor({ product: currentProduct, onReload }: { product?: AdminP
           <section className="border-b border-border pb-7">
             <h2 className="mb-4 text-base font-semibold text-primary">Thông tin sản phẩm</h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="sm:col-span-2"><Field label="Tên sản phẩm" required><input className="bt-input" name="name" required minLength={2} maxLength={200} defaultValue={product?.name} onChange={event => { if (!customSlug.current) setSlug(slugify(event.target.value)); }} /></Field></div>
+              <div className="sm:col-span-2"><Field label="Tên sản phẩm" required><input className="bt-input" name="name" required minLength={2} maxLength={200} defaultValue={source?.name} onChange={event => { if (!customSlug.current) setSlug(slugify(event.target.value)); }} /></Field></div>
               <Field label="Mã hàng" required><input className="bt-input" name="code" required maxLength={80} defaultValue={product?.code} /></Field>
-              <Field label="Thương hiệu" required><input className="bt-input" name="brand" required maxLength={80} defaultValue={product?.brand} /></Field>
-              <Field label="Danh mục" required htmlFor="product-category"><select id="product-category" className="bt-input" required value={category} onChange={event => { setCategory(event.target.value); setSubcategory(""); }}><option value="">Chọn danh mục</option>{categories.map(item => <option key={item.slug} value={item.slug}>{item.name}</option>)}</select></Field>
+              <Field label="Thương hiệu" required><input className="bt-input" name="brand" required readOnly={Boolean(variantGroupId)} maxLength={80} defaultValue={source?.brand} /></Field>
+              <Field label="Danh mục" required htmlFor="product-category"><select id="product-category" className="bt-input" required disabled={Boolean(variantGroupId)} value={category} onChange={event => { setCategory(event.target.value); setSubcategory(""); }}><option value="">Chọn danh mục</option>{categories.map(item => <option key={item.slug} value={item.slug}>{item.name}</option>)}</select></Field>
               <Field label="Nhóm sản phẩm" htmlFor="product-subcategory"><select id="product-subcategory" className="bt-input" value={subcategory} onChange={event => setSubcategory(event.target.value)} disabled={!category}><option value="">Không chọn</option>{categories.find(item => item.slug === category)?.subcategories.map(item => <option key={item}>{item}</option>)}</select></Field>
-              <Field label="Đơn vị tính" required><input className="bt-input" name="unit" required maxLength={30} defaultValue={product?.unit || "cái"} /></Field>
+              <Field label="Đơn vị tính" required><input className="bt-input" name="unit" required readOnly={Boolean(variantGroupId)} maxLength={30} defaultValue={source?.unit || "cái"} /></Field>
               <Field label="Đường dẫn" required><input className="bt-input" required maxLength={200} pattern="[a-z0-9]+(-[a-z0-9]+)*" value={slug} onChange={event => { customSlug.current = true; setSlug(event.target.value); }} /></Field>
             </div>
           </section>
+          <ProductVariantFields attributes={variantAttributes} onChange={setVariantAttributes} groupId={product?.variantGroupId} siblings={siblings} currentId={product?.id} returnTo={listUrl} schemaLocked={Boolean(template || product?.variantGroupId && (product.id !== product.variantGroupId || siblings.length > 1))} />
           <ProductPricingFields value={pricing} onChange={value => { setPricing(value); setPricingEdited(true); setError(""); }} b2cPrice={b2cPrice} b2bPrice={b2bPrice} legacy={!pricingEdited} />
           <section className="border-b border-border pb-7">
             <h2 className="mb-4 text-base font-semibold text-primary">Nội dung & thông số</h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="sm:col-span-2"><Field label="Mô tả sản phẩm" htmlFor="product-description"><textarea id="product-description" name="description" rows={6} maxLength={10000} className="bt-input !h-auto py-3" defaultValue={product?.description} /></Field></div>
-              <div className="sm:col-span-2"><Field label="Thông số kỹ thuật" required={published} htmlFor="product-specification"><textarea id="product-specification" name="specification" required={published} rows={3} maxLength={500} className="bt-input !h-auto py-3" defaultValue={product?.specification} /></Field></div>
-              {[{ name: "material", label: "Chất liệu" }, { name: "size", label: "Kích thước" }, { name: "color", label: "Màu sắc" }, { name: "origin", label: "Xuất xứ" }].map(({ name, label }) => <Field key={name} label={label}><input name={name} className="bt-input" maxLength={100} defaultValue={product?.[name as "material" | "size" | "color" | "origin"]} /></Field>)}
+              <div className="sm:col-span-2"><Field label="Mô tả sản phẩm" htmlFor="product-description"><textarea id="product-description" name="description" rows={6} maxLength={10000} className="bt-input !h-auto py-3" defaultValue={source?.description} /></Field></div>
+              <div className="sm:col-span-2"><Field label="Thông số kỹ thuật" required={published} htmlFor="product-specification"><textarea id="product-specification" name="specification" required={published} rows={3} maxLength={500} className="bt-input !h-auto py-3" defaultValue={source?.specification} /></Field></div>
+              {[{ name: "material", label: "Chất liệu" }, { name: "size", label: "Kích thước" }, { name: "color", label: "Màu sắc" }, { name: "origin", label: "Xuất xứ" }].filter(field => field.name === "size" ? !variantDimension(variantAttributes, "size") : field.name === "color" ? !variantDimension(variantAttributes, "color") : true).map(({ name, label }) => <Field key={name} label={label}><input name={name} className="bt-input" maxLength={100} defaultValue={source?.[name as "material" | "size" | "color" | "origin"]} /></Field>)}
             </div>
           </section>
           <section className="pb-5"><ProductImageUpload images={images} onChange={setImages} busy={busy || uploading} uploading={uploading} onBusyChange={setUploading} /></section>

@@ -6,6 +6,7 @@ import { ProductInformationTabs } from "@/components/product-detail/product-info
 import { ProductOverview } from "@/components/product-detail/product-overview";
 import { ProductPurchasePanel } from "@/components/product-detail/product-purchase-panel";
 import { ProductSpecifications } from "@/components/product-detail/product-specifications";
+import { ProductVariantSelector } from "@/components/product-detail/product-variant-selector";
 import { RelatedProducts } from "@/components/product-detail/related-products";
 import { Breadcrumb } from "@/components/ui";
 import { type Product } from "@/lib/catalog";
@@ -18,10 +19,12 @@ import { useProductSelection } from "@/lib/use-product-selection";
 import { readCatalogPage } from "@/lib/commerce-api";
 import type { CatalogPageResponse } from "@/lib/api-types";
 
-export function ProductDetail({ product: initialProduct }: { product: Product }) {
+export function ProductDetail({ product: initialProduct }: { product: Product & { variants?: Product[] } }) {
   const { products, categories } = useCommerce();
   useProductSelection([initialProduct.id]);
+  useProductSelection(initialProduct.variants?.map(item => item.id) || []);
   const product = products.find((item) => item.id === initialProduct.id) || initialProduct;
+  const variants = initialProduct.variants?.map(item => products.find(loaded => loaded.id === item.id) || item) || (!apiMode && product.variantGroupId ? products.filter(item => item.variantGroupId === product.variantGroupId) : []);
   const detailRef = useRef<HTMLElement>(null);
   const [tab, setTab] = useState("Mô tả sản phẩm");
   const [reviews, setReviews] = useState<ProductReview[]>(initialProductReviews);
@@ -58,7 +61,7 @@ export function ProductDetail({ product: initialProduct }: { product: Product })
       <div className="bt-product-detail-layout">
         <div className="bt-product-detail-intro grid items-start gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
           <ProductGallery product={product} />
-          <ProductOverview product={product} specifications={specifications} reviewCount={visibleReviews.length} rating={rating} onShowReviews={showReviews} />
+          <div><ProductOverview product={product} specifications={specifications} reviewCount={visibleReviews.length} rating={rating} onShowReviews={showReviews} /><ProductVariantSelector product={product} variants={variants} /></div>
         </div>
         <ProductPurchasePanel product={product} />
         <section className="bt-product-detail-information">
