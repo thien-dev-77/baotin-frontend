@@ -38,9 +38,9 @@ async function inspectCard(page, card, touch, screenshot) {
     const area = await media.boundingBox();
     const button = await details.boundingBox();
     expect(Math.abs(button.x + button.width / 2 - area.x - area.width / 2)).toBeLessThan(1);
-    expect(Math.abs(button.y + button.height - area.y - area.height)).toBeLessThan(1);
+    expect(Math.abs(area.y + area.height - button.y - button.height - 6)).toBeLessThan(1);
     expect(button.height).toBeGreaterThanOrEqual(44);
-    expect(Math.abs(button.width - area.width)).toBeLessThan(1);
+    expect(Math.abs(area.width - button.width - 12)).toBeLessThan(1);
     expect(await details.locator("span").evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   } else {
     await media.hover();

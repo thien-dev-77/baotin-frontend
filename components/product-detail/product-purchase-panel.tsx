@@ -32,7 +32,7 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
       </div>
       <div className="p-4">
         <div className="flex flex-wrap items-baseline gap-2">
-          <strong className="text-[26px] text-danger">{money(price)}</strong>
+          <strong className="text-[26px] text-primary">{money(price)}</strong>
           <span className="text-sm text-text-secondary">/{product.unit}</span>
           {product.oldPrice && product.oldPrice > price && <del className="text-xs text-text-muted">{money(product.oldPrice)}</del>}
         </div>

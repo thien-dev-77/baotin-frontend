@@ -109,8 +109,9 @@ Quy tac:
 - Trang category khong co banner: breadcrumb, tieu de/mo ta, danh muc con, bo loc va danh sach san pham.
 - Section "Danh sach san pham" tren trang chu dang an; giu carousel va toi da 5 section danh muc co san pham cong khai, theo thu tu danh muc trong admin. ProductGrid dung chung tren cac trang: desktop >=1024px 5 cot, tablet 3 cot, mobile 2 cot. Carousel desktop hien 5 item.
 - Section danh muc khong co banner: tieu de uppercase ben trai, "Xem tat ca" ben phai, duong ke xam va lien ket subcategory nen xam o duoi. Khong goi API rieng cho moi section; du lieu lay tu catalog bootstrap.
-- Anh `ProductCard` dung khung ti le 1:1.05, `object-fit: contain`, padding 8px de khong cat san pham. "Xem chi tiet" hien thanh mau do cao 48px, rong toan bo anh, sat mep duoi khi hover/focus tren desktop >=1024px co chuot (`hover: hover`, `pointer: fine`). Tablet/mobile va thiet bi cam ung an hoan toan nut nay; bam anh hoac ten de vao chi tiet. Card khong co nut them vao gio; mua hang tai trang chi tiet. Thanh nut nam absolute, khong day noi dung card khi xuat hien.
-- Gia ban mau do 20px, gia niem yet gach ngang ben canh; card hep tu dong xuong 17px/14px theo container query. Gia goc chi hien khi cao hon gia ban thuc te cua khach.
+- Tieu de `ProductCard` dung Inter Regular 400, 16px/24px, toi da 2 dong; card hep dung 14px/22px. Khong dung Medium/SemiBold cho ten san pham va khong them letter spacing.
+- Anh `ProductCard` dung khung ti le 1:1.05, `object-fit: contain`, padding 8px de khong cat san pham. "Xem chi tiet" hien nut xanh thuong hieu cao 44px, cach mep trai/phai/duoi anh 6px, radius 6px, chu Inter Regular 400 15px/22px, icon Eye 18px net 1.6. Nut fade/slide 180ms khi hover/focus tren desktop >=1024px co chuot (`hover: hover`, `pointer: fine`). Tablet/mobile va thiet bi cam ung an hoan toan nut nay; bam anh hoac ten de vao chi tiet. Card khong co nut them vao gio; mua hang tai trang chi tiet. Nut nam absolute, khong day noi dung card khi xuat hien; reduced motion tat transition.
+- Gia ban mau navy `Primary` 20px, gia niem yet mau `Muted` gach ngang ben canh; card hep tu dong xuong 17px/14px theo container query. Gia goc chi hien khi cao hon gia ban thuc te cua khach. Nhan giam gia dung nen `Section blue`, chu `Blue hover`; yeu thich dung `Blue`. Khong dung mau `Danger` cho gia, nhan khuyen mai hay hanh dong mua hang.
 - Khong long card trong card.
 
 ## 5. Container va spacing
@@ -224,7 +225,7 @@ Product detail:
 - Khoi mua hang bam duoi header voi khoang cach 16px, dung lai khi het cot noi dung. Man hinh thap cho cuon noi dung khoi mua hang bang chuot/ban phim; tablet/mobile khong sticky va dat mua hang truoc bang thong so.
 - Ma hang va tinh trang hang hien ro.
 - Gia B2C/B2B khong bi lan.
-- Duoi nut them gio hang co hai lien ket "Chat Zalo" va "Goi cho toi", nen vang, icon va text trang, chieu cao toi thieu 56px. Link Zalo mo tab moi; nut goi dung `tel:`. Van hien khi san pham het hang.
+- Duoi nut them gio hang co hai lien ket "Chat Zalo" va "Goi cho toi", nen trang, vien `Border`, text `Primary`, icon xanh; hover nen `Section blue`, vien `Blue`, chu `Blue hover`. Chu viet thuong theo nhan, khong ep in hoa. Chieu cao toi thieu 56px. Link Zalo mo tab moi; nut goi dung `tel:`. Van hien khi san pham het hang. Nut them gio hang giu nen `Blue` de phan biet hanh dong chinh; gia mua dung `Primary`, khong dung `Danger`.
 - So dien thoai va link Zalo dung chung tu `lib/store-contact.ts`, dong bo voi trang Lien he va ho tro trang chu.
 - Thong so ky thuat dang bang.
 - San pham lien quan nam cuoi trang duoi khoi mua kem, dung `ProductCard` theo hang ngang (4 item hien tai), cuon ngang tren tablet/mobile.

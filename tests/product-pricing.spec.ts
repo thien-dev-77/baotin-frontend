@@ -25,6 +25,14 @@ test("Existing legacy prices remain exact until explicitly converted", () => {
   expect(productPrices({ price: 0 }).b2cPrice).toBe(0);
 });
 
+test("B2C zero discount keeps full list price independently from B2B", () => {
+  const fullRetail = { ...configured, b2cDiscount: 0, b2bDiscount: 60, price: 100000, oldPrice: undefined };
+  expect(productPrices(fullRetail).b2cPrice).toBe(100000);
+  expect(productPrices(fullRetail).b2bPrice).toBe(40000);
+  expect(priceFor(fullRetail, null)).toBe(100000);
+  expect(priceFor({ ...fullRetail, customerPrice: 40000 }, customer)).toBe(40000);
+});
+
 test("Actual customer prices override default B2B and are never discounted twice", () => {
   expect(priceFor({ ...configured, customerPrice: 90000 }, customer)).toBe(90000);
   expect(priceFor({ ...configured, customerPrice: 55000 }, customer)).toBe(55000);

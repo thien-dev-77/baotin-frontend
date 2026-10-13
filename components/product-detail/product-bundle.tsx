@@ -39,7 +39,7 @@ export function ProductBundle({ products: initialProducts }: { products: Product
             <span className="min-w-0">
               <span className="line-clamp-2 text-xs font-semibold text-primary">{product.name}</span>
               <span className="mt-1 block text-xs text-text-muted">{product.code}</span>
-              <span className="mt-1 block text-sm font-bold text-danger">{money(priceFor(product, customer))}</span>
+              <span className="mt-1 block text-sm font-bold text-primary">{money(priceFor(product, customer))}</span>
             </span>
           </label>
         ))}

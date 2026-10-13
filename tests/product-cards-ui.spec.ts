@@ -11,6 +11,7 @@ const categories = [categoryCatalog.find(item => item.slug === "khoa")!, categor
 const products: Product[] = [
   ...catalog.filter(item => item.category === "khoa" && item.subcategory === "Khóa điện tử").slice(-5).map((product, index) => ({
     ...product, listPrice: 16000000, b2cDiscount: 20, customerPrice: 12800000, price: 12800000, oldPrice: 16000000,
+    name: index === 0 ? "Khóa nhận diện khuôn mặt cửa nhôm IBC T06 cao cấp chống nước" : product.name,
     material: "Hợp kim", color: "Đen", size: "", variantAttributes: [{ name: "Mở khóa", value: "Vân tay" }, { name: "Kết nối", value: "Ứng dụng" }],
     reviewSummary: { rating: index === 0 ? 4.5 : 0, count: index === 0 ? 2 : 0 },
   })),
@@ -57,13 +58,22 @@ for (const [width, columns] of [[1440, 5], [1024, 5], [768, 3], [390, 2], [320, 
       await card.scrollIntoViewIfNeeded();
       await page.evaluate(() => document.fonts.ready);
       const media = card.locator(".bt-product-card-media");
+      const title = card.locator(".bt-product-card-title");
+      await expect(title).toHaveCSS("font-weight", "400");
+      expect(await title.evaluate(element => { const spacing = getComputedStyle(element).letterSpacing; return spacing === "normal" || Number.parseFloat(spacing) === 0; })).toBe(true);
+      await expect(title).toHaveCSS("-webkit-line-clamp", "2");
+      await expect(title).toHaveAttribute("title", products[0].name);
+      expect(await title.evaluate(element => element.clientHeight <= Number.parseFloat(getComputedStyle(element).lineHeight) * 2)).toBe(true);
       const image = media.locator("img");
       await expect(image).toHaveAttribute("loading", "lazy");
       await expect(image).toHaveCSS("object-fit", "contain");
       await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
       await expect(card.locator(".bt-product-card-discount")).toHaveText("GIẢM-20%");
+      await expect(card.locator(".bt-product-card-discount")).toHaveCSS("background-color", "rgb(240, 246, 253)");
+      await expect(card.locator(".bt-product-card-discount")).toHaveCSS("color", "rgb(14, 101, 184)");
       await expect(card.locator("del")).toHaveText(money(16000000));
       await expect(card.locator(".bt-price-amount")).toHaveText(money(12800000));
+      await expect(card.locator(".bt-price-amount")).toHaveCSS("color", "rgb(15, 49, 87)");
       await expect(card.locator(".bt-product-card-reviews")).toContainText("2 đánh giá");
       await expect(card.locator(".bt-product-card-star").last().locator("span")).toHaveAttribute("style", "width: 50%;");
       await expect(card.getByRole("list", { name: "Thuộc tính sản phẩm" })).toContainText("Vân tay");
@@ -73,18 +83,25 @@ for (const [width, columns] of [[1440, 5], [1024, 5], [768, 3], [390, 2], [320, 
       await expect(details).toHaveText("Xem chi tiết");
       await expect(details).toHaveAttribute("aria-label", `Xem chi tiết - ${products[0].name}`);
       await expect(details).toHaveAttribute("href", `/products/${products[0].slug}`);
+      await expect(details).toHaveCSS("font-weight", "400");
+      await expect(details).toHaveCSS("font-size", "15px");
+      await expect(details).toHaveCSS("border-radius", "6px");
+      await expect(details.locator("svg")).toHaveAttribute("width", "18");
+      await expect(details.locator("svg")).toHaveAttribute("stroke-width", "1.6");
       if (width >= 1024) {
         await media.hover();
         await expect(details).toHaveCSS("opacity", "1");
         const area = (await media.boundingBox())!;
         const button = (await details.boundingBox())!;
-        expect(Math.abs(area.x - button.x)).toBeLessThan(1);
-        expect(Math.abs(area.width - button.width)).toBeLessThan(1);
-        expect(Math.abs(area.y + area.height - button.y - button.height)).toBeLessThan(1);
-        expect(button.height).toBe(48);
+        expect(Math.abs(button.x - area.x - 6)).toBeLessThan(1);
+        expect(Math.abs(area.width - button.width - 12)).toBeLessThan(1);
+        expect(Math.abs(area.y + area.height - button.y - button.height - 6)).toBeLessThan(1);
+        expect(button.height).toBe(44);
         const favorite = (await card.locator(".bt-product-card-favorite").boundingBox())!;
         expect(favorite.y + favorite.height).toBeLessThanOrEqual(button.y - 4);
-        await expect(details).toHaveCSS("background-color", "rgb(223, 48, 48)");
+        await expect(details).toHaveCSS("background-color", "rgb(22, 119, 210)");
+        await details.hover();
+        await expect(details).toHaveCSS("background-color", "rgb(14, 101, 184)");
         const contentBefore = await card.locator(".bt-product-card-content").boundingBox();
         await page.mouse.move(0, 0);
         await expect(details).toHaveCSS("opacity", "0");
@@ -99,6 +116,7 @@ for (const [width, columns] of [[1440, 5], [1024, 5], [768, 3], [390, 2], [320, 
       }
       await card.getByRole("button", { name: /^Yêu thích / }).click();
       await expect(card.getByRole("button", { name: /^Bỏ yêu thích / })).toHaveAttribute("aria-pressed", "true");
+      await expect(card.getByRole("button", { name: /^Bỏ yêu thích / })).toHaveCSS("color", "rgb(22, 119, 210)");
       expect(await section.locator(".bt-category-product-row").evaluate(element => getComputedStyle(element).gridTemplateColumns.split(" ").length)).toBe(columns);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
       expect(await cards.evaluateAll(elements => elements.every(element => element.scrollWidth <= element.clientWidth + 1))).toBe(true);
@@ -124,10 +142,23 @@ test("The same product card layout is used in catalog grid and list views", asyn
   await expect(details).toHaveCSS("opacity", "1");
   const area = (await media.boundingBox())!;
   const button = (await details.boundingBox())!;
-  expect(Math.abs(area.width - button.width)).toBeLessThan(1);
-  expect(Math.abs(area.y + area.height - button.y - button.height)).toBeLessThan(1);
+  expect(Math.abs(area.width - button.width - 12)).toBeLessThan(1);
+  expect(Math.abs(area.y + area.height - button.y - button.height - 6)).toBeLessThan(1);
   expect(await details.locator("span").evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   expect(await card.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+  api.check();
+});
+
+test("Product card hover respects reduced motion", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const api = await mockCards(page);
+  await page.goto(`${base}/search`);
+  const card = page.locator(".bt-product-card").filter({ hasText: products[0].code });
+  await card.locator(".bt-product-card-media").hover();
+  await expect(card.locator(".bt-product-card-details")).toHaveCSS("opacity", "1");
+  await expect(card.locator(".bt-product-card-details")).toHaveCSS("transition-property", "none");
+  await expect(card.locator(".bt-product-card-favorite")).toHaveCSS("transition-property", "none");
   api.check();
 });
 

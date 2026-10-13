@@ -1,21 +1,85 @@
 import { expect, test, type Page } from "@playwright/test";
 import { mkdir, readFile } from "node:fs/promises";
+import { spawn, type ChildProcess } from "node:child_process";
+import { createServer, type Server } from "node:http";
+import { once } from "node:events";
 import { catalog, categoryCatalog, money } from "../lib/catalog";
 import { previewCatalogPage } from "../lib/catalog-query";
 import type { ApiAdminState } from "../lib/api-types";
 import type { SessionUser } from "../lib/types";
 import { adminReadFixture } from "./admin-read-fixtures";
 
-const base = process.env.QA_BASE_URL || "http://127.0.0.1:3010";
-if (!["127.0.0.1", "localhost"].includes(new URL(base).hostname)) throw new Error("Pricing UI QA only runs locally.");
+const base = "http://127.0.0.1:3047";
+const imageBackend = process.env.QA_BACKEND_URL || "http://127.0.0.1:4000";
+if (!["127.0.0.1", "localhost"].includes(new URL(imageBackend).hostname)) throw new Error("Pricing UI QA only runs locally.");
 test.setTimeout(45000);
 test.use({ viewport: { width: 1440, height: 1000 } });
 const staff: SessionUser = { id: "qa-admin", name: "QA Admin", email: "qa@example.test", role: "admin", branches: ["Quy Nhơn"], customer: null };
 const buyer: SessionUser = { ...staff, id: "qa-buyer", role: "b2b", customer: { id: "QA-CUSTOMER", name: "QA Buyer", company: "QA", phone: "0901234567", email: "qa@example.test", role: "b2b", status: "active", creditLimit: 0, debt: 0 } };
 const configured = { ...catalog[0], listPrice: 100000, b2cDiscount: 20, b2bDiscount: 35, price: 80000, oldPrice: 100000, stock: 10, published: true, revision: 1, gallery: [catalog[0].image] };
 const legacy = { ...catalog[1], price: 80001, oldPrice: 100000, published: true, revision: 1, gallery: [catalog[1].image] };
+let fixtureProducts: ApiAdminState["products"] = [configured, legacy];
+let server: Server;
+let child: ChildProcess;
+let logs = "";
+let unexpected: string[] = [];
+
+test.beforeEach(async ({ request }) => {
+  fixtureProducts = [configured, legacy]; logs = ""; unexpected = [];
+  server = createServer(async (incoming, outgoing) => {
+    try {
+      const url = new URL(incoming.url!, base);
+      if (incoming.method !== "GET") {
+        unexpected.push(`${incoming.method} ${url.pathname}`);
+        outgoing.writeHead(405); outgoing.end(); return;
+      }
+      if (url.pathname.startsWith("/media/")) {
+        const response = await fetch(`${imageBackend}${url.pathname}`);
+        outgoing.writeHead(response.status, { "Content-Type": response.headers.get("content-type") || "application/octet-stream" });
+        outgoing.end(Buffer.from(await response.arrayBuffer())); return;
+      }
+      const publicProducts = fixtureProducts.map(({ b2bDiscount, ...product }) => product);
+      let body: unknown;
+      let status = 200;
+      if (url.pathname === "/api/health") body = { ready: true };
+      else if (url.pathname === "/api/catalog/bootstrap") body = { products: publicProducts, categories: categoryCatalog };
+      else if (url.pathname.startsWith("/api/catalog/product/")) {
+        body = publicProducts.find(product => product.slug === decodeURIComponent(url.pathname.split("/").at(-1)!));
+        if (!body) { body = { message: "QA product not found" }; status = 404; }
+      }
+      else if (url.pathname === "/api/catalog/search") body = previewCatalogPage(publicProducts, categoryCatalog, url.searchParams);
+      else if (url.pathname === "/api/catalog/selection") body = { products: publicProducts.filter(product => url.searchParams.getAll("ids").includes(product.id)) };
+      else if (url.pathname === "/api/content" || url.pathname.startsWith("/api/reviews/")) body = { items: [] };
+      else { unexpected.push(`GET ${url.pathname}`); body = { message: "Unexpected QA request" }; status = 404; }
+      outgoing.writeHead(status, { "Content-Type": "application/json" }); outgoing.end(JSON.stringify(body));
+    } catch { outgoing.writeHead(500); outgoing.end(); }
+  });
+  server.listen(0, "127.0.0.1"); await once(server, "listening");
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("QA backend did not start.");
+  // A unique backend URL isolates the Next.js public cache for each pricing case.
+  child = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-p", "3047", "-H", "127.0.0.1"], {
+    env: { ...process.env, BACKEND_URL: `http://127.0.0.1:${address.port}`, NEXT_DIST_DIR: ".next", NODE_ENV: "production" }, stdio: ["ignore", "pipe", "pipe"],
+  });
+  child.stdout?.on("data", data => { logs += data; }); child.stderr?.on("data", data => { logs += data; });
+  for (let attempt = 0; attempt < 100; attempt++) {
+    if (child.exitCode !== null) throw new Error(logs);
+    if (await request.get(`${base}/api/backend/health`).then(response => response.ok()).catch(() => false)) return;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  throw new Error(`Pricing QA frontend startup timed out: ${logs}`);
+});
+
+test.afterEach(async () => {
+  if (child?.exitCode === null) { child.kill("SIGTERM"); await once(child, "exit"); }
+  if (server?.listening) {
+    server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve()));
+  }
+  expect(unexpected).toEqual([]);
+});
 
 async function mockPricing(page: Page, user: SessionUser | null = staff, customerPrice = 90000, productOverride: ApiAdminState["products"][number] = configured) {
+  fixtureProducts = [productOverride, legacy];
   const state: ApiAdminState = { products: [productOverride, legacy], categories: categoryCatalog, customers: [], orders: [], approvals: [], warehouse: {}, receipts: [], paymentDueDates: {}, today: "2026-10-12" };
   const writes: Record<string, unknown>[] = [];
   const errors: string[] = [];
@@ -44,7 +108,7 @@ async function mockPricing(page: Page, user: SessionUser | null = staff, custome
       "/catalog/search": previewCatalogPage(publicProducts, categoryCatalog, url.searchParams, user?.customer),
       "/orders": [], "/account": { favorites: [] }, "/notifications/count": { unreadCount: 0 },
     };
-    const response = adminReadFixture(url, state) || (path.startsWith("/reviews/") ? { items: [] } : responses[path]);
+    const response = adminReadFixture(url, state) || (path.startsWith("/reviews/") ? { items: [] } : path.startsWith("/catalog/product/") ? publicProducts.find(product => product.slug === decodeURIComponent(path.split("/").at(-1)!)) : responses[path]);
     if (!response) {
       errors.push(`Unexpected read: ${path}`);
       await route.fulfill({ status: 500, json: { message: "Unexpected QA read" } });
@@ -219,8 +283,28 @@ for (const price of [55000, 110000]) {
     await page.goto(`${base}/search`);
     const card = page.locator(".bt-product-card").filter({ hasText: configured.code });
     await expect(card).toContainText(money(price));
-    if (price === 55000) await expect(card.locator(".bg-danger")).toContainText("-45%");
-    else { await expect(card.locator(".bg-danger")).toHaveCount(0); await expect(card.locator("del")).toHaveCount(0); }
+    if (price === 55000) await expect(card.locator(".bt-product-card-discount")).toContainText("-45%");
+    else { await expect(card.locator(".bt-product-card-discount")).toHaveCount(0); await expect(card.locator("del")).toHaveCount(0); }
+    api.check();
+  });
+}
+
+for (const width of [1440, 390]) {
+  test(`B2C zero discount uses list price and no sale badge at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    const noRetailDiscount = { ...configured, b2cDiscount: 0, b2bDiscount: 60, price: configured.listPrice, oldPrice: undefined };
+    const api = await mockPricing(page, null, 40000, noRetailDiscount);
+    await page.goto(`${base}/search`);
+    const card = page.locator(".bt-product-card").filter({ hasText: configured.code });
+    await expect(card.locator(".bt-price-amount")).toHaveText(money(noRetailDiscount.listPrice));
+    await expect(card.locator(".bt-product-card-discount")).toHaveCount(0);
+    await expect(card.locator("del")).toHaveCount(0);
+    await card.getByRole("link", { name: configured.name, exact: true }).last().click();
+    const panel = page.getByRole("complementary", { name: "Mua sản phẩm", exact: true });
+    await expect(panel.locator("strong").first()).toHaveText(money(noRetailDiscount.listPrice));
+    await expect(panel.getByLabel("Giá niêm yết và chiết khấu", { exact: true })).toContainText("0%");
+    await expect(panel.getByLabel("Giá niêm yết và chiết khấu", { exact: true })).not.toContainText("60%");
+    await expect(panel.locator("del")).toHaveCount(0);
     api.check();
   });
 }
