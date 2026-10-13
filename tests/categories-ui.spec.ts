@@ -12,17 +12,18 @@ if (!["127.0.0.1", "localhost"].includes(new URL(base).hostname))
 test.use({ viewport: { width: 1440, height: 1000 } });
 test.setTimeout(45000);
 
-async function mockCategories(page: Page, role = "admin") {
+async function mockCategories(page: Page, role = "admin", count = categoryCatalog.length) {
   const errors: string[] = [],
     calls: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  const rows: AdminCategory[] = categoryCatalog.map((category, index) => ({
-    ...structuredClone(category),
+  const rows: AdminCategory[] = Array.from({ length: count }, (_, index) => ({
+    ...structuredClone(categoryCatalog[index % categoryCatalog.length]),
+    ...(index >= categoryCatalog.length ? { slug: `qa-category-${index}`, name: `Danh mục nhập ${index}` } : {}),
     visible: true,
     sortOrder: index * 10,
     revision: 2,
     productCount: catalog.filter(
-      (product) => product.category === category.slug,
+      (product) => product.category === categoryCatalog[index % categoryCatalog.length].slug,
     ).length,
   }));
   let gate:
@@ -75,6 +76,16 @@ async function mockCategories(page: Page, role = "admin") {
       await route.fulfill({ status: 201, json: { category: row } });
       return;
     }
+    if (method === "POST" && path === "/admin/categories/bulk") {
+      const input = request.postDataJSON() as { action: "show" | "hide"; categories: { slug: string; revision: number }[] };
+      const selected = rows.filter(row => input.categories.some(category => category.slug === row.slug));
+      if (selected.length !== input.categories.length || selected.some(row => row.revision !== input.categories.find(category => category.slug === row.slug)?.revision)) {
+        await route.fulfill({ status: 409, json: { message: "Danh mục đã thay đổi. Làm mới và chọn lại trước khi cập nhật." } }); return;
+      }
+      const visible = input.action === "show";
+      selected.forEach(row => { row.visible = visible; row.revision++; });
+      await route.fulfill({ status: 201, json: { updated: selected.length, visible, categories: selected.map(({ slug, revision }) => ({ slug, revision, visible })) } }); return;
+    }
     if (method === "PATCH" && path.startsWith("/admin/categories/")) {
       const row = rows.find(
         (row) => row.slug === decodeURIComponent(path.split("/")[3]),
@@ -101,6 +112,7 @@ async function mockCategories(page: Page, role = "admin") {
       "/notifications/count": { unreadCount: 0 },
       "/admin/categories": { items: rows },
       "/catalog/bootstrap": { products: catalog, categories: publicRows() },
+      "/catalog/selection": { products: catalog.filter(product => new URL(request.url()).searchParams.getAll("ids").includes(product.id)) },
       "/admin/resources": {
         products: catalog,
         categories: rows,
@@ -363,6 +375,8 @@ for (const role of ["sales", "accountant"])
     await expect(
       page.getByRole("button", { name: /^Sửa danh mục/ }),
     ).toHaveCount(0);
+    await expect(page.getByLabel("Thao tác danh mục hàng loạt", { exact: true })).toHaveCount(0);
+    await expect(page.getByRole("checkbox", { name: /^Chọn danh mục/ })).toHaveCount(0);
     expect(qa.errors).toEqual([]);
   });
 
@@ -414,5 +428,81 @@ test("Desktop and mobile editor remain within the viewport", async ({
       .click();
     await page.getByRole("dialog", { name: "Bỏ thay đổi chưa lưu?" }).getByRole("button", { name: "Bỏ thay đổi", exact: true }).click();
   }
+  expect(qa.errors).toEqual([]);
+});
+
+for (const width of [1440, 768, 390, 320]) {
+  test(`Select and show/hide filtered categories across pages at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    const qa = await mockCategories(page, "admin", 28);
+    const bar = page.getByLabel("Thao tác danh mục hàng loạt", { exact: true });
+    const table = page.getByRole("region", { name: "Bảng dữ liệu" });
+    await expect(table.locator("tbody tr")).toHaveCount(10);
+    await table.getByRole("checkbox", { name: "Chọn tất cả danh mục trên trang", exact: true }).check();
+    await expect(bar).toContainText("Đã chọn 10");
+    await page.getByRole("button", { name: "Trang 2", exact: true }).click();
+    await table.getByRole("checkbox", { name: "Chọn tất cả danh mục trên trang", exact: true }).check();
+    await expect(bar).toContainText("Đã chọn 20");
+    await bar.getByRole("button", { name: "Chọn tất cả 28", exact: true }).click();
+    await expect(bar).toContainText("Đã chọn 28");
+    await bar.getByRole("button", { name: "Ẩn danh mục", exact: true }).click();
+    const confirmation = page.getByRole("dialog", { name: "Ẩn danh mục hàng loạt", exact: true });
+    await expect(confirmation).toContainText("28 danh mục");
+    await expect(confirmation).toContainText("Sản phẩm riêng tư vẫn giữ nguyên");
+    const held = qa.hold("/admin/categories/bulk", "POST", 201);
+    try {
+      await confirmation.getByRole("button", { name: "Áp dụng", exact: true }).click();
+      await expect(confirmation.getByRole("button", { name: "Áp dụng", exact: true })).toHaveAttribute("aria-busy", "true");
+      await expect(table).toBeVisible();
+      await expect(table.locator("tbody tr")).toHaveCount(10);
+      await expect(page.getByLabel("Trạng thái danh mục", { exact: true })).toBeDisabled();
+      await expect(confirmation.getByRole("button", { name: "Áp dụng", exact: true }).locator("[data-loading-spinner]")).toHaveCount(1);
+    } finally { held.release(); }
+    await expect(confirmation).not.toBeVisible();
+    await expect(bar).toContainText("Đã chọn 0");
+    expect(qa.calls.filter(call => call === "POST /admin/categories/bulk")).toHaveLength(1);
+    await expect.poll(() => qa.rows.every(category => !category.visible)).toBe(true);
+    await page.getByLabel("Trạng thái danh mục", { exact: true }).selectOption("hidden");
+    await page.getByRole("searchbox").fill("Danh mục nhập");
+    await bar.getByRole("button", { name: "Chọn tất cả 20", exact: true }).click();
+    await bar.getByRole("button", { name: "Hiển thị", exact: true }).click();
+    const show = page.getByRole("dialog", { name: "Hiển thị danh mục hàng loạt", exact: true });
+    await show.getByRole("button", { name: "Áp dụng", exact: true }).click();
+    await expect(show).not.toBeVisible();
+    await expect(table).toContainText("Không có dữ liệu phù hợp.");
+    await expect.poll(() => qa.rows.filter(category => category.visible).length).toBe(20);
+    expect(qa.calls.some(call => call === "GET /admin/state")).toBe(false);
+    expect(qa.calls.filter(call => call.startsWith("PATCH /admin/categories/"))).toEqual([]);
+    await page.getByLabel("Trạng thái danh mục", { exact: true }).selectOption("all");
+    await page.getByRole("searchbox").fill("");
+    await expect(table.locator("tbody tr")).toHaveCount(10);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    await mkdir("/private/tmp/baotin-category-bulk", { recursive: true });
+    await page.screenshot({ path: `/private/tmp/baotin-category-bulk/list-${width}.png`, fullPage: true });
+    expect(qa.errors).toEqual([]);
+  });
+}
+
+test("Category bulk errors keep selections and changes to filters clear them", async ({ page }) => {
+  const qa = await mockCategories(page);
+  const bar = page.getByLabel("Thao tác danh mục hàng loạt", { exact: true });
+  const checkbox = page.getByRole("checkbox", { name: "Chọn danh mục Phụ kiện bếp", exact: true });
+  await checkbox.check();
+  const heading = page.getByRole("checkbox", { name: "Chọn tất cả danh mục trên trang", exact: true });
+  expect(await heading.evaluate((input: HTMLInputElement) => input.indeterminate)).toBe(true);
+  await bar.getByRole("button", { name: "Hiển thị", exact: true }).click();
+  const confirmation = page.getByRole("dialog", { name: "Hiển thị danh mục hàng loạt", exact: true });
+  const held = qa.hold("/admin/categories/bulk", "POST", 409);
+  await confirmation.getByRole("button", { name: "Áp dụng", exact: true }).click();
+  held.release();
+  await expect(confirmation.getByRole("alert")).toContainText("Danh mục đã thay đổi");
+  await expect(confirmation.getByRole("button", { name: "Áp dụng", exact: true })).toBeEnabled();
+  await expect(checkbox).toBeChecked();
+  await confirmation.getByRole("button", { name: "Hủy", exact: true }).click();
+  await expect(bar).toContainText("Đã chọn 1");
+  await page.getByRole("searchbox").fill("LED");
+  await expect(bar).toContainText("Đã chọn 0");
+  await page.getByRole("searchbox").fill("");
+  await expect(bar).toContainText("Đã chọn 0");
   expect(qa.errors).toEqual([]);
 });

@@ -30,6 +30,23 @@ public reload reports that the mutation was saved but the website needs refresh;
 it does not repeat the successful mutation. Names, cover images and new groups
 become available to product/CMS/Sales forms without rebuilding the frontend.
 
+## Bulk Visibility
+
+Admin/boss can select individual categories, the current page or all filtered
+results (up to 500) at `/admin/categories`. Selection persists across pagination
+but clears when filters change or the list is explicitly refreshed.
+Choose **Hiển thị** or **Ẩn danh mục**, review the selected names and confirm
+**Áp dụng**. Only category visibility changes; private products remain private.
+Showing categories requires valid backend cover images.
+
+One POST updates the selected categories atomically with their current revisions.
+Buttons show loading and reject duplicate clicks; the existing table stays
+mounted during writes and refresh. Errors preserve selection and display the
+backend message. For 409, cancel, refresh and select again.
+Successful bulk changes refresh only the category directory and invalidate
+product-form category metadata, without requesting `/admin/state`. The Next.js
+proxy expires public catalog cache after successful category mutations.
+
 ## Dynamic Public Catalog
 
 Header links, dropdown, mobile navigation, home sidebar and home category cards
@@ -52,6 +69,8 @@ search/direct links. Product visibility remains a separate control.
 - GET /admin/categories -> `{ items: AdminCategory[] }`.
 - POST /admin/categories -> `{ category: Category }`.
 - PATCH /admin/categories/:slug -> `{ category: Category }`, required revision.
+- POST /admin/categories/bulk -> `{ updated, visible, categories }`, body
+  `{ action: "show" | "hide", categories: [{ slug, revision }] }`.
 - POST /media/product-images accepts one multipart `images` file for a cover.
 - GET /categories and GET /categories/:slug are public backend routes.
 

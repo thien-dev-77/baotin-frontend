@@ -81,7 +81,9 @@ function ProductsList({ browse }: { browse: AdminBrowseState }) {
     </fieldset>
     {apiMode && <ResourceStatus {...browse} />}
     {canEdit && apiMode && <ProductBulkActions selected={selected} total={count} busy={selectionBusy} setBusy={setBulkBusy} clear={() => select([])} selectAll={selectAll} onUpdated={async result => {
-      notice(`Đã cập nhật ${result.updated} sản phẩm.${result.hiddenCategories.length ? ` ${result.hiddenCategories.length} danh mục vẫn đang ẩn.` : ""}`);
+      const message = result.action === "publish" ? result.updated > 0 ? `Đã công khai ${result.updated} sản phẩm.` : "Chưa công khai sản phẩm nào." : `Đã cập nhật ${result.updated} sản phẩm.`;
+      notice(`${message}${result.skipped?.length ? ` Bỏ qua ${result.skipped.length} sản phẩm cần bổ sung.` : ""}${result.hiddenCategories.length ? ` ${result.hiddenCategories.length} danh mục vẫn đang ẩn.` : ""}`);
+      if (!result.updated) return;
       if (readCache) await readCache.refresh(path => path.startsWith("/admin/products") || path.startsWith("/admin/dashboard") || path.startsWith("/admin/browse?") && new URLSearchParams(path.split("?")[1]).get("resource") === "products");
       else await browse.reload();
       void reloadCatalog().catch(() => notice("Đã lưu sản phẩm. Chưa thể làm mới catalog, hãy thử lại."));

@@ -16,7 +16,9 @@ import { normalize } from "@/lib/catalog";
 import type {
   AdminCategory,
   CategoryDirectory,
+  SelectedCategory,
 } from "@/lib/category-management";
+import { MAX_BULK_CATEGORIES } from "@/lib/category-management";
 import { useCommerce } from "../commerce-provider";
 import { Button, Modal } from "../ui";
 import { useAdmin } from "./admin-provider";
@@ -31,16 +33,24 @@ import {
 import { ResourceStatus, useAdminResource } from "./admin-resource";
 import { CategoryEditor } from "./category-editor";
 import { CatalogTemplateDownload } from "./catalog-template-download";
+import { CategoryBulkActions } from "./category-bulk-actions";
+import { AdminSelectionCheckbox } from "./admin-selection-checkbox";
 
 export function AdminCategories() {
   const resource = useAdminResource<CategoryDirectory>("/admin/categories");
-  const { reset } = useAdmin();
+  const { reset, readCache } = useAdmin();
   const { sessionUser, notice, reloadCatalog } = useCommerce();
   const canEdit =
     apiMode && ["admin", "boss"].includes(sessionUser?.role || "");
   const filters = useAdminFilters();
   const [editing, setEditing] = useState<AdminCategory | null>(null);
   const [busy, setBusy] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const selectionBusy = bulkBusy || busy || resource.loading;
+  const selectionScope = JSON.stringify([sessionUser?.id, sessionUser?.role, filters.query, filters.filter]);
+  const [selection, setSelection] = useState<{ scope: string; items: SelectedCategory[] }>({ scope: selectionScope, items: [] });
+  const selected = selection.scope === selectionScope ? selection.items : [];
+  const select = (items: SelectedCategory[]) => setSelection({ scope: selectionScope, items });
   const rows = (resource.data?.items || []).filter(
     (category) =>
       normalize(
@@ -50,10 +60,22 @@ export function AdminCategories() {
         (filters.filter === "visible" ? category.visible : !category.visible)),
   );
   const page = Math.min(filters.page, Math.max(1, Math.ceil(rows.length / 10)));
+  const visibleRows = rows.slice((page - 1) * 10, page * 10);
+  const selectedSlugs = new Set(selected.map(category => category.slug));
+  const checkedCount = visibleRows.filter(category => selectedSlugs.has(category.slug)).length;
+  const toggle = (category: AdminCategory) => {
+    if (selectedSlugs.has(category.slug)) { select(selected.filter(item => item.slug !== category.slug)); return; }
+    if (selected.length < MAX_BULK_CATEGORIES) select([...selected, { slug: category.slug, name: category.name, revision: category.revision }]);
+  };
+  const togglePage = () => {
+    if (checkedCount === visibleRows.length) { const slugs = new Set(visibleRows.map(category => category.slug)); select(selected.filter(category => !slugs.has(category.slug))); return; }
+    select([...selected, ...visibleRows.filter(category => !selectedSlugs.has(category.slug)).map(({ slug, name, revision }) => ({ slug, name, revision }))].slice(0, MAX_BULK_CATEGORIES));
+  };
   const close = () => {
     if (!busy) setEditing(null);
   };
   const saved = () => {
+    select([]);
     setEditing(null);
     notice("Đã lưu danh mục.");
     void resource.reload();
@@ -73,14 +95,15 @@ export function AdminCategories() {
           <Button
             variant="secondary"
             loading={resource.loading}
-            onClick={() => void resource.reload()}
+            disabled={bulkBusy || busy}
+            onClick={() => { select([]); void resource.reload(); }}
           >
             <RefreshCw size={16} />
             Làm mới
           </Button>
           {canEdit && (
             <Button
-              disabled={!resource.data}
+              disabled={!resource.data || selectionBusy}
               onClick={() => {
                 setBusy(false);
                 setEditing({
@@ -112,25 +135,35 @@ export function AdminCategories() {
       <ResourceStatus {...resource} />
       {resource.data && (
         <>
-          <div className="mb-4 flex flex-wrap gap-3">
+          <fieldset disabled={bulkBusy} className="mb-4 flex min-w-0 flex-wrap gap-3">
             <AdminSearch
               value={filters.query}
-              onChange={filters.setQuery}
+              onChange={value => { select([]); filters.setQuery(value); }}
               placeholder="Tìm danh mục, nhóm sản phẩm..."
             />
             <select
               aria-label="Trạng thái danh mục"
               value={filters.filter}
-              onChange={(event) => filters.setFilter(event.target.value)}
-              className="bt-input !w-auto"
+              onChange={(event) => { select([]); filters.setFilter(event.target.value); }}
+              className="bt-input !w-auto max-w-full"
             >
               <option value="all">Tất cả trạng thái</option>
               <option value="visible">Hiển thị</option>
               <option value="hidden">Ẩn danh mục</option>
             </select>
-          </div>
+          </fieldset>
+          {canEdit && <CategoryBulkActions selected={selected} total={rows.length} busy={selectionBusy} setBusy={setBulkBusy} clear={() => select([])} selectAll={() => select(rows.map(({ slug, name, revision }) => ({ slug, name, revision })))} onUpdated={async result => {
+            notice(`Đã ${result.visible ? "hiển thị" : "ẩn"} ${result.updated} danh mục.`);
+            if (readCache) {
+              readCache.invalidate(path => path.startsWith("/admin/browse?") && new URLSearchParams(path.split("?")[1]).get("resource") === "products");
+              await readCache.refresh(path => path === "/admin/categories");
+            } else await resource.reload();
+            void reloadCatalog().catch(() => notice("Đã lưu danh mục. Chưa thể làm mới website, hãy tải lại trang."));
+          }} />}
           <AdminTable
+            className={canEdit ? "bt-admin-categories-selectable" : ""}
             headings={[
+              ...(canEdit ? [<AdminSelectionCheckbox key="selection" aria-label="Chọn tất cả danh mục trên trang" checked={Boolean(visibleRows.length && checkedCount === visibleRows.length)} mixed={checkedCount > 0 && checkedCount < visibleRows.length} disabled={selectionBusy || !visibleRows.length} onChange={togglePage} />] : []),
               "Danh mục",
               "Nhóm sản phẩm",
               "Sản phẩm",
@@ -140,10 +173,11 @@ export function AdminCategories() {
             ]}
             empty={!rows.length}
           >
-            {rows.slice((page - 1) * 10, page * 10).map((category) => (
+            {visibleRows.map((category) => (
               <tr key={category.slug}>
+                {canEdit && <td><AdminSelectionCheckbox aria-label={`Chọn danh mục ${category.name}`} checked={selectedSlugs.has(category.slug)} disabled={selectionBusy || !selectedSlugs.has(category.slug) && selected.length >= MAX_BULK_CATEGORIES} onChange={() => toggle(category)} /></td>}
                 <td>
-                  <div className="flex min-w-52 items-center gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
                     {category.image ? (
                       <Image
                         src={category.image}
@@ -160,10 +194,10 @@ export function AdminCategories() {
                       </span>
                     )}
                     <div className="min-w-0">
-                      <span className="block font-medium text-primary">
+                      <span className="block break-words font-medium text-primary">
                         {category.name}
                       </span>
-                      <span className="mt-1 block text-xs text-text-muted">
+                      <span className="mt-1 block break-all text-xs text-text-muted">
                         {category.slug}
                       </span>
                     </div>
@@ -189,6 +223,7 @@ export function AdminCategories() {
                         className="bt-icon-button"
                         title="Sửa danh mục"
                         aria-label={`Sửa danh mục ${category.name}`}
+                        disabled={selectionBusy}
                         onClick={() => {
                           setBusy(false);
                           setEditing(category);
@@ -212,11 +247,11 @@ export function AdminCategories() {
               </tr>
             ))}
           </AdminTable>
-          <AdminPagination
+          <fieldset disabled={bulkBusy}><AdminPagination
             count={rows.length}
             page={page}
             onChange={filters.setPage}
-          />
+          /></fieldset>
         </>
       )}
       {!apiMode && (

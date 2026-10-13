@@ -167,7 +167,7 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
 .bt-admin-table tbody tr:hover { background: #fafcff; }
 .bt-admin-products-table th { min-width: 96px; max-width: 160px; white-space: normal; line-height: 18px; }
 .bt-admin-products-table th:last-child { min-width: 72px; }
-.bt-admin-products-selectable th:first-child, .bt-admin-products-selectable td:first-child:not([colspan]) { width: 40px; min-width: 40px; max-width: 40px; padding-inline: 12px; }
+:is(.bt-admin-products-selectable, .bt-admin-categories-selectable) th:first-child, :is(.bt-admin-products-selectable, .bt-admin-categories-selectable) td:first-child:not([colspan]) { width: 40px; min-width: 40px; max-width: 40px; padding-inline: 12px; }
 .bt-admin-save-bar { position: sticky; bottom: 0; z-index: 20; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 24px; border-top: 1px solid var(--color-border); background: white; padding: 12px 0 max(12px, env(safe-area-inset-bottom)); }
 @media (max-width: 767px) {
   .bt-admin-table-actions { border-collapse: separate; border-spacing: 0; }
@@ -177,11 +177,11 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
   .bt-admin-table-actions td:first-child > div { gap: 8px; }
   .bt-admin-table-actions th:last-child, .bt-admin-table-actions td:last-child:not([colspan]) { position: sticky; right: 0; z-index: 2; background: white; box-shadow: -1px 0 0 var(--color-border); padding-inline: 8px; }
   .bt-admin-table-actions th:first-child, .bt-admin-table-actions th:last-child { z-index: 3; background: #fafbfc; }
-  .bt-admin-products-selectable th:first-child, .bt-admin-products-selectable td:first-child:not([colspan]) { width: 40px; min-width: 40px; max-width: 40px; padding-inline: 12px; }
-  .bt-admin-products-selectable th:nth-child(2), .bt-admin-products-selectable td:nth-child(2) { position: sticky; left: 40px; z-index: 2; width: 176px; min-width: 176px; max-width: 176px; padding-inline: 10px; background: white; box-shadow: 1px 0 0 var(--color-border); overflow-wrap: anywhere; }
-  .bt-admin-products-selectable th:nth-child(2) { z-index: 3; background: #fafbfc; }
-  .bt-admin-products-selectable td:nth-child(2) > div { width: 156px; min-width: 0; gap: 8px; }
-  .bt-admin-products-selectable td:nth-child(2) img, .bt-admin-products-selectable td:nth-child(2) > div > span { width: 32px; height: 32px; }
+  :is(.bt-admin-products-selectable, .bt-admin-categories-selectable) th:first-child, :is(.bt-admin-products-selectable, .bt-admin-categories-selectable) td:first-child:not([colspan]) { width: 40px; min-width: 40px; max-width: 40px; padding-inline: 12px; }
+  :is(.bt-admin-products-selectable, .bt-admin-categories-selectable) th:nth-child(2), :is(.bt-admin-products-selectable, .bt-admin-categories-selectable) td:nth-child(2) { position: sticky; left: 40px; z-index: 2; width: 176px; min-width: 176px; max-width: 176px; padding-inline: 10px; background: white; box-shadow: 1px 0 0 var(--color-border); overflow-wrap: anywhere; }
+  :is(.bt-admin-products-selectable, .bt-admin-categories-selectable) th:nth-child(2) { z-index: 3; background: #fafbfc; }
+  :is(.bt-admin-products-selectable, .bt-admin-categories-selectable) td:nth-child(2) > div { width: 156px; min-width: 0; gap: 8px; }
+  :is(.bt-admin-products-selectable, .bt-admin-categories-selectable) td:nth-child(2) img, :is(.bt-admin-products-selectable, .bt-admin-categories-selectable) td:nth-child(2) > div > span { width: 32px; height: 32px; }
   .bt-admin-save-bar { padding-inline: 12px; margin-inline: -12px; }
   .bt-admin-save-bar > button { flex: 1; }
 }

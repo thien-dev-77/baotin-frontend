@@ -10,7 +10,9 @@ data, rather than downloading every full product browse page.
 The action bar offers:
 
 - Public: validate price, specifications, category and stored images before
-  publishing. A failure leaves the selection and table available for correction.
+  publishing. Valid SKU are published even when others fail validation. Incomplete
+  SKU keep their status/revision and appear in a persistent result list with code,
+  reason and an editor link. The result shows saved and skipped counts.
 - Private: hide selected SKU from the public catalog.
 - Edit discount: apply B2C and/or B2B percentages independently to each list price.
   Unchecked discount fields keep their stored values.
@@ -21,6 +23,14 @@ submission. Tables keep cached rows while refreshing. Successful writes refresh
 product browse/detail/dashboard caches and storefront catalog; failed writes
 preserve selection and display the API message. No `/admin/state` reload is
 required. Customer/group/branch price policies still override SKU-default B2B.
+
+Publication validation skips are not request errors. The backend returns
+`skipped: [{ id, code, name, reason }]` alongside successful `products`, `updated`
+and `hiddenCategories`. When all selected SKU are invalid, show "Chưa công khai
+sản phẩm nào" and the full skip list; do not reload unchanged catalog data.
+Missing IDs, stale revisions and authorization failures still stop the request
+and preserve selection. Discounts and private actions remain all-or-nothing.
+Deploy the backend before the frontend for partial publication support.
 
 Category visibility is managed at `/admin/categories`. Publishing products in
 a hidden category does not automatically expose the category; the response/toast
