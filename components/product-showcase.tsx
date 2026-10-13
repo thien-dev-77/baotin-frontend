@@ -8,6 +8,7 @@ import { useRef, useState } from "react";
 import { useFrequentlyBought } from "./frequently-bought";
 import { EmptyState } from "./ui";
 import { ResourceStatus } from "./admin/admin-resource";
+import { homeShowcaseProducts, HOME_SHOWCASE_LIMIT } from "@/lib/home-showcase";
 
 export function ProductCarousel({ products, title, children }: { products: Product[]; title: string; children?: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -29,25 +30,29 @@ export function ProductCarousel({ products, title, children }: { products: Produ
   );
 }
 export function ProductShowcase() {
-  const { products: catalog, customer } = useCommerce();
+  const { products: catalog, categories, customer } = useCommerce();
   const [tab, setTab] = useState("Nổi bật");
   const isFrequent = tab === "Thường mua";
   const frequent = useFrequentlyBought(isFrequent);
-  const products = (tab === "Khuyến mãi" ? catalog.filter(p => p.oldPrice && p.oldPrice > p.price) : isFrequent ? frequent.products : catalog.filter(p => p.featured)).slice(0, 10);
-  const needsLogin = isFrequent && !customer;
-  const emptyTitle = needsLogin ? "Đăng nhập B2B để xem sản phẩm thường mua" : isFrequent ? "Chưa có sản phẩm thường mua" : "Chưa có sản phẩm";
+  const selected = homeShowcaseProducts(catalog, categories);
+  const personalized = customer?.status === "active";
+  const showHistory = isFrequent && personalized;
+  const hasHistory = Boolean(frequent.products.length);
+  const noHistory = showHistory && frequent.data && !hasHistory && !frequent.error;
+  const products = (tab === "Khuyến mãi" ? catalog.filter(p => p.oldPrice && p.oldPrice > p.price) : isFrequent ? showHistory && !noHistory ? frequent.products : selected.recommended : selected.featured).slice(0, HOME_SHOWCASE_LIMIT);
+  const emptyTitle = showHistory && !noHistory ? "Chưa có sản phẩm thường mua" : "Chưa có sản phẩm";
   return (
-    <div className="bt-container">
+    <div className="bt-container" data-product-showcase>
       <ProductCarousel key={tab} products={products} title="SẢN PHẨM NỔI BẬT / THƯỜNG MUA">
         <div className="flex flex-wrap items-center gap-1">
           {["Nổi bật", "Thường mua", "Khuyến mãi"].map(option => (
-            <button key={option} aria-pressed={tab === option} onClick={() => setTab(option)} className={`h-8 rounded-md px-3 text-xs font-medium ${tab === option ? "bg-blue-brand text-white" : "bg-section text-primary"}`}>{option}</button>
+            <button key={option} aria-pressed={tab === option} onClick={() => setTab(option)} className={`h-8 rounded-md px-3 text-xs font-medium ${tab === option ? "bg-blue-brand text-white" : "bg-section text-primary"}`}>{option === "Thường mua" && (!personalized || noHistory) ? "Gợi ý cho bạn" : option}</button>
           ))}
           <Link href="/search" className="ml-2 text-xs font-semibold text-blue-brand">Xem tất cả →</Link>
         </div>
       </ProductCarousel>
-      {isFrequent && <ResourceStatus {...frequent} />}
-      {!products.length && !frequent.loading && !frequent.error && <EmptyState title={emptyTitle} href={needsLogin ? "/login" : "/search"} action={needsLogin ? "Đăng nhập B2B" : "Tìm sản phẩm"} />}
+      {showHistory && <ResourceStatus {...frequent} />}
+      {!products.length && !(showHistory && (frequent.loading || frequent.error)) && <EmptyState title={emptyTitle} href="/search" action="Tìm sản phẩm" />}
     </div>
   );
 }

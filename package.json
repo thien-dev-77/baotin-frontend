@@ -12,6 +12,7 @@
     "test:customers": "playwright test tests/customers-ui.spec.ts --workers=1",
     "test:categories": "playwright test tests/categories-ui.spec.ts --workers=1",
     "qa:category-tree": "node scripts/category-tree-qa.mjs",
+    "test:homepage": "playwright test tests/home-showcase.spec.ts tests/homepage-ui.spec.ts --workers=1",
     "test:ssr": "playwright test tests/ssr.spec.ts --workers=1",
     "test:performance": "playwright test tests/performance.spec.ts --workers=1",
     "test:catalog-api": "playwright test tests/catalog-api-ui.spec.ts --workers=1",

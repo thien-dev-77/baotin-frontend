@@ -34,7 +34,7 @@ const cachedContent = unstable_cache(async (backend: string): Promise<PublicCont
   const data = await response.json();
   if (!Array.isArray(data?.items)) throw new Error("Nội dung website không hợp lệ.");
   return data.items;
-}, ["public-content-v1"], { revalidate: publicCache.content.seconds, tags: [publicCache.content.tag] });
+}, ["public-content-v2"], { revalidate: publicCache.content.seconds, tags: [publicCache.content.tag] });
 
 // Cache validated retail DTOs only, never an upstream HTML/null response or cookies.
 const cachedCatalog = unstable_cache(async (backend: string): Promise<CatalogResponse> => {

@@ -154,9 +154,9 @@ test("Homepage frequently bought loads on demand and clears on logout", async ({
     await expect(showcase.getByText(product.name, { exact: true })).toBeVisible();
     guest = true;
     await page.evaluate(key => window.dispatchEvent(new StorageEvent("storage", { key, newValue: JSON.stringify({ type: "logout" }) })), authEventKey);
-    await expect(page.getByText("Đăng nhập B2B để xem sản phẩm thường mua", { exact: true })).toBeVisible();
-    await expect(showcase.locator(".bt-product-card")).toHaveCount(0);
-    await expect(showcase.getByRole("button", { name: "Sản phẩm tiếp theo", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Gợi ý cho bạn", exact: true })).toBeVisible();
+    await expect(showcase.locator(".bt-product-card")).toHaveCount(10);
+    await expect(showcase.locator(".bt-product-card").first()).toContainText("Đăng nhập B2B");
     expect(requests).toBe(1);
     expect(errors).toEqual([]);
   } finally { release(); }
@@ -182,6 +182,26 @@ test("Desktop and mobile hydration preserve the layout and render images", async
     } finally { await context.close(); }
   }
   expect(errors).toEqual([]);
+});
+
+test("B2B without purchase history gets clearly labeled API recommendations", async ({ page }) => {
+  let frequentRequests = 0;
+  await page.route("**/api/backend/**", async route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith("/auth/session")) await route.fulfill({ json: { user: activeUser } });
+    else if (path.endsWith("/catalog/bootstrap")) await route.fulfill({ json: { ...retail, products: catalog.map(product => ({ ...product, featured: false, customerPrice: 12345 })) } });
+    else if (path.endsWith("/account/frequently-bought")) { frequentRequests++; await route.fulfill({ json: { products: [] } }); }
+    else await route.fulfill({ json: path.endsWith("/account") ? { favorites: [] } : [] });
+  });
+  await page.goto(base);
+  const showcase = page.locator("[data-product-showcase]");
+  await expect(showcase.locator(".bt-product-card")).toHaveCount(10);
+  await expect(showcase.locator(".bt-product-card").first()).toContainText("Giá B2B");
+  expect(frequentRequests).toBe(0);
+  await showcase.getByRole("button", { name: "Thường mua", exact: true }).click();
+  await expect(showcase.getByRole("button", { name: "Gợi ý cho bạn", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(showcase.locator(".bt-product-card")).toHaveCount(10);
+  expect(frequentRequests).toBe(1);
 });
 
 test("Real proxy returns guest JSON and image bytes with web request headers", async ({ request }) => {

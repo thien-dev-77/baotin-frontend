@@ -39,7 +39,7 @@ export function ProductGallery({ product }: { product: Product }) {
             fetchPriority="high"
             className="h-full w-full object-contain p-4"
           />
-          {product.featured && <span className="absolute left-3 top-3 rounded bg-danger px-2 py-1 text-xs font-semibold text-white">Bán chạy</span>}
+          {product.featured && <span className="absolute left-3 top-3 rounded bg-danger px-2 py-1 text-xs font-semibold text-white">Nổi bật</span>}
           <button
             className="absolute bottom-3 right-3 bt-icon-button rounded-full bg-white shadow-card"
             aria-label="Phóng to ảnh"

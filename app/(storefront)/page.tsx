@@ -36,6 +36,7 @@ export default async function HomePage() {
 }
 
 function HeroSection({ banners }: { banners?: PublicContent[] }) {
+  if (banners && !banners.length) return null;
   return (
     <section className="bt-container bt-home-hero-layout" aria-label="Khám phá sản phẩm">
       <HomeCategorySidebar />
