@@ -70,13 +70,25 @@ for (const [width, columns] of [[1440, 5], [1024, 5], [768, 3], [390, 2], [320, 
       await expect(card.getByRole("list", { name: "Thuộc tính sản phẩm" })).toContainText("Ứng dụng");
       await expect(card.getByRole("button", { name: /Thêm.*giỏ/ })).toHaveCount(0);
       const details = card.locator(".bt-product-card-details");
+      await expect(details).toHaveText("Xem chi tiết");
+      await expect(details).toHaveAttribute("aria-label", `Xem chi tiết - ${products[0].name}`);
       await expect(details).toHaveAttribute("href", `/products/${products[0].slug}`);
       if (width >= 1024) {
         await media.hover();
         await expect(details).toHaveCSS("opacity", "1");
         const area = (await media.boundingBox())!;
         const button = (await details.boundingBox())!;
-        expect(Math.abs(area.x + area.width / 2 - button.x - button.width / 2)).toBeLessThan(1);
+        expect(Math.abs(area.x - button.x)).toBeLessThan(1);
+        expect(Math.abs(area.width - button.width)).toBeLessThan(1);
+        expect(Math.abs(area.y + area.height - button.y - button.height)).toBeLessThan(1);
+        expect(button.height).toBe(48);
+        const favorite = (await card.locator(".bt-product-card-favorite").boundingBox())!;
+        expect(favorite.y + favorite.height).toBeLessThanOrEqual(button.y - 4);
+        await expect(details).toHaveCSS("background-color", "rgb(223, 48, 48)");
+        const contentBefore = await card.locator(".bt-product-card-content").boundingBox();
+        await page.mouse.move(0, 0);
+        await expect(details).toHaveCSS("opacity", "0");
+        expect(await card.locator(".bt-product-card-content").boundingBox()).toEqual(contentBefore);
         await media.locator(".bt-product-card-image-link").focus();
         await expect(details).toHaveCSS("opacity", "1");
       } else {
@@ -106,6 +118,33 @@ test("The same product card layout is used in catalog grid and list views", asyn
   await expect(card.locator(".bt-product-card-image-link img")).toHaveCSS("object-fit", "contain");
   await page.getByRole("button", { name: "Dạng danh sách", exact: true }).click();
   await expect(card).toHaveClass(/bt-product-card--list/);
+  const media = card.locator(".bt-product-card-media");
+  const details = card.locator(".bt-product-card-details");
+  await media.hover();
+  await expect(details).toHaveCSS("opacity", "1");
+  const area = (await media.boundingBox())!;
+  const button = (await details.boundingBox())!;
+  expect(Math.abs(area.width - button.width)).toBeLessThan(1);
+  expect(Math.abs(area.y + area.height - button.y - button.height)).toBeLessThan(1);
+  expect(await details.locator("span").evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   expect(await card.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   api.check();
+});
+
+test("Bottom hover link opens real API product details without adding a cart line", async ({ page, request }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const response = await request.get(`${base}/api/backend/catalog/bootstrap`);
+  expect(response.ok()).toBe(true);
+  const result = await response.json() as { products: Product[] };
+  const product = result.products.find(product => product.featured)!;
+  expect(product).toBeTruthy();
+  await page.goto(base);
+  const card = page.locator("[data-product-showcase] .bt-product-card").filter({ hasText: `Mã: ${product.code}` });
+  await card.locator(".bt-product-card-media").hover();
+  const details = card.getByRole("link", { name: `Xem chi tiết - ${product.name}`, exact: true });
+  await expect(details).toHaveCSS("opacity", "1");
+  await details.click();
+  await expect(page).toHaveURL(`${base}/products/${product.slug}`);
+  await expect(page.getByRole("heading", { level: 1, name: product.name, exact: true })).toBeVisible();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("baotin-commerce-api-v1") || "{}").cart || [])).toEqual([]);
 });

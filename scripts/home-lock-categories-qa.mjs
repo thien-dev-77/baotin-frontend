@@ -66,8 +66,8 @@ try {
         })).toBe(true);
         await expect(cards.getByRole("button", { name: /^Thêm .* vào giỏ/ })).toHaveCount(0);
         const details = cards.first().locator(".bt-product-card-details");
-        await expect(details).toHaveText("Xem sản phẩm");
-        await expect(details).toHaveAttribute("aria-label", /^Xem sản phẩm - /);
+        await expect(details).toHaveText("Xem chi tiết");
+        await expect(details).toHaveAttribute("aria-label", /^Xem chi tiết - /);
         if (touch) await expect(details).toBeHidden();
         else {
           await cards.first().locator(".bt-product-card-media").hover();

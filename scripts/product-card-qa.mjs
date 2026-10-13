@@ -20,8 +20,8 @@ async function inspectCard(page, card, touch, screenshot) {
     return image.clientWidth === element.clientWidth && image.clientHeight === element.clientHeight;
   })).toBe(true);
   await expect(card.getByRole("button", { name: /^Thêm .* vào giỏ/ })).toHaveCount(0);
-  await expect(details).toHaveText("Xem sản phẩm");
-  await expect(details).toHaveAttribute("aria-label", /^Xem sản phẩm - /);
+  await expect(details).toHaveText("Xem chi tiết");
+  await expect(details).toHaveAttribute("aria-label", /^Xem chi tiết - /);
   await expect(details).toHaveAttribute("href", /\/products\//);
   if (!touch) {
     await page.mouse.move(0, 0);
@@ -38,9 +38,9 @@ async function inspectCard(page, card, touch, screenshot) {
     const area = await media.boundingBox();
     const button = await details.boundingBox();
     expect(Math.abs(button.x + button.width / 2 - area.x - area.width / 2)).toBeLessThan(1);
-    expect(Math.abs(button.y + button.height / 2 - area.y - area.height / 2)).toBeLessThan(1);
+    expect(Math.abs(button.y + button.height - area.y - area.height)).toBeLessThan(1);
     expect(button.height).toBeGreaterThanOrEqual(44);
-    expect(button.width).toBeLessThanOrEqual(area.width);
+    expect(Math.abs(button.width - area.width)).toBeLessThan(1);
     expect(await details.locator("span").evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   } else {
     await media.hover();

@@ -109,7 +109,7 @@ Quy tac:
 - Trang category khong co banner: breadcrumb, tieu de/mo ta, danh muc con, bo loc va danh sach san pham.
 - Section "Danh sach san pham" tren trang chu dang an; giu carousel va toi da 5 section danh muc co san pham cong khai, theo thu tu danh muc trong admin. ProductGrid dung chung tren cac trang: desktop >=1024px 5 cot, tablet 3 cot, mobile 2 cot. Carousel desktop hien 5 item.
 - Section danh muc khong co banner: tieu de uppercase ben trai, "Xem tat ca" ben phai, duong ke xam va lien ket subcategory nen xam o duoi. Khong goi API rieng cho moi section; du lieu lay tu catalog bootstrap.
-- Anh `ProductCard` dung khung ti le 1:1.05, `object-fit: contain`, padding 8px de khong cat san pham. "Xem san pham" chi hien giua anh khi hover/focus tren desktop >=1024px co chuot (`hover: hover`, `pointer: fine`). Tablet/mobile va thiet bi cam ung an hoan toan nut nay; bam anh hoac ten de vao chi tiet. Card khong co nut them vao gio; mua hang tai trang chi tiet.
+- Anh `ProductCard` dung khung ti le 1:1.05, `object-fit: contain`, padding 8px de khong cat san pham. "Xem chi tiet" hien thanh mau do cao 48px, rong toan bo anh, sat mep duoi khi hover/focus tren desktop >=1024px co chuot (`hover: hover`, `pointer: fine`). Tablet/mobile va thiet bi cam ung an hoan toan nut nay; bam anh hoac ten de vao chi tiet. Card khong co nut them vao gio; mua hang tai trang chi tiet. Thanh nut nam absolute, khong day noi dung card khi xuat hien.
 - Gia ban mau do 20px, gia niem yet gach ngang ben canh; card hep tu dong xuong 17px/14px theo container query. Gia goc chi hien khi cao hon gia ban thuc te cua khach.
 - Khong long card trong card.
 
@@ -189,7 +189,7 @@ Default:
 - Danh gia chi dung `reviewSummary` tu API catalog (chi tinh review da duyet). Backend cu chua tra summary thi an hang danh gia, khong gia lap so sao/count.
 - Tag thuoc tinh lay tu variantAttributes, kich thuoc, chat lieu va mau; toi da 4 tag, bo trung va placeholder. Khong tu them tinh nang san pham.
 - Ma san pham va don vi 11px muted o chan card.
-- Wishlist 40px o goc phai duoi anh, khong che badge hay gia/ma hang. Khong co nut gio hang tren card.
+- Wishlist 40px o goc phai duoi anh; tren desktop khi thanh "Xem chi tiet" hien, wishlist dich len tren thanh de khong bi che. Khong che badge hay gia/ma hang. Khong co nut gio hang tren card.
 - Chi dung `components/product-card.tsx` cho trang chu, listing, related, wishlist va account.
 - Guest hien gia ban le; gia B2B demo chi hien sau dang nhap. Gia that phai lay tu server da xac thuc.
 

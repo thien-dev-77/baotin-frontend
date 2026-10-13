@@ -53,7 +53,7 @@ export function ProductCard({ product, list = false }: { product: Product; list?
   return <article className={`bt-product-card group ${list ? "bt-product-card--list" : ""}`}>
     <div className="bt-product-card-media">
       <Link href={`/products/${product.slug}`} prefetch={false} className="bt-product-card-image-link"><Image src={product.image} data-image-src={product.image} alt={product.name} fill loading="lazy" quality={85} sizes={list ? "(min-width: 640px) 180px, 112px" : "(min-width: 1440px) 246px, (min-width: 1280px) 238px, (min-width: 1024px) 20vw, (min-width: 640px) 33vw, 50vw"} className="object-contain transition duration-200 group-hover:scale-[1.02]" /></Link>
-      <Link href={`/products/${product.slug}`} prefetch={false} aria-label={`Xem sản phẩm - ${product.name}`} className="bt-button-primary bt-product-card-details"><Eye size={16} className="shrink-0" aria-hidden="true" /><span>Xem sản phẩm</span></Link>
+      <Link href={`/products/${product.slug}`} prefetch={false} aria-label={`Xem chi tiết - ${product.name}`} className="bt-product-card-details"><Eye size={20} className="shrink-0" aria-hidden="true" /><span>Xem chi tiết</span></Link>
       <button type="button" aria-label={`${liked ? "Bỏ yêu thích" : "Yêu thích"} ${product.name}`} aria-pressed={liked} title={liked ? "Bỏ yêu thích" : "Yêu thích"} onClick={() => toggleFavorite(product.id)} className={`bt-product-card-favorite ${liked ? "text-danger" : "text-text-muted"}`}><Heart size={18} fill={liked ? "currentColor" : "none"} aria-hidden="true" /></button>
       {discount > 0 && <span className="bt-product-card-discount bg-danger" aria-label={`Giảm ${discount}%`}><span>GIẢM</span><strong>-{discount}%</strong></span>}
     </div>
