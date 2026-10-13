@@ -18,6 +18,7 @@ import { useApiResource } from "@/lib/use-api-resource";
 import { useProductSelection } from "@/lib/use-product-selection";
 import { readCatalogPage } from "@/lib/commerce-api";
 import type { CatalogPageResponse } from "@/lib/api-types";
+import { categoryTrail } from "@/lib/category-tree";
 
 export function ProductDetail({ product: initialProduct }: { product: Product & { variants?: Product[] } }) {
   const { products, categories } = useCommerce();
@@ -57,7 +58,7 @@ export function ProductDetail({ product: initialProduct }: { product: Product & 
 
   return (
     <main ref={detailRef} className="bt-container bt-page bt-product-detail">
-      <Breadcrumb items={[...(category ? [{ label: category.name, href: `/category/${category.slug}` }] : []), { label: product.name }]} />
+      <Breadcrumb items={[...(category ? categoryTrail(categories, category.slug).map(item => ({ label: item.name, href: `/category/${item.slug}` })) : []), { label: product.name }]} />
       <div className="bt-product-detail-layout">
         <div className="bt-product-detail-intro grid items-start gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
           <ProductGallery product={product} />

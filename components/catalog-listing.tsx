@@ -9,6 +9,7 @@ import { type Category, normalize, slugify } from "@/lib/catalog";
 import { apiMode } from "@/lib/api-client";
 import type { CatalogPageResponse } from "@/lib/api-types";
 import { previewCatalogPage } from "@/lib/catalog-query";
+import { categoryLabel, categoryTrail } from "@/lib/category-tree";
 import { readCatalogPage } from "@/lib/commerce-api";
 import { useApiResource } from "@/lib/use-api-resource";
 import { useCommerce } from "./commerce-provider";
@@ -35,6 +36,8 @@ export function CatalogListing({ category, query, brand, promotion = false, quer
   const resource = useApiResource<CatalogPageResponse>(`/catalog/search?${apiParams}`, apiMode && ready && customer?.status === "active", undefined, readCatalogPage);
   const result = apiMode ? resource.data || initialPage : previewCatalogPage(products, categories, params, customer);
   const busy = pending || resource.loading;
+  const treeCategories = result?.categories || categories;
+  const children = category ? treeCategories.filter(item => item.parentSlug === category.slug) : [];
   const isSearch = query !== undefined;
   const [tab, setTab] = useState("Tất cả");
   const title = category?.name || brand || (promotion ? "Khuyến mãi" : isSearch ? query ? `Kết quả tìm kiếm cho: ${query}` : "Tìm kiếm sản phẩm" : "Tất cả sản phẩm");
@@ -64,7 +67,7 @@ export function CatalogListing({ category, query, brand, promotion = false, quer
     navigate(next);
   };
   const groups = [
-    ...(!category ? [{ key: "category", title: "Danh mục", options: categories.map(item => ({ value: item.slug, label: item.name })) }] : []),
+    ...(!category ? [{ key: "category", title: "Danh mục", options: treeCategories.map(item => ({ value: item.slug, label: categoryLabel(treeCategories, item.slug) || item.name })) }] : []),
     ...(!brand ? [{ key: "brand", title: "Thương hiệu", options: (result?.facets.brand || brands).map(value => ({ value, label: value })) }] : []),
     ...([["material", "Chất liệu"], ["color", "Màu sắc"], ["size", "Kích thước"], ["origin", "Xuất xứ"]] as const).map(([key, title]) => ({ key, title, options: (result?.facets[key] || []).map(value => ({ value, label: value })) })),
     { key: "stock", title: "Tình trạng", options: [{ value: "in", label: "Còn hàng" }, { value: "out", label: "Hết hàng" }] },
@@ -78,7 +81,8 @@ export function CatalogListing({ category, query, brand, promotion = false, quer
       {group.options.length > 4 && <button type="button" className="text-xs font-medium text-blue-brand" onClick={() => setExpanded(previous => previous.includes(group.key) ? previous.filter(key => key !== group.key) : [...previous, group.key])}>{expanded.includes(group.key) ? "Thu gọn" : "Xem thêm"}</button>}</div></details>)}
   </fieldset>;
   return <main className="bt-container bt-page">
-    <Breadcrumb items={[{ label: title }]} /><PageHeading title={title} description={category?.description || (brand ? `Phụ kiện ${brand} chính hãng cho công trình và ngôi nhà Việt.` : promotion ? "Ưu đãi dành cho phụ kiện nội thất được chọn lọc." : undefined)}><span className="text-sm text-text-muted">{result?.total || 0} sản phẩm</span></PageHeading>
+    <Breadcrumb items={[...(category ? categoryTrail(treeCategories, category.slug).slice(0, -1).map(item => ({ label: item.name, href: `/category/${item.slug}` })) : []), { label: title }]} /><PageHeading title={title} description={category?.description || (brand ? `Phụ kiện ${brand} chính hãng cho công trình và ngôi nhà Việt.` : promotion ? "Ưu đãi dành cho phụ kiện nội thất được chọn lọc." : undefined)}><span className="text-sm text-text-muted">{result?.total || 0} sản phẩm</span></PageHeading>
+    {children.length > 0 && <nav aria-label="Danh mục con" className="mb-6 flex flex-wrap gap-2">{children.map(item => <Link key={item.slug} href={`/category/${item.slug}`} className="inline-flex min-h-10 items-center rounded border border-border bg-section px-3 py-2 text-sm text-primary transition hover:border-blue-brand hover:text-blue-brand">{item.name}</Link>)}</nav>}
     {category && <div className="scrollbar-hide mb-6 flex gap-2 overflow-x-auto">{category.subcategories.map(sub => <button key={sub} disabled={busy} aria-pressed={params.get("subcategory") === sub} onClick={() => change("subcategory", params.get("subcategory") === sub ? [] : [sub])} className={`flex h-14 shrink-0 items-center gap-2 rounded-lg border px-3 text-xs font-medium ${params.get("subcategory") === sub ? "border-blue-brand bg-section-blue text-blue-brand" : "border-border bg-white text-primary"}`}><Image src={category.image} alt="" className="h-9 w-9 rounded object-contain" quality={85} width={36} height={36} sizes="36px" data-image-src={category.image} />{sub}</button>)}</div>}
     {brand && <div className="mb-6 flex min-h-[120px] flex-wrap items-center gap-5 border-y border-border bg-section-blue p-5"><strong className="break-words text-2xl font-bold text-primary">{brand.toUpperCase()}</strong><p className="max-w-xl text-sm leading-6 text-text-secondary">Bản lề, ray trượt và phụ kiện đồng bộ. Lựa chọn sản phẩm theo mã hàng, kích thước và nhu cầu công trình.</p></div>}
     {promotion && <div className="relative mb-6 flex h-[200px] items-center overflow-hidden bg-section-blue"><Image alt="Phụ kiện tủ bếp đang có ưu đãi" src="/images/catalog/kitchen-banner.png" className="absolute inset-0 h-full w-full object-cover" quality={85} fill sizes="100vw" /><div className="absolute inset-0 bg-white/80" /><div className="relative px-6"><span className="text-xs font-semibold text-danger">ƯU ĐÃI THÁNG 10</span><h2 className="mt-2 text-xl font-bold text-primary">Phụ kiện đồng bộ, giá tốt hơn</h2><p className="mt-2 text-sm text-text-secondary">Ưu đãi cho sản phẩm được chọn.</p></div></div>}

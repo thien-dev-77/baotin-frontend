@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import { ArrowLeft, ExternalLink, Globe, LockKeyhole, RefreshCw, Save } from "lucide-react";
 import { api, apiMode } from "@/lib/api-client";
 import { categoryCatalog, slugify } from "@/lib/catalog";
+import { categoryLabel } from "@/lib/category-tree";
 import type { ApiAdminState } from "@/lib/api-types";
 import { useCommerce } from "@/components/commerce-provider";
 import { Button, EmptyState, Field } from "@/components/ui";
@@ -115,7 +116,7 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
               <Field label="Mã hàng" required><input className="bt-input" name="code" required maxLength={80} defaultValue={product?.code} /></Field>
               <Field label="Mã sản phẩm mới"><input className="bt-input" name="alternateCode" maxLength={80} defaultValue={source?.alternateCode} /></Field>
               <Field label="Thương hiệu" required><input className="bt-input" name="brand" required readOnly={Boolean(variantGroupId)} maxLength={80} defaultValue={source?.brand} /></Field>
-              <Field label="Danh mục" required htmlFor="product-category"><select id="product-category" className="bt-input" required disabled={Boolean(variantGroupId)} value={category} onChange={event => { setCategory(event.target.value); setSubcategory(""); }}><option value="">Chọn danh mục</option>{categories.map(item => <option key={item.slug} value={item.slug}>{item.name}</option>)}</select></Field>
+              <Field label="Danh mục" required htmlFor="product-category"><select id="product-category" className="bt-input" required disabled={Boolean(variantGroupId)} value={category} onChange={event => { setCategory(event.target.value); setSubcategory(""); }}><option value="">Chọn danh mục</option>{categories.map(item => <option key={item.slug} value={item.slug}>{categoryLabel(categories, item.slug) || item.name}</option>)}</select></Field>
               <Field label="Nhóm sản phẩm" htmlFor="product-subcategory"><select id="product-subcategory" className="bt-input" value={subcategory} onChange={event => setSubcategory(event.target.value)} disabled={!category}><option value="">Không chọn</option>{categories.find(item => item.slug === category)?.subcategories.map(item => <option key={item}>{item}</option>)}</select></Field>
               <Field label="Đơn vị tính" required><input className="bt-input" name="unit" required readOnly={Boolean(variantGroupId)} maxLength={30} defaultValue={source?.unit || "cái"} /></Field>
               <Field label="Đường dẫn" required><input className="bt-input" required maxLength={200} pattern="[a-z0-9]+(-[a-z0-9]+)*" value={slug} onChange={event => { customSlug.current = true; setSlug(event.target.value); }} /></Field>

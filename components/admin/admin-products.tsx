@@ -11,6 +11,7 @@ import { useAdmin } from "./admin-provider";
 import { AdminHeading, AdminPagination, AdminSearch, AdminStatus, AdminTable, useAdminFilters } from "./admin-ui";
 import { downloadAdminCsv } from "@/lib/admin-preview";
 import { categoryCatalog, money, normalize } from "@/lib/catalog";
+import { categoryDescendants, categoryLabel } from "@/lib/category-tree";
 import { api, apiMode } from "@/lib/api-client";
 import { CatalogTemplateDownload } from "./catalog-template-download";
 import { useAdminBrowse, type AdminBrowseState } from "@/lib/admin-browse";
@@ -44,7 +45,8 @@ function ProductsList({ browse }: { browse: AdminBrowseState }) {
   const filters = apiMode ? browse : previewFilters;
   const category = apiMode ? browse.category : previewCategory;
   const setCategory = (value: string) => apiMode ? browse.set({ category: value }) : setPreviewCategory(value);
-  const rows = apiMode ? products : products.filter(item => normalize(`${item.name} ${item.code} ${item.brand}`).includes(normalize(filters.query)) && (category === "all" || item.category === category) && (filters.filter === "all" || (filters.filter === "published" ? item.published : !item.published)));
+  const categoryScope = new Set(categoryDescendants(categories, category));
+  const rows = apiMode ? products : products.filter(item => normalize(`${item.name} ${item.code} ${item.brand}`).includes(normalize(filters.query)) && (category === "all" || categoryScope.has(item.category)) && (filters.filter === "all" || (filters.filter === "published" ? item.published : !item.published)));
   const count = apiMode ? browse.data?.pagination.total || 0 : rows.length;
   const page = apiMode ? browse.data?.pagination.page || browse.page : Math.min(filters.page, Math.max(1, Math.ceil(rows.length / 10)));
   const visibleRows = apiMode ? rows : rows.slice((page - 1) * 10, page * 10);
@@ -76,7 +78,7 @@ function ProductsList({ browse }: { browse: AdminBrowseState }) {
     </AdminHeading>
     <fieldset disabled={bulkBusy} className="mb-4 flex min-w-0 flex-wrap gap-3">
       <AdminSearch value={filters.query} onChange={filters.setQuery} placeholder="Tìm sản phẩm, mã hàng, thương hiệu..." />
-      <select aria-label="Danh mục sản phẩm" value={category} onChange={event => { setCategory(event.target.value); if (!apiMode) filters.setPage(1); }} className="bt-input !w-auto max-w-full"><option value="all">Tất cả danh mục</option>{categories.map(item => <option key={item.slug} value={item.slug}>{item.name}</option>)}</select>
+      <select aria-label="Danh mục sản phẩm" value={category} onChange={event => { setCategory(event.target.value); if (!apiMode) filters.setPage(1); }} className="bt-input !w-auto max-w-full"><option value="all">Tất cả danh mục</option>{categories.map(item => <option key={item.slug} value={item.slug}>{categoryLabel(categories, item.slug) || item.name}</option>)}</select>
       <select aria-label="Trạng thái sản phẩm" value={filters.filter} onChange={event => filters.setFilter(event.target.value)} className="bt-input !w-auto max-w-full"><option value="all">Tất cả trạng thái</option><option value="published">Công khai</option><option value="hidden">Riêng tư</option></select>
     </fieldset>
     {apiMode && <ResourceStatus {...browse} />}

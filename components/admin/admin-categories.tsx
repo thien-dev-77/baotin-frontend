@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { apiMode } from "@/lib/api-client";
 import { normalize } from "@/lib/catalog";
+import { categoryLabel } from "@/lib/category-tree";
 import type {
   AdminCategory,
   CategoryDirectory,
@@ -165,7 +166,7 @@ export function AdminCategories() {
             headings={[
               ...(canEdit ? [<AdminSelectionCheckbox key="selection" aria-label="Chọn tất cả danh mục trên trang" checked={Boolean(visibleRows.length && checkedCount === visibleRows.length)} mixed={checkedCount > 0 && checkedCount < visibleRows.length} disabled={selectionBusy || !visibleRows.length} onChange={togglePage} />] : []),
               "Danh mục",
-              "Nhóm sản phẩm",
+              "Danh mục cha",
               "Sản phẩm",
               "Thứ tự",
               "Hiển thị",
@@ -205,7 +206,7 @@ export function AdminCategories() {
                 </td>
                 <td>
                   <span className="block max-w-64 text-xs leading-5 text-text-secondary">
-                    {category.subcategories.join(" · ") || "-"}
+                    {category.parentSlug ? categoryLabel(resource.data!.items, category.parentSlug) : "Danh mục gốc"}
                   </span>
                 </td>
                 <td className="tabular-nums">{category.productCount}</td>
@@ -270,6 +271,7 @@ export function AdminCategories() {
           <CategoryEditor
             key={`${editing.slug}:${editing.revision}`}
             category={editing}
+            categories={resource.data?.items || []}
             onSaved={saved}
             onCancel={close}
             onBusyChange={setBusy}

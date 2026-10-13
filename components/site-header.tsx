@@ -5,11 +5,13 @@ import { SearchBox } from "@/components/search-box";
 import { Modal } from "@/components/ui";
 import { useCommerce } from "@/components/commerce-provider";
 import { heroActions, trustBadges } from "@/lib/home-data";
-import { Heart, Menu, ShoppingCart, ChevronRight } from "lucide-react";
+import { Heart, Menu, ShoppingCart } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { NotificationBell } from "./notifications";
+import { categoryRoots } from "@/lib/category-tree";
+import { CategoryLinks } from "./category-links";
 
 type HeaderService = {
   title: string;
@@ -164,7 +166,7 @@ export function SiteHeader() {
               aria-label="Danh mục sản phẩm"
               className="scrollbar-hide flex min-w-0 flex-1 items-center gap-4 overflow-x-auto"
             >
-              {categories.map((category) => (
+              {categoryRoots(categories).map((category) => (
                 <Link
                   key={category.slug}
                   href={`/category/${category.slug}`}
@@ -196,17 +198,7 @@ export function SiteHeader() {
         drawer
       >
         <nav className="space-y-1">
-          {categories.map((category) => (
-            <Link
-              onClick={() => setMobile(false)}
-              key={category.slug}
-              href={`/category/${category.slug}`}
-              className="flex items-center justify-between border-b border-border py-3 text-sm"
-            >
-              <span>{category.name}</span>
-              <ChevronRight size={16} />
-            </Link>
-          ))}
+          <CategoryLinks onNavigate={() => setMobile(false)} />
           {[
             ...services.map((action) => ({
               label: action.title,

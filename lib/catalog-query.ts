@@ -1,6 +1,7 @@
 import { getCatalogBrands, normalize, priceFor } from "./catalog";
 import type { CatalogPageResponse } from "./api-types";
 import type { Category, Customer, Product } from "./types";
+import { categoryDescendants } from "./category-tree";
 
 export type ListingScope = { category?: string; brand?: string; query?: string; promotion?: boolean };
 export type ListingSearchParams = Record<string, string | string[] | undefined>;
@@ -26,7 +27,8 @@ export function previewCatalogPage(products: Product[], categories: Category[], 
   const filtered = products.filter(product => terms.every(term => normalize(`${product.name} ${product.code} ${product.brand} ${product.specification}`).includes(term)) &&
     catalogFilterFields.every(field => {
       const values = params.getAll(field);
-      return !values.length || values.includes(field === "stock" ? product.stock > 0 ? "in" : "out" : product[field]);
+      const expanded = field === "category" ? values.flatMap(slug => categoryDescendants(categories, slug)) : values;
+      return !values.length || expanded.includes(field === "stock" ? product.stock > 0 ? "in" : "out" : product[field]);
     }) && (!params.get("subcategory") || product.subcategory === params.get("subcategory")) &&
     (!params.has("min") || priceFor(product, customer) >= Number(params.get("min"))) &&
     (!params.has("max") || priceFor(product, customer) <= Number(params.get("max"))) &&

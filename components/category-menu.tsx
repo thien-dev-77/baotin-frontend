@@ -37,7 +37,7 @@ export function CategoryMenu() {
   }
 
   function focusItem(position: "first" | "last") {
-    const links = panel.current?.querySelectorAll<HTMLAnchorElement>('[role="menuitem"]');
+    const links = panel.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
     links?.[position === "first" ? 0 : links.length - 1]?.focus();
   }
 
@@ -113,8 +113,8 @@ export function CategoryMenu() {
         onKeyDown={(event) => {
           if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
           event.preventDefault();
-          const links = Array.from(panel.current?.querySelectorAll<HTMLAnchorElement>('[role="menuitem"]') || []);
-          const index = links.indexOf(document.activeElement as HTMLAnchorElement);
+          const links = Array.from(panel.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') || []);
+          const index = links.indexOf(document.activeElement as HTMLElement);
           const next = event.key === "Home" ? 0 : event.key === "End" ? links.length - 1 : (index + (event.key === "ArrowDown" ? 1 : -1) + links.length) % links.length;
           links[next]?.focus();
         }}>

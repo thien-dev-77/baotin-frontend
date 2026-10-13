@@ -15,9 +15,16 @@ enforces the same permissions; hiding buttons alone is not authorization.
 ## UI Behavior
 
 Create/edit uses a separate `CategoryEditor` component with name, immutable saved
-slug, description, backend cover upload, editable group list, position and
+slug, parent selector, description, backend cover upload, editable group list, position and
 visibility checkbox. A new slug is generated from the name until manually edited.
 Groups can be added/removed; the backend blocks removal of a group in use.
+
+The parent selector displays full category paths. It excludes the current
+category, its descendants and parents that would push any descendant beyond
+four levels. Selecting the root option sends `parentSlug=""`.
+The admin table shows the parent path and subtree product count. Product-form,
+product-filter and Sales category selectors also display full paths.
+Legacy text groups are filters; use separate category records for real children.
 
 Mutations/upload show spinners and disable conflicting controls. A synchronous
 submit lock prevents duplicate requests; dismissal/Escape is blocked while busy.
@@ -55,8 +62,16 @@ catalog. The sidebar scrolls when more categories are added. Icons are mapped by
 slug, not by array position; custom categories use a standard Package icon.
 All category images use `next/image` and native lazy loading.
 
-The category page calls GET /api/categories/:slug from the server without cookies
-or caching. The product breadcrumb uses API category data and safely omits an
+Header/home cards show root categories only. Sidebar, dropdown and mobile
+navigation expand actual child records through a separate chevron button;
+the category name still links to its page. Dropdown arrow-key navigation also
+includes expansion buttons. `/categories` renders the nested category tree.
+Category pages provide direct child links and ancestor breadcrumbs; product
+details show the complete ancestor path. Homepage product sections aggregate
+products from descendants and link to actual child pages without banners.
+
+The category page calls GET /api/categories/:slug from the server without cookies,
+using the validated public catalog cache. The product breadcrumb uses API category data and safely omits an
 unavailable category. API-mode load failures do not replace empty categories with
 the old mock list. Mock categories remain available in offline preview mode.
 
@@ -74,7 +89,7 @@ search/direct links. Product visibility remains a separate control.
 - POST /media/product-images accepts one multipart `images` file for a cover.
 - GET /categories and GET /categories/:slug are public backend routes.
 
-`Category` extends existing fields with optional `visible`, `sortOrder`,
+`Category` extends existing fields with optional `parentSlug`, `visible`, `sortOrder`,
 `revision` for old preview fixtures. Admin responses always populate them and
 include `productCount`. See backend `docs/category-management.md` for validation,
 storage and schema rollout. Deploy backend first; no shared-folder dependency.

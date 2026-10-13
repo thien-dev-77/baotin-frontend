@@ -325,6 +325,10 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
 .bt-category-chevron { flex-shrink: 0; color: #94a5b6; transition: color 140ms ease, transform 140ms ease; }
 .bt-category-item:hover, .bt-category-item[aria-current="page"], .bt-category-item:focus-visible { background: var(--color-section-blue); color: var(--color-blue-hover); }
 .bt-category-item:focus-visible { outline: 2px solid var(--color-blue); outline-offset: -2px; }
+.bt-category-tree-children { margin-left: 12px; border-left: 1px solid var(--color-border); padding-left: 6px; }
+.bt-category-child-link { min-height: 36px; padding: 6px; }
+.bt-category-child-link span { font-size: 13px; line-height: 20px; overflow-wrap: anywhere; }
+.bt-category-item span { overflow-wrap: anywhere; }
 .bt-category-item:hover .bt-category-chevron, .bt-category-item[aria-current="page"] .bt-category-chevron { color: var(--color-blue); transform: translateX(2px); }
 .bt-category-separator { height: 1px; margin: 8px 12px; background: var(--color-border); }
 .bt-category-shortcut { min-height: 36px; color: var(--color-text-secondary); }

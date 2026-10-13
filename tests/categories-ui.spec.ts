@@ -12,7 +12,7 @@ if (!["127.0.0.1", "localhost"].includes(new URL(base).hostname))
 test.use({ viewport: { width: 1440, height: 1000 } });
 test.setTimeout(45000);
 
-async function mockCategories(page: Page, role = "admin", count = categoryCatalog.length) {
+async function mockCategories(page: Page, role = "admin", count = categoryCatalog.length, hierarchical = false) {
   const errors: string[] = [],
     calls: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -26,6 +26,7 @@ async function mockCategories(page: Page, role = "admin", count = categoryCatalo
       (product) => product.category === categoryCatalog[index % categoryCatalog.length].slug,
     ).length,
   }));
+  if (hierarchical) for (let index = 1; index < 4; index++) rows[index].parentSlug = rows[index - 1].slug;
   let gate:
     | {
         path: string;
@@ -167,6 +168,45 @@ async function mockCategories(page: Page, role = "admin", count = categoryCatalo
   };
 }
 const dialog = (page: Page) => page.getByRole("dialog");
+
+test("Parent selector preserves hierarchy and prevents moving a branch inside its descendants", async ({ page }) => {
+  const qa = await mockCategories(page, "admin", categoryCatalog.length, true);
+  await page.getByRole("button", { name: "Sửa danh mục Phụ kiện bếp", exact: true }).click();
+  const parent = dialog(page).getByLabel("Danh mục cha", { exact: true });
+  for (const slug of ["phu-kien-bep", "led-tu-ke", "ray-truot", "ban-le"]) await expect(parent.locator(`option[value="${slug}"]`)).toHaveCount(0);
+  await dialog(page).getByRole("button", { name: "Hủy", exact: true }).click();
+  await page.getByRole("button", { name: "Sửa danh mục Bản lề", exact: true }).click();
+  await expect(dialog(page).getByLabel("Danh mục cha", { exact: true })).toHaveValue("ray-truot");
+  await dialog(page).getByLabel("Danh mục cha", { exact: true }).selectOption("khoa");
+  await dialog(page).getByRole("button", { name: "Lưu danh mục", exact: true }).click();
+  await expect(dialog(page)).not.toBeVisible();
+  expect(qa.rows.find(row => row.slug === "ban-le")?.parentSlug).toBe("khoa");
+  await expect(page.getByRole("region", { name: "Bảng dữ liệu" }).locator("tr").filter({ hasText: "ban-le" })).toContainText("Khóa");
+  expect(qa.errors).toEqual([]);
+});
+
+for (const width of [1440, 768, 390, 320]) test(`Hierarchy expands without duplicate roots or page overflow at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 1000 });
+  const qa = await mockCategories(page, "admin", categoryCatalog.length, true);
+  await page.goto(`${base}/`);
+  await expect(page.locator("header[aria-busy=true]")).toHaveCount(0);
+  await page.evaluate(key => window.dispatchEvent(new StorageEvent("storage", { key, newValue: JSON.stringify({ type: "refresh" }) })), authEventKey);
+  if (width >= 1024) {
+    const sidebar = page.getByRole("navigation", { name: "Danh mục bên cạnh banner" });
+    await expect(sidebar.getByRole("link", { name: "LED tủ/kệ", exact: true })).toHaveCount(0);
+    await sidebar.getByRole("button", { name: "Mở danh mục con Phụ kiện bếp", exact: true }).click();
+    await expect(sidebar.getByRole("link", { name: "LED tủ/kệ", exact: true })).toBeVisible();
+    await sidebar.getByRole("button", { name: "Mở danh mục con LED tủ/kệ", exact: true }).click();
+    await sidebar.getByRole("button", { name: "Mở danh mục con Ray trượt", exact: true }).click();
+    await expect(sidebar.getByRole("link", { name: "Bản lề", exact: true })).toBeVisible();
+  }
+  const section = page.locator("[data-category-products]").filter({ has: page.getByRole("heading", { name: "Phụ kiện bếp", exact: true }) });
+  await expect(section).toBeVisible();
+  await expect(section.getByRole("navigation", { name: "Danh mục con của Phụ kiện bếp", exact: true }).getByRole("link", { name: "LED tủ/kệ", exact: true })).toHaveAttribute("href", "/category/led-tu-ke");
+  await expect(section.locator(".bt-product-card")).toHaveCount(5);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  expect(qa.errors).toEqual([]);
+});
 
 test("Category Excel template downloads on mobile without submitting data", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 1000 });

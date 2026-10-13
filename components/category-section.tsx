@@ -7,6 +7,7 @@ import type { Category } from "@/lib/types";
 import { useCommerce } from "./commerce-provider";
 import { SectionHeading } from "./section-heading";
 import { Breadcrumb, EmptyState, PageHeading } from "./ui";
+import { categoryRoots, MAX_CATEGORY_DEPTH } from "@/lib/category-tree";
 
 function CategoryTile({
   category,
@@ -18,7 +19,7 @@ function CategoryTile({
   return (
     <Link
       href={`/category/${category.slug}`}
-      className={`group overflow-hidden rounded-lg border border-border bg-white shadow-card transition hover:border-blue-brand hover:shadow-card-hover ${compact ? "w-[126px] shrink-0 md:w-auto" : "min-w-0"}`}
+      className={`group block overflow-hidden rounded-lg border border-border bg-white shadow-card transition hover:border-blue-brand hover:shadow-card-hover ${compact ? "w-[126px] shrink-0 md:w-auto" : "min-w-0"}`}
     >
       <div className="relative aspect-[1.35/1] overflow-hidden bg-section">
         {category.image ? (
@@ -66,8 +67,8 @@ export function HomeCategorySection() {
         link="Xem tất cả danh mục"
         href="/categories"
       />
-      <div className="scrollbar-hide flex gap-2 overflow-x-auto pb-1 md:grid md:grid-cols-4 lg:grid-cols-8">
-        {categories.map((category) => (
+      <div className="scrollbar-hide flex gap-2 overflow-x-auto pb-1 md:grid md:grid-cols-4 lg:grid-cols-5">
+        {categoryRoots(categories).map((category) => (
           <CategoryTile key={category.slug} category={category} compact />
         ))}
       </div>
@@ -83,13 +84,23 @@ export function AllCategories() {
       <PageHeading title="Danh mục sản phẩm" />
       {categories.length ? (
         <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {categories.map((category) => (
-            <CategoryTile key={category.slug} category={category} />
-          ))}
+          {categoryRoots(categories).map((category) => <section key={category.slug} className="min-w-0">
+            <CategoryTile category={category} />
+            <CategoryChildren categories={categories} parent={category.slug} depth={0} />
+          </section>)}
         </div>
       ) : (
         <EmptyState title="Chưa có danh mục" />
       )}
     </main>
   );
+}
+
+function CategoryChildren({ categories, parent, depth }: { categories: Category[]; parent: string; depth: number }) {
+  const children = depth < MAX_CATEGORY_DEPTH - 1 ? categories.filter(category => category.parentSlug === parent) : [];
+  if (!children.length) return null;
+  return <ul className="mt-2 space-y-1 border-l border-border pl-3">{children.map(category => <li key={category.slug}>
+    <Link href={`/category/${category.slug}`} className="inline-flex min-h-9 items-center break-words text-sm text-blue-brand hover:underline">{category.name}</Link>
+    <CategoryChildren categories={categories} parent={category.slug} depth={depth + 1} />
+  </li>)}</ul>;
 }

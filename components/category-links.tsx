@@ -1,23 +1,37 @@
 "use client";
 
-import { Cable, ChevronRight, CookingPot, DoorOpen, Grip, Lightbulb, Package, Rows3, Shirt, Wrench, type LucideIcon } from "lucide-react";
+import { Cable, ChevronRight, CookingPot, DoorOpen, Droplets, Grip, Lightbulb, Package, Rows3, Shirt, Wrench, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCommerce } from "./commerce-provider";
+import { useState } from "react";
+import { categoryRoots, MAX_CATEGORY_DEPTH } from "@/lib/category-tree";
+import type { Category } from "@/lib/types";
 
-const categoryIcons: Record<string, LucideIcon> = { "phu-kien-bep": CookingPot, "led-tu-ke": Lightbulb, "ray-truot": Rows3, "ban-le": DoorOpen, "tay-nam": Grip, khoa: Cable, "phu-kien-tu-ao": Shirt, "phu-kien-lap-dat": Wrench };
+const categoryIcons: Record<string, LucideIcon> = { "phu-kien-bep": CookingPot, "phu-kien-tu-bep": CookingPot, "chau-voi-rua-bat": Droplets, "phu-kien-noi-that": Wrench, "phu-kien-tu-quan-ao": Shirt, "thiet-bi-bep-gia-dung": CookingPot, "led-tu-ke": Lightbulb, "ray-truot": Rows3, "ban-le": DoorOpen, "tay-nam": Grip, khoa: Cable, "phu-kien-tu-ao": Shirt, "phu-kien-lap-dat": Wrench };
 
 export function CategoryLinks({ menu = false, onNavigate }: { menu?: boolean; onNavigate?: () => void }) {
-  const pathname = usePathname();
   const { categories } = useCommerce();
+  return <>{categoryRoots(categories).map(category => <CategoryBranch key={category.slug} category={category} categories={categories} depth={0} menu={menu} onNavigate={onNavigate} />)}</>;
+}
 
-  return <>{categories.map((category) => {
-    const Icon = categoryIcons[category.slug] || Package;
-    const href = `/category/${category.slug}`;
-    return <Link key={category.slug} role={menu ? "menuitem" : undefined} tabIndex={menu ? -1 : undefined} prefetch={false} href={href} aria-current={pathname === href ? "page" : undefined} className="bt-category-item" onClick={onNavigate}>
-      <Icon size={21} strokeWidth={1.7} aria-hidden="true" className="bt-category-icon" />
-      <span>{category.name}</span>
-      <ChevronRight size={16} strokeWidth={1.7} aria-hidden="true" className="bt-category-chevron" />
-    </Link>;
-  })}</>;
+function CategoryBranch({ category, categories, depth, menu, onNavigate }: { category: Category; categories: Category[]; depth: number; menu?: boolean; onNavigate?: () => void }) {
+  const pathname = usePathname();
+  const [expanded, setExpanded] = useState(false);
+  const children = depth + 1 < MAX_CATEGORY_DEPTH ? categories.filter(item => item.parentSlug === category.slug) : [];
+  const Icon = categoryIcons[category.slug] || Package;
+  return <div className="bt-category-branch">
+    <div className="flex items-center">
+      <Link role={menu ? "menuitem" : undefined} tabIndex={menu ? -1 : undefined} prefetch={false} href={`/category/${category.slug}`} aria-current={pathname === `/category/${category.slug}` ? "page" : undefined} className={`bt-category-item min-w-0 flex-1${depth ? " bt-category-child-link" : ""}`} onClick={onNavigate} onKeyDown={event => {
+        if (event.key === "ArrowRight" && children.length) { event.preventDefault(); setExpanded(true); }
+        if (event.key === "ArrowLeft") { event.preventDefault(); setExpanded(false); }
+      }}>
+        {!depth && <Icon size={21} strokeWidth={1.7} aria-hidden="true" className="bt-category-icon" />}
+        <span>{category.name}</span>
+        {!children.length && <ChevronRight size={16} strokeWidth={1.7} aria-hidden="true" className="bt-category-chevron" />}
+      </Link>
+      {!!children.length && <button type="button" role={menu ? "menuitem" : undefined} tabIndex={menu ? -1 : undefined} aria-expanded={expanded} aria-label={`${expanded ? "Thu gọn" : "Mở"} danh mục con ${category.name}`} title={`${expanded ? "Thu gọn" : "Mở"} danh mục con`} className="bt-icon-button shrink-0" onClick={() => setExpanded(!expanded)}><ChevronRight size={16} className={expanded ? "rotate-90" : ""} aria-hidden="true" /></button>}
+    </div>
+    {expanded && <div className="bt-category-tree-children">{children.map(child => <CategoryBranch key={child.slug} category={child} categories={categories} depth={depth + 1} menu={menu} onNavigate={onNavigate} />)}</div>}
+  </div>;
 }

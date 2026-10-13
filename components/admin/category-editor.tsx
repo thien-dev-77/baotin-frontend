@@ -5,16 +5,19 @@ import { useRef, useState } from "react";
 import { ImagePlus, Plus, Save, Trash2 } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { slugify } from "@/lib/catalog";
+import { categoryDescendants, categoryLabel, categoryTrail, MAX_CATEGORY_DEPTH } from "@/lib/category-tree";
 import type { AdminCategory } from "@/lib/category-management";
 import { Button, Field, LoadingSpinner } from "../ui";
 
 export function CategoryEditor({
   category,
+  categories = [],
   onSaved,
   onCancel,
   onBusyChange,
 }: {
   category: AdminCategory;
+  categories?: AdminCategory[];
   onSaved: () => void;
   onCancel: () => void;
   onBusyChange: (busy: boolean) => void;
@@ -25,6 +28,10 @@ export function CategoryEditor({
   const [description, setDescription] = useState(category.description);
   const [sortOrder, setSortOrder] = useState(category.sortOrder);
   const [visible, setVisible] = useState(category.visible);
+  const [parentSlug, setParentSlug] = useState(category.parentSlug || "");
+  const excludedParents = new Set(categoryDescendants(categories, category.slug));
+  const subtreeDepth = Math.max(1, ...categories.filter(item => excludedParents.has(item.slug)).map(item => categoryTrail(categories, item.slug).length - categoryTrail(categories, category.slug).length + 1));
+  const parents = categories.filter(item => !excludedParents.has(item.slug) && categoryTrail(categories, item.slug).length + subtreeDepth <= MAX_CATEGORY_DEPTH);
   const [groups, setGroups] = useState(() =>
     category.subcategories.map((name, id) => ({ name, id })),
   );
@@ -97,6 +104,7 @@ export function CategoryEditor({
                 subcategories,
                 sortOrder,
                 visible,
+                parentSlug,
                 ...(editing ? { revision: category.revision } : {}),
               }),
             },
@@ -145,6 +153,12 @@ export function CategoryEditor({
             />
           </Field>
         </div>
+        <Field label="Danh mục cha" htmlFor="category-parent">
+          <select id="category-parent" className="bt-input" value={parentSlug} onChange={event => setParentSlug(event.target.value)}>
+            <option value="">Không có (danh mục cấp cao nhất)</option>
+            {parents.map(item => <option key={item.slug} value={item.slug}>{categoryLabel(categories, item.slug) || item.name}</option>)}
+          </select>
+        </Field>
         <Field label="Mô tả" htmlFor="category-description">
           <textarea
             id="category-description"

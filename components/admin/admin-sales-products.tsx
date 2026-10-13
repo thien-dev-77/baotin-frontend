@@ -7,6 +7,7 @@ import { Check, Plus } from "lucide-react";
 import { Button, Modal } from "@/components/ui";
 import { AdminPagination, AdminSearch } from "@/components/admin/admin-ui";
 import { categoryCatalog, money, normalize, type Product } from "@/lib/catalog";
+import { categoryDescendants, categoryLabel } from "@/lib/category-tree";
 import { salesUnitPrice } from "@/lib/admin-sales";
 import type { AdminCustomer } from "@/lib/admin-preview";
 import { useAdmin } from "./admin-provider";
@@ -17,11 +18,12 @@ export function AdminSalesProducts({ open, onClose, products, customer, selected
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
   const [page, setPage] = useState(1);
-  const rows = products.filter((item) => (category === "all" || item.category === category) && normalize(`${item.name} ${item.code} ${item.brand}`).includes(normalize(query)));
+  const categoryScope = new Set(categoryDescendants(categories, category));
+  const rows = products.filter((item) => (category === "all" || categoryScope.has(item.category)) && normalize(`${item.name} ${item.code} ${item.brand}`).includes(normalize(query)));
   const current = Math.min(page, Math.max(1, Math.ceil(rows.length / 10)));
   return <Modal open={open} onClose={onClose} title="Thêm sản phẩm" trackChanges={false}>
     <div onKeyDownCapture={(event) => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); onClose(); } }}>
-    <div className="mb-3 flex flex-wrap gap-2"><AdminSearch value={query} onChange={(value) => { setQuery(value); setPage(1); }} placeholder="Tìm tên, SKU, thương hiệu..." /><select aria-label="Danh mục chọn sản phẩm" className="bt-input" value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }}><option value="all">Tất cả danh mục</option>{categories.map((item) => <option key={item.slug} value={item.slug}>{item.name}</option>)}</select></div>
+    <div className="mb-3 flex flex-wrap gap-2"><AdminSearch value={query} onChange={(value) => { setQuery(value); setPage(1); }} placeholder="Tìm tên, SKU, thương hiệu..." /><select aria-label="Danh mục chọn sản phẩm" className="bt-input" value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }}><option value="all">Tất cả danh mục</option>{categories.map((item) => <option key={item.slug} value={item.slug}>{categoryLabel(categories, item.slug) || item.name}</option>)}</select></div>
     <ul className="divide-y divide-border">
       {rows.slice((current - 1) * 10, current * 10).map((product) => <li key={product.id} className="flex items-center gap-3 py-3">
         <Image src={product.image} alt={product.name} width={48} height={48} className="h-12 w-12 shrink-0 rounded object-contain" quality={85} sizes="48px" data-image-src={product.image} />

@@ -26,7 +26,7 @@ const cachedCategory = unstable_cache(async (backend: string, slug: string): Pro
   const category = await response.json();
   if (!category || category.slug !== slug || typeof category.name !== "string" || !Array.isArray(category.subcategories)) throw new Error("Phản hồi danh mục không hợp lệ.");
   return category;
-}, ["public-category-v1"], { revalidate: publicCache.catalog.seconds, tags: [publicCache.catalog.tag] });
+}, ["public-category-v2"], { revalidate: publicCache.catalog.seconds, tags: [publicCache.catalog.tag] });
 
 const cachedContent = unstable_cache(async (backend: string): Promise<PublicContent[]> => {
   const response = await fetch(`${backend}/api/content`, publicFetchOptions());
@@ -42,14 +42,14 @@ const cachedCatalog = unstable_cache(async (backend: string): Promise<CatalogRes
   if (!response.ok) throw new Error("Không thể tải danh sách sản phẩm. Vui lòng thử lại.");
   const result = readCatalogResponse(await response.json());
   return { ...result, products: retailProducts(result.products) };
-}, ["public-catalog-bootstrap-v2"], { revalidate: publicCache.catalog.seconds, tags: [publicCache.catalog.tag] });
+}, ["public-catalog-bootstrap-v3"], { revalidate: publicCache.catalog.seconds, tags: [publicCache.catalog.tag] });
 
 const cachedSearch = unstable_cache(async (backend: string, query: string): Promise<CatalogPageResponse> => {
   const response = await fetch(`${backend}/api/catalog/search?${query}`, publicFetchOptions());
   if (!response.ok) throw new Error("Không thể tải danh sách sản phẩm. Vui lòng thử lại.");
   const result = readCatalogPage(await response.json());
   return { ...result, products: retailProducts(result.products) };
-}, ["public-catalog-search-v1"], { revalidate: publicCache.catalog.seconds, tags: [publicCache.catalog.tag] });
+}, ["public-catalog-search-v2"], { revalidate: publicCache.catalog.seconds, tags: [publicCache.catalog.tag] });
 
 export async function serverCatalogPage(params: URLSearchParams): Promise<CatalogPageResponse> {
   return apiMode ? cachedSearch(backendURL(), params.toString()) : previewCatalogPage(catalog, categoryCatalog, params);
