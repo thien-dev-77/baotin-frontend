@@ -1,6 +1,6 @@
 import type { ProductSpecification } from "@/lib/product-detail";
 
-export function ProductSpecifications({ specifications }: { specifications: ProductSpecification[] }) {
+export function ProductSpecifications({ specifications, technicalDetails }: { specifications: ProductSpecification[]; technicalDetails?: string }) {
   return (
     <>
       <h2 id="specifications" className="scroll-mt-32 text-base font-bold text-primary">Thông số kỹ thuật</h2>
@@ -16,6 +16,7 @@ export function ProductSpecifications({ specifications }: { specifications: Prod
           </tbody>
         </table>
       </div>
+      {technicalDetails && <p className="mt-4 whitespace-pre-line break-words text-sm leading-7 text-text-secondary">{technicalDetails}</p>}
     </>
   );
 }

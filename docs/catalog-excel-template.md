@@ -7,7 +7,9 @@ không làm hỏng link đã tải trước đây; v2 là contract cho công vi�
 
 Đây là file chuẩn bị dữ liệu, không phải chức năng import đã triển khai.
 Hiện hệ thống chỉ hỗ trợ thêm/sửa từng sản phẩm, danh mục qua UI/API và xuất CSV.
-Chưa có màn hình upload Excel, API import hàng loạt hay cơ chế upsert từ workbook.
+Chưa có màn hình upload Excel hoặc API import mẫu này. Backend đã có CLI riêng
+cho sheet đầu của bảng Fulco và đã nhập 242 SKU private; CLI đó không phải importer
+cho contract v2 bên dưới. Xem [thao tác hàng loạt](product-bulk-actions.md).
 File không tự thay đổi database và không chứa dữ liệu production.
 
 ## Các Sheet
@@ -49,7 +51,8 @@ Ví dụ `gallery`:
 /media/uploads/anh-dai-dien.webp | /media/uploads/anh-chi-tiet.webp
 ```
 
-Ảnh đầu tiên là đại diện; tối đa 10 ảnh, không trùng nhau, JPEG/PNG/WebP.
+Ảnh đầu tiên là đại diện; tối đa 20 ảnh, không trùng nhau, JPEG/PNG/WebP.
+Mỗi request upload nhận tối đa 10 ảnh.
 URL upload thực tế được API `/media/product-images` trả về, không tự đặt đường dẫn.
 Các URL `/images/...` trong ví dụ là ảnh mẫu đã đóng gói ở backend.
 

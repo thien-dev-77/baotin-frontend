@@ -80,6 +80,8 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
       size: variantDimension(variantAttributes, "size")?.value.trim() || text("size"),
       color: variantDimension(variantAttributes, "color")?.value.trim() || text("color"), origin: text("origin"),
       description: text("description"), gallery: images, featured: form.has("featured"), published,
+      alternateCode: text("alternateCode"), sourceUrl: text("sourceUrl"), shortDescription: text("shortDescription"),
+      technicalDetails: text("technicalDetails"), usageGuide: text("usageGuide"), warranty: text("warranty"),
       ...(variantAttributes.length || variantGroupId ? { variantGroupId: variantGroupId || "self", variantAttributes: variantAttributes.map(attribute => ({ name: attribute.name.trim(), value: attribute.value.trim() })) } : {}),
       ...(product ? { revision: product.revision } : {})
     };
@@ -111,11 +113,13 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2"><Field label="Tên sản phẩm" required><input className="bt-input" name="name" required minLength={2} maxLength={200} defaultValue={source?.name} onChange={event => { if (!customSlug.current) setSlug(slugify(event.target.value)); }} /></Field></div>
               <Field label="Mã hàng" required><input className="bt-input" name="code" required maxLength={80} defaultValue={product?.code} /></Field>
+              <Field label="Mã sản phẩm mới"><input className="bt-input" name="alternateCode" maxLength={80} defaultValue={source?.alternateCode} /></Field>
               <Field label="Thương hiệu" required><input className="bt-input" name="brand" required readOnly={Boolean(variantGroupId)} maxLength={80} defaultValue={source?.brand} /></Field>
               <Field label="Danh mục" required htmlFor="product-category"><select id="product-category" className="bt-input" required disabled={Boolean(variantGroupId)} value={category} onChange={event => { setCategory(event.target.value); setSubcategory(""); }}><option value="">Chọn danh mục</option>{categories.map(item => <option key={item.slug} value={item.slug}>{item.name}</option>)}</select></Field>
               <Field label="Nhóm sản phẩm" htmlFor="product-subcategory"><select id="product-subcategory" className="bt-input" value={subcategory} onChange={event => setSubcategory(event.target.value)} disabled={!category}><option value="">Không chọn</option>{categories.find(item => item.slug === category)?.subcategories.map(item => <option key={item}>{item}</option>)}</select></Field>
               <Field label="Đơn vị tính" required><input className="bt-input" name="unit" required readOnly={Boolean(variantGroupId)} maxLength={30} defaultValue={source?.unit || "cái"} /></Field>
               <Field label="Đường dẫn" required><input className="bt-input" required maxLength={200} pattern="[a-z0-9]+(-[a-z0-9]+)*" value={slug} onChange={event => { customSlug.current = true; setSlug(event.target.value); }} /></Field>
+              <div className="sm:col-span-2"><Field label="Link sản phẩm nhà cung cấp"><input className="bt-input" name="sourceUrl" type="url" maxLength={300} defaultValue={source?.sourceUrl} /></Field></div>
             </div>
           </section>
           <ProductVariantFields attributes={variantAttributes} onChange={setVariantAttributes} groupId={product?.variantGroupId} siblings={siblings} currentId={product?.id} returnTo={listUrl} schemaLocked={Boolean(template || product?.variantGroupId && (product.id !== product.variantGroupId || siblings.length > 1))} />
@@ -123,8 +127,12 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
           <section className="border-b border-border pb-7">
             <h2 className="mb-4 text-base font-semibold text-primary">Nội dung & thông số</h2>
             <div className="grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2"><Field label="Nội dung ngắn"><textarea name="shortDescription" rows={4} maxLength={2000} className="bt-input !h-auto py-3" defaultValue={source?.shortDescription} /></Field></div>
               <div className="sm:col-span-2"><Field label="Mô tả sản phẩm" htmlFor="product-description"><textarea id="product-description" name="description" rows={6} maxLength={10000} className="bt-input !h-auto py-3" defaultValue={source?.description} /></Field></div>
               <div className="sm:col-span-2"><Field label="Thông số kỹ thuật" required={published} htmlFor="product-specification"><textarea id="product-specification" name="specification" required={published} rows={3} maxLength={500} className="bt-input !h-auto py-3" defaultValue={source?.specification} /></Field></div>
+              <div className="sm:col-span-2"><Field label="Thông số chi tiết"><textarea name="technicalDetails" rows={6} maxLength={10000} className="bt-input !h-auto py-3" defaultValue={source?.technicalDetails} /></Field></div>
+              <div className="sm:col-span-2"><Field label="Hướng dẫn sử dụng"><textarea name="usageGuide" rows={6} maxLength={20000} className="bt-input !h-auto py-3" defaultValue={source?.usageGuide} /></Field></div>
+              <div className="sm:col-span-2"><Field label="Bảo hành"><input name="warranty" className="bt-input" maxLength={500} defaultValue={source?.warranty} /></Field></div>
               {[{ name: "material", label: "Chất liệu" }, { name: "size", label: "Kích thước" }, { name: "color", label: "Màu sắc" }, { name: "origin", label: "Xuất xứ" }].filter(field => field.name === "size" ? !variantDimension(variantAttributes, "size") : field.name === "color" ? !variantDimension(variantAttributes, "color") : true).map(({ name, label }) => <Field key={name} label={label}><input name={name} className="bt-input" maxLength={100} defaultValue={source?.[name as "material" | "size" | "color" | "origin"]} /></Field>)}
             </div>
           </section>

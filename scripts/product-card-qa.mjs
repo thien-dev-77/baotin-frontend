@@ -14,7 +14,7 @@ async function inspectCard(page, card, touch, screenshot) {
   const image = media.locator("img");
   const details = media.locator(".bt-product-card-details");
   await image.evaluate((element) => element.decode());
-  await expect(image).toHaveCSS("object-fit", "cover");
+  await expect(image).toHaveCSS("object-fit", "contain");
   expect(await media.evaluate((element) => {
     const image = element.querySelector("img");
     return image.clientWidth === element.clientWidth && image.clientHeight === element.clientHeight;

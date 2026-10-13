@@ -26,8 +26,8 @@ export function ProductOverview({ product, specifications, reviewCount, rating =
         </span>
         <button onClick={onShowReviews} className="text-blue-brand">{reviewCount ? `${rating.toFixed(1)} (${reviewCount} đánh giá)` : "Chưa có đánh giá"}</button>
       </div>
-      <p className="mt-4 text-sm leading-6 text-text-secondary">
-        {product.name} chính hãng, bền bỉ và đồng bộ. Phù hợp cho xưởng nội thất, công trình và ngôi nhà Việt.
+      <p className="mt-4 whitespace-pre-line break-words text-sm leading-6 text-text-secondary">
+        {product.shortDescription || `${product.name} chính hãng, bền bỉ và đồng bộ. Phù hợp cho xưởng nội thất, công trình và ngôi nhà Việt.`}
       </p>
       <div className="mt-3 flex flex-wrap gap-1.5">
         {product.specification.split(" · ").map((tag) => <span key={tag} className="rounded-full bg-section-blue px-2 py-1 text-xs text-primary">{tag}</span>)}

@@ -12,6 +12,11 @@ test("CMS mutations expire content independently", () => {
   expect(publicCacheTagsForMutation("PATCH", ["admin", "content", "entry"], 200)).toEqual([publicCache.content.tag]);
 });
 
+test("Approving/rejecting a review expires card rating summaries", () => {
+  expect(publicCacheTagsForMutation("PATCH", ["admin", "reviews", "review-id"], 200)).toEqual([publicCache.catalog.tag]);
+  expect(publicCacheTagsForMutation("PATCH", ["admin", "reviews", "review-id"], 409)).toEqual([]);
+});
+
 test("Reads, errors, quotes and account actions cannot invalidate shared public data", () => {
   for (const status of [400, 401, 403, 409, 500, 502]) expect(publicCacheTagsForMutation("POST", ["admin", "commands"], status)).toEqual([]);
   for (const method of ["GET", "HEAD", "OPTIONS"]) expect(publicCacheTagsForMutation(method, ["admin", "commands"], 200)).toEqual([]);

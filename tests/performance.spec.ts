@@ -49,7 +49,7 @@ test("Production SSR cache, invalidation, live homepage and optimized fonts", as
         return;
       }
       const products = [newProduct, ...catalog].filter(item => (!hidden || item.id !== product.id) && (!newProductHidden || item.id !== newProduct.id)).map(item => item.id === product.id ? { ...item, name: currentName(), price: 112233 + version, ...(incoming.headers.cookie ? { customerPrice: 54321 } : {}) } : item);
-      const categories = categoryCatalog.filter(item => !categoryHidden || item.slug !== "khoa");
+      const categories = categoryCatalog.filter(item => !categoryHidden || item.slug !== "khoa").sort((a, b) => Number(b.slug === "khoa") - Number(a.slug === "khoa"));
       if (url.pathname === "/api/catalog/bootstrap") {
         counts.catalog++;
         if (!incoming.headers["x-baotin-client"]) ssrCookies.push(incoming.headers.cookie);
@@ -124,7 +124,7 @@ test("Production SSR cache, invalidation, live homepage and optimized fonts", as
 
     await mutation("admin/categories/khoa", { categoryHidden: true });
     const noCategory = await html("after-category-hide");
-    expect(noCategory).not.toContain("data-category-products");
+    expect(noCategory).not.toContain('aria-label="Khóa" data-category-products');
     await mutation("admin/commands", { hidden: false, categoryHidden: false });
     expect(await html("after-product-update")).toContain(currentName());
     const beforeContent = counts.content;

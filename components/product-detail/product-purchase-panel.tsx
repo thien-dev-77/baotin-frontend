@@ -2,6 +2,7 @@
 
 import { useCommerce } from "@/components/commerce-provider";
 import { ProductServiceBenefits } from "@/components/product-detail/product-service-benefits";
+import { ProductContactActions } from "@/components/product-detail/product-contact-actions";
 import { Button, QuantityStepper } from "@/components/ui";
 import { money, priceFor, type Product } from "@/lib/catalog";
 import { CheckCircle2, Heart, ShoppingCart } from "lucide-react";
@@ -46,6 +47,7 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
             <ShoppingCart size={18} />Thêm vào giỏ hàng
           </Button>
         </div>
+        <ProductContactActions />
         <Button variant="secondary" className="mt-2 w-full !text-xs" onClick={() => toggleFavorite(product.id)}>
           <Heart size={16} fill={liked ? "currentColor" : "none"} />{liked ? "Đã yêu thích" : "Yêu thích"}
         </Button>

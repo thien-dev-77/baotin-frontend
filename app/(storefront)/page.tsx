@@ -1,7 +1,7 @@
 import { HeroVisual } from "@/components/hero-visual";
 import { HomeCategorySidebar } from "@/components/home-category-sidebar";
 import { ProductShowcase } from "@/components/product-showcase";
-import { HomeLockSections } from "@/components/home-lock-sections";
+import { HomeCategoryProducts } from "@/components/home-category-products";
 import { SectionHeading } from "@/components/section-heading";
 import {
   b2bActions,
@@ -27,7 +27,7 @@ export default async function HomePage() {
       <HomeCategorySection />
       <SolutionSection items={content?.filter(row => row.kind === "solution")} />
       <ProductShowcase />
-      <HomeLockSections />
+      <HomeCategoryProducts />
       <BuyingGuides items={content?.filter(row => row.kind === "guide")} />
       <OrderProcess />
       <SupportSection />

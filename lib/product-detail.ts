@@ -10,13 +10,14 @@ export const initialProductReviews: ProductReview[] = [
 export function getProductSpecifications(product: Product): ProductSpecification[] {
   return [
     ["Mã hàng", product.code],
+    ...(product.alternateCode ? [["Mã sản phẩm mới", product.alternateCode] as ProductSpecification] : []),
     ["Thương hiệu", product.brand],
     ["Chất liệu", product.material],
     ["Kích thước", product.size],
     ["Thông số", product.specification],
     ["Màu sắc", product.color],
     ["Xuất xứ", product.origin],
-    ["Bảo hành", "24 tháng"]
+    ["Bảo hành", product.warranty || "Chưa cập nhật"]
   ];
 }
 

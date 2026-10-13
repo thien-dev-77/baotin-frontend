@@ -65,7 +65,7 @@ export function ProductDetail({ product: initialProduct }: { product: Product & 
         </div>
         <ProductPurchasePanel product={product} />
         <section className="bt-product-detail-information">
-          <ProductSpecifications specifications={specifications} />
+          <ProductSpecifications specifications={specifications} technicalDetails={product.technicalDetails} />
           <ProductInformationTabs
             product={product}
             specifications={specifications}

@@ -15,8 +15,8 @@ const buyer: SessionUser = { ...staff, id: "qa-buyer", role: "b2b", customer: { 
 const configured = { ...catalog[0], listPrice: 100000, b2cDiscount: 20, b2bDiscount: 35, price: 80000, oldPrice: 100000, stock: 10, published: true, revision: 1, gallery: [catalog[0].image] };
 const legacy = { ...catalog[1], price: 80001, oldPrice: 100000, published: true, revision: 1, gallery: [catalog[1].image] };
 
-async function mockPricing(page: Page, user: SessionUser | null = staff, customerPrice = 90000) {
-  const state: ApiAdminState = { products: [configured, legacy], categories: categoryCatalog, customers: [], orders: [], approvals: [], warehouse: {}, receipts: [], paymentDueDates: {}, today: "2026-10-12" };
+async function mockPricing(page: Page, user: SessionUser | null = staff, customerPrice = 90000, productOverride: ApiAdminState["products"][number] = configured) {
+  const state: ApiAdminState = { products: [productOverride, legacy], categories: categoryCatalog, customers: [], orders: [], approvals: [], warehouse: {}, receipts: [], paymentDueDates: {}, today: "2026-10-12" };
   const writes: Record<string, unknown>[] = [];
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
@@ -56,6 +56,30 @@ async function mockPricing(page: Page, user: SessionUser | null = staff, custome
 }
 
 const priceLabels = ["Giá niêm yết (VNĐ)", "Chiết khấu B2C (%)", "Giá sau CK B2C (VNĐ)", "Chiết khấu B2B (%)", "Giá sau CK B2B (VNĐ)"];
+
+for (const width of [1440, 390]) {
+  test(`Imported product content and twelve gallery images remain editable at ${width}px`, async ({ page }) => {
+    const imported = {
+      ...configured, published: false, brand: "Fulco", alternateCode: "NEW-600", sourceUrl: "https://fulco.vn/gia-bat",
+      shortDescription: "Chất liệu inox 304\nTủ 600mm", technicalDetails: "Kích thước: 600mm\n" + "Thông số chi tiết\n".repeat(40),
+      usageGuide: "Bước 1: Lắp đặt.\nBước 2: Kiểm tra.", warranty: "Bảo hành inox 304 vĩnh viễn",
+      gallery: Array.from({ length: 12 }, (_, index) => `/media/uploads/qa-${index}.webp`),
+    };
+    await page.setViewportSize({ width, height: 1000 });
+    const api = await mockPricing(page, staff, 90000, imported);
+    await page.route("**/_next/image?**", route => route.fulfill({ contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aSu8AAAAASUVORK5CYII=", "base64") }));
+    await page.goto(`${base}/admin/products/${imported.id}/edit`);
+    await expect(page.getByLabel("Mã sản phẩm mới", { exact: false })).toHaveValue(imported.alternateCode);
+    await expect(page.getByLabel("Thông số chi tiết", { exact: false })).toHaveValue(imported.technicalDetails);
+    await expect(page.getByLabel("Hướng dẫn sử dụng", { exact: false })).toHaveValue(imported.usageGuide);
+    await expect(page.getByText("12/20", { exact: true })).toBeVisible();
+    await capture(page, "imported-editor", width);
+    await page.getByRole("button", { name: "Lưu sản phẩm", exact: true }).click();
+    await expect(page).toHaveURL(/\/admin\/products$/);
+    expect(api.writes[0]).toMatchObject({ published: false, alternateCode: imported.alternateCode, technicalDetails: imported.technicalDetails.trim(), usageGuide: imported.usageGuide, warranty: imported.warranty, gallery: imported.gallery });
+    api.check();
+  });
+}
 async function capture(page: Page, view: string, width: number) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await mkdir("/private/tmp/baotin-product-pricing", { recursive: true });
@@ -195,7 +219,7 @@ for (const price of [55000, 110000]) {
     await page.goto(`${base}/search`);
     const card = page.locator(".bt-product-card").filter({ hasText: configured.code });
     await expect(card).toContainText(money(price));
-    if (price === 55000) await expect(card.locator(".bg-danger")).toHaveText("-45%");
+    if (price === 55000) await expect(card.locator(".bg-danger")).toContainText("-45%");
     else { await expect(card.locator(".bg-danger")).toHaveCount(0); await expect(card.locator("del")).toHaveCount(0); }
     api.check();
   });

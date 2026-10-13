@@ -34,7 +34,7 @@ export function ProductInformationTabs({ product, specifications, tab, onTabChan
       </div>
       <div role="tabpanel" className="border-b border-border py-5">
         {tab === "Mô tả sản phẩm" && <ProductDescription product={product} />}
-        {tab === "Tài liệu / Hướng dẫn" && <ProductDocuments code={product.code} specifications={specifications} />}
+        {tab === "Tài liệu / Hướng dẫn" && <ProductDocuments code={product.code} usageGuide={product.usageGuide} specifications={specifications} />}
         {tab === "Đánh giá" && <ProductReviews productId={product.id} reviews={reviews} onAddReview={onAddReview} resource={reviewResource} />}
         {tab === "Câu hỏi thường gặp" && <ProductFaq />}
       </div>
@@ -59,7 +59,7 @@ function ProductDescription({ product }: { product: Product }) {
   );
 }
 
-function ProductDocuments({ code, specifications }: { code: string; specifications: ProductSpecification[] }) {
+function ProductDocuments({ code, usageGuide, specifications }: { code: string; usageGuide?: string; specifications: ProductSpecification[] }) {
   const downloadSpecifications = () => {
     const rows = [["Thông số", "Giá trị"], ...specifications];
     const csv = "\ufeff" + rows.map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(",")).join("\r\n");
@@ -73,6 +73,7 @@ function ProductDocuments({ code, specifications }: { code: string; specificatio
 
   return (
     <div className="space-y-4">
+      {usageGuide && <p className="whitespace-pre-line break-words text-sm leading-7 text-text-secondary">{usageGuide}</p>}
       <Button variant="secondary" onClick={downloadSpecifications}><Download size={17} />Tải bảng thông số</Button>
       <Link href="/guides" className="block text-sm text-blue-brand">Xem hướng dẫn chọn và lắp phụ kiện →</Link>
       <p className="text-sm text-text-secondary">Liên hệ Bảo Tín để nhận tài liệu lắp đặt của nhà sản xuất theo đúng mã hàng.</p>

@@ -6,7 +6,7 @@ export const publicCache = {
 export function publicCacheTagsForMutation(method: string, path: readonly string[], status: number): string[] {
   if (!["POST", "PATCH", "PUT", "DELETE"].includes(method) || status < 200 || status >= 300) return [];
   if (path[0] === "admin" && path[1] === "content") return [publicCache.content.tag];
-  if (path[0] === "admin" && ["commands", "products", "categories", "ledger", "integrations"].includes(path[1])) return [publicCache.catalog.tag];
+  if (path[0] === "admin" && ["commands", "products", "categories", "ledger", "integrations", "reviews"].includes(path[1])) return [publicCache.catalog.tag];
   if (path[0] === "orders" && path[1] !== "quote") return [publicCache.catalog.tag];
   return [];
 }

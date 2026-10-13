@@ -21,6 +21,7 @@ import { useApiResource } from "@/lib/use-api-resource";
 import { readCatalogPage } from "@/lib/commerce-api";
 import type { CatalogPageResponse } from "@/lib/api-types";
 import { ResourceStatus } from "./admin/admin-resource";
+import { storeContact } from "@/lib/store-contact";
 
 export function GuideCard({ guide }: { guide: (typeof guideCatalog)[number] }) {
   return (
@@ -245,14 +246,14 @@ export function ContactView() {
           {
             icon: Phone,
             title: "Gọi tư vấn",
-            text: "0901 234 567",
-            href: "tel:0901234567",
+            text: storeContact.displayPhone,
+            href: storeContact.phoneHref,
           },
           {
             icon: MessageCircle,
             title: "Nhắn Zalo",
             text: "Tư vấn sản phẩm, báo giá nhanh",
-            href: "https://zalo.me/0901234567",
+            href: storeContact.zaloHref,
           },
           {
             icon: Mail,

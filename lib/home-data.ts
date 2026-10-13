@@ -24,6 +24,7 @@ import {
   Wallet,
   Wrench
 } from "lucide-react";
+import { storeContact } from "./store-contact";
 
 export const navItems = [
   "Phụ kiện bếp",
@@ -337,7 +338,7 @@ export const supportCards = [
   {
     title: "Gọi tư vấn",
     href: "/contact",
-    detail: "0901 234 567",
+    detail: storeContact.displayPhone,
     description: "(8:00 - 17:30)",
     icon: Phone
   },

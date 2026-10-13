@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, ImagePlus, Star, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { api, apiMode } from "@/lib/api-client";
 import { LoadingSpinner } from "@/components/ui";
+import { MAX_PRODUCT_GALLERY, MAX_IMAGE_UPLOAD_BATCH } from "@/lib/product-media";
 
 type Props = { images: string[]; onChange: (images: string[]) => void; busy: boolean; uploading: boolean; onBusyChange: (busy: boolean) => void };
 
@@ -18,7 +19,8 @@ export function ProductImageUpload({ images, onChange, busy, uploading, onBusyCh
   const upload = async (files: File[]) => {
     if (!files.length || busy) return;
     setError("");
-    if (images.length + files.length > 10) { setError("Mỗi sản phẩm tối đa 10 ảnh."); return; }
+    if (images.length + files.length > MAX_PRODUCT_GALLERY) { setError(`Mỗi sản phẩm tối đa ${MAX_PRODUCT_GALLERY} ảnh.`); return; }
+    if (files.length > MAX_IMAGE_UPLOAD_BATCH) { setError(`Mỗi lần tải tối đa ${MAX_IMAGE_UPLOAD_BATCH} ảnh.`); return; }
     if (files.some(file => file.size > 5 * 1024 * 1024 || !["image/jpeg", "image/png", "image/webp"].includes(file.type))) {
       setError("Chọn ảnh JPEG, PNG hoặc WebP, tối đa 5 MB mỗi ảnh."); return;
     }
@@ -33,10 +35,10 @@ export function ProductImageUpload({ images, onChange, busy, uploading, onBusyCh
   };
   return <>
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-      <h2 className="text-base font-semibold text-primary">Hình ảnh <span className="ml-1 text-sm font-normal text-text-muted">{images.length}/10</span></h2>
-      <label aria-busy={uploading || undefined} className={`bt-button-secondary cursor-pointer ${busy || images.length >= 10 || !apiMode ? "pointer-events-none opacity-50" : ""}`}>
+      <h2 className="text-base font-semibold text-primary">Hình ảnh <span className="ml-1 text-sm font-normal text-text-muted">{images.length}/{MAX_PRODUCT_GALLERY}</span></h2>
+      <label aria-busy={uploading || undefined} className={`bt-button-secondary cursor-pointer ${busy || images.length >= MAX_PRODUCT_GALLERY || !apiMode ? "pointer-events-none opacity-50" : ""}`}>
         {uploading ? <LoadingSpinner size={17} /> : <ImagePlus size={17} />}Thêm ảnh
-        <input type="file" multiple className="sr-only" aria-label="Thêm ảnh sản phẩm" accept="image/jpeg,image/png,image/webp" disabled={busy || images.length >= 10 || !apiMode} onChange={event => { const files = Array.from(event.target.files || []); event.target.value = ""; void upload(files); }} />
+        <input type="file" multiple className="sr-only" aria-label="Thêm ảnh sản phẩm" accept="image/jpeg,image/png,image/webp" disabled={busy || images.length >= MAX_PRODUCT_GALLERY || !apiMode} onChange={event => { const files = Array.from(event.target.files || []); event.target.value = ""; void upload(files); }} />
       </label>
     </div>
     {error && <p role="alert" className="mb-3 text-sm text-danger">{error}</p>}
