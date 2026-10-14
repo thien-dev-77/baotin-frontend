@@ -13,17 +13,17 @@ export function ProductGallery({ product }: { product: Product }) {
 
   return (
     <>
-      <section aria-label="Hình ảnh sản phẩm" className="grid gap-2 sm:grid-cols-[64px_minmax(0,1fr)]">
-        <div className="order-2 flex gap-2 overflow-auto sm:order-1 sm:flex-col">
+      <section aria-label="Hình ảnh sản phẩm" className="grid gap-2 sm:grid-cols-[80px_minmax(0,1fr)]">
+        <div className="order-2 flex gap-2 overflow-x-auto sm:order-1 sm:max-h-[500px] sm:flex-col sm:overflow-y-auto sm:overflow-x-visible scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent hover:scrollbar-thumb-text-muted">
           {product.gallery.map((image, index) => (
             <button
               key={image}
               aria-label={`Xem ảnh ${index + 1}`}
               aria-pressed={photo === index}
               onClick={() => setPhoto(index)}
-              className={`h-16 w-16 shrink-0 overflow-hidden rounded-md border bg-section p-1 ${photo === index ? "border-brand ring-1 ring-brand" : "border-border"}`}
+              className={`h-20 w-20 shrink-0 overflow-hidden rounded-lg border bg-section p-1.5 transition-all ${photo === index ? "border-brand ring-2 ring-brand/30 shadow-sm" : "border-border hover:border-brand/50"}`}
             >
-              <Image alt="" src={image} data-image-src={image} width={56} height={56} sizes="56px" quality={85} className="h-full w-full object-contain" />
+              <Image alt="" src={image} data-image-src={image} width={72} height={72} sizes="72px" quality={85} className="h-full w-full object-contain" />
             </button>
           ))}
         </div>
