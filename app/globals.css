@@ -613,3 +613,35 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
 .scrollbar-thin:hover {
   scrollbar-color: var(--color-text-muted) transparent;
 }
+
+/* Splide Slider Custom Styles */
+.splide__arrow {
+  background: transparent !important;
+  border: none !important;
+  opacity: 1 !important;
+}
+
+.splide__arrow:disabled {
+  opacity: 0.3 !important;
+}
+
+.splide__arrow svg {
+  fill: currentColor !important;
+  height: 20px !important;
+  width: 20px !important;
+}
+
+.splide__slide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.splide__slide.is-active button {
+  border-color: var(--color-brand) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+.splide__track {
+  overflow: visible !important;
+}

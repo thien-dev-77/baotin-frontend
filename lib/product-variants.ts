@@ -1,6 +1,8 @@
 import type { Product } from "./types";
 
 type Attribute = NonNullable<Product["variantAttributes"]>[number];
+export const MAX_VARIANT_LABEL_LENGTH = 100;
+export const variantLabel = (product: Pick<Product, "variantLabel" | "code">) => product.variantLabel?.trim() || product.code;
 export const variantKey = (value: string) => value.trim().replace(/\s+/g, " ").toLocaleLowerCase("vi");
 
 export function variantDimension(attributes: Attribute[], kind: "size" | "color") {

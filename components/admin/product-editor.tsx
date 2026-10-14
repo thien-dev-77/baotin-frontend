@@ -58,6 +58,7 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
   const [error, setError] = useState("");
   const initialPrices = productPrices(source || { price: 0 });
   const [variantAttributes, setVariantAttributes] = useState(() => product?.variantAttributes || template?.variantAttributes?.map(attribute => ({ name: attribute.name, value: "" })) || []);
+  const [variantLabel, setVariantLabel] = useState(product?.variantLabel || "");
   const variantGroupId = product?.variantGroupId || template?.variantGroupId || template?.id;
   const siblings = variantGroupId ? products.filter(item => item.variantGroupId === variantGroupId) : [];
   const [pricing, setPricing] = useState<ProductPricingDraft>(() => ({ listPrice: String(initialPrices.listPrice), b2cDiscount: String(Math.min(MAX_PRODUCT_DISCOUNT, initialPrices.b2cDiscount)), b2bDiscount: String(initialPrices.b2bDiscount ?? 0) }));
@@ -93,6 +94,7 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
       alternateCode: text("alternateCode"), sourceUrl: text("sourceUrl"), 
       shortDescription: richShortDescription || text("shortDescription"),
       warranty: text("warranty"),
+      variantLabel: variantLabel.trim(),
       ...(variantAttributes.length || variantGroupId ? { variantGroupId: variantGroupId || "self", variantAttributes: variantAttributes.map(attribute => ({ name: attribute.name.trim(), value: attribute.value.trim() })) } : {}),
       ...(product ? { revision: product.revision } : {})
     };
@@ -149,7 +151,7 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
                   <div className="sm:col-span-2"><Field label="Link sản phẩm nhà cung cấp"><input className="bt-input" name="sourceUrl" type="url" maxLength={300} defaultValue={source?.sourceUrl} /></Field></div>
                 </div>
               </section>
-              <ProductVariantFields attributes={variantAttributes} onChange={setVariantAttributes} groupId={product?.variantGroupId} siblings={siblings} currentId={product?.id} returnTo={listUrl} schemaLocked={Boolean(template || product?.variantGroupId && (product.id !== product.variantGroupId || siblings.length > 1))} />
+              <ProductVariantFields attributes={variantAttributes} onChange={setVariantAttributes} label={variantLabel} onLabelChange={setVariantLabel} groupId={product?.variantGroupId} siblings={siblings} currentId={product?.id} returnTo={listUrl} schemaLocked={Boolean(template || product?.variantGroupId && (product.id !== product.variantGroupId || siblings.length > 1))} />
               <ProductPricingFields value={pricing} onChange={value => { setPricing(value); setPricingEdited(true); setError(""); }} b2cPrice={b2cPrice} b2bPrice={b2bPrice} legacy={!pricingEdited} />
               <section className="border-b border-border pb-7">
                 <h2 className="mb-4 text-base font-semibold text-primary">Thuộc tính bổ sung</h2>

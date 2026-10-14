@@ -35,6 +35,11 @@ Open that product again and select **Tạo biến thể**. The next form copies 
 group's content, photos, price and attribute names; enter a unique value
 combination, SKU and slug, adjust its own pricing/photos, then save. Repeat for
 other combinations. Each SKU's stock is managed separately in the ledger.
+Set **Nhãn hiển thị biến thể** on each SKU to customize its option label (for
+example, `FCL303-R` can display `Phải`). Leave it blank to display the SKU code.
+The label is used in the admin group's links and the storefront SKU picker;
+new variants start with a blank label rather than copying the root's label.
+Groups with several attributes also retain their attribute selectors.
 The customer detail page renders the options above the purchase panel, and
 switching options navigates to the matching SKU with its own image, price and
 inventory. Multi-attribute selection picks an existing compatible SKU.

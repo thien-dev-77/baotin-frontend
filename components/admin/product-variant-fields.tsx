@@ -4,12 +4,15 @@ import Link from "next/link";
 import { Plus, Trash2 } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { Button, Field } from "@/components/ui";
+import { MAX_VARIANT_LABEL_LENGTH, variantLabel } from "@/lib/product-variants";
 
 type Attribute = NonNullable<Product["variantAttributes"]>[number];
 
-export function ProductVariantFields({ attributes, onChange, groupId, siblings, currentId, returnTo, schemaLocked }: {
+export function ProductVariantFields({ attributes, onChange, label, onLabelChange, groupId, siblings, currentId, returnTo, schemaLocked }: {
   attributes: Attribute[];
   onChange: (attributes: Attribute[]) => void;
+  label: string;
+  onLabelChange: (label: string) => void;
   groupId?: string;
   siblings: Product[];
   currentId?: string;
@@ -27,9 +30,13 @@ export function ProductVariantFields({ attributes, onChange, groupId, siblings, 
       <Field label={`Giá trị ${index + 1}`}><input className="bt-input" maxLength={100} required value={attribute.value} onChange={event => edit(index, "value", event.target.value)} placeholder="Ví dụ: 800mm" /></Field>
       {!schemaLocked && (!groupId || attributes.length > 1) && <button type="button" aria-label={`Xóa thuộc tính ${index + 1}`} title="Xóa thuộc tính" onClick={() => onChange(attributes.filter((_, position) => position !== index))} className="bt-icon-button h-10 w-10"><Trash2 size={17} /></button>}
     </div>)}
+    {(attributes.length > 0 || groupId) && <div className="mt-4">
+      <Field label="Nhãn hiển thị biến thể" htmlFor="product-variant-label"><input id="product-variant-label" name="variantLabel" className="bt-input" maxLength={MAX_VARIANT_LABEL_LENGTH} value={label} onChange={event => onLabelChange(event.target.value)} placeholder="Ví dụ: Phải" aria-describedby="product-variant-label-hint" /></Field>
+      <p id="product-variant-label-hint" className="mt-1 text-xs text-text-secondary">Để trống để hiển thị mã SKU. Nhãn chỉ áp dụng cho biến thể đang sửa.</p>
+    </div>}
     {groupId && <div className="mt-4 border-t border-border pt-4">
       <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="text-sm font-semibold text-primary">Các SKU trong nhóm</h3><Link className="bt-button-secondary" href={`/admin/products/new?variantOf=${encodeURIComponent(groupId)}&returnTo=${encodeURIComponent(returnTo)}`}><Plus size={16} />Tạo biến thể</Link></div>
-      <ul className="mt-3 flex flex-wrap gap-2">{siblings.map(item => <li key={item.id}><Link href={`/admin/products/${encodeURIComponent(item.id)}/edit?returnTo=${encodeURIComponent(returnTo)}`} aria-current={item.id === currentId ? "page" : undefined} className={`inline-flex min-h-9 items-center rounded border px-3 text-sm ${item.id === currentId ? "border-brand bg-section font-semibold text-primary" : "border-border text-text-secondary hover:border-brand"}`}>{item.variantAttributes?.map(part => part.value).join(" / ") || item.code}</Link></li>)}</ul>
+      <ul className="mt-3 flex flex-wrap gap-2">{siblings.map(item => <li key={item.id}><Link href={`/admin/products/${encodeURIComponent(item.id)}/edit?returnTo=${encodeURIComponent(returnTo)}`} title={item.code} aria-current={item.id === currentId ? "page" : undefined} className={`inline-flex min-h-9 items-center rounded border px-3 text-sm ${item.id === currentId ? "border-brand bg-section font-semibold text-primary" : "border-border text-text-secondary hover:border-brand"}`}>{variantLabel(item)}</Link></li>)}</ul>
     </div>}
   </section>;
 }
