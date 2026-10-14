@@ -27,7 +27,7 @@ type HeaderService = {
 const quoteAction: HeaderService = {
   title: "Nhận báo giá",
   description: "B2B & B2C",
-  href: "/contact#consultation",
+  href: storeContact.zaloHref,
   icon: FileText,
 };
 
@@ -55,6 +55,8 @@ function HeaderServiceLink({
     <Link
       href={action.href}
       prefetch={false}
+      target={action.href === storeContact.zaloHref ? "_blank" : undefined}
+      rel={action.href === storeContact.zaloHref ? "noopener noreferrer" : undefined}
       aria-label={action.title}
       title={`${action.title} - ${action.description}`}
       className={`bt-header-service-link${compact ? " bt-header-service-link--compact" : ""}${textLink ? " bt-header-service-link--text" : ""}${action.isZalo ? " bt-header-service-link--zalo" : ""}`}
@@ -98,11 +100,12 @@ export function SiteHeader() {
     { label: "Liên hệ", href: "/contact" },
   ];
   const quickServices = [services[0], quoteAction, services[1]];
+  // Keep both Zalo actions in the drawer even though they share the same URL.
   const drawerLinks = Array.from(new Map([
     ...actions, ...services.map(action => ({ label: action.title, href: action.href })),
     { label: quoteAction.title, href: quoteAction.href }, ...navigation,
     { label: "Chính sách B2B", href: "/policies/cong-no" },
-  ].map(item => [item.href, item])).values());
+  ].map(item => [item.href === storeContact.zaloHref ? `${item.href}#${item.label}` : item.href, item])).values());
   return (
     <>
       <a
@@ -226,6 +229,8 @@ export function SiteHeader() {
               href={item.href}
               prefetch={false}
               onClick={() => setMobile(false)}
+              target={item.href === storeContact.zaloHref ? "_blank" : undefined}
+              rel={item.href === storeContact.zaloHref ? "noopener noreferrer" : undefined}
               className="block py-3 text-sm font-semibold text-primary"
             >
               {item.label}

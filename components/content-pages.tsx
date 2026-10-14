@@ -181,7 +181,9 @@ export function GuideDetail({ slug }: { slug: string }) {
             Gửi mã sản phẩm, kích thước hoặc bản vẽ cho Bảo Tín để được hỗ trợ.
           </p>
           <Link
-            href="/contact"
+            href={storeContact.zaloHref}
+            target="_blank"
+            rel="noopener noreferrer"
             className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-primary"
           >
             Nhận tư vấn

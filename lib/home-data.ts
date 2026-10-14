@@ -386,7 +386,7 @@ export const heroActions = [
   },
   {
     title: "Nhận tư vấn",
-    href: "/contact#zalo",
+    href: storeContact.zaloHref,
     description: "Qua Zalo",
     isZalo: true,
     icon: MessageCircle

@@ -1,5 +1,8 @@
 import { chromium, expect } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
+import { tsImport } from "tsx/esm/api";
+
+const { storeContact } = await tsImport("../lib/store-contact.ts", import.meta.url);
 
 const base = process.env.QA_BASE_URL || "http://localhost:3010";
 const directory = "/tmp/bao-tin-ui-qa/category-menu";
@@ -41,7 +44,7 @@ try {
     await expect(hero.locator(".bt-home-hero-shade, .bt-home-hero-copy, .bt-home-hero-caption")).toHaveCount(0);
     await expect(page.getByRole("search")).toHaveCount(1);
     await expect(page.locator(".bt-header-tagline")).toBeVisible();
-    for (const [name, href] of [["Đăng nhập B2B", "/login"], ["Nhận tư vấn", "/contact#zalo"], ["Nhận báo giá", "/contact#consultation"]]) {
+    for (const [name, href] of [["Đăng nhập B2B", "/login"], ["Nhận tư vấn", storeContact.zaloHref], ["Nhận báo giá", storeContact.zaloHref]]) {
       const link = page.locator("header").getByRole("link", { name, exact: true });
       await expect(link).toBeVisible();
       await expect(link).toHaveAttribute("href", href);

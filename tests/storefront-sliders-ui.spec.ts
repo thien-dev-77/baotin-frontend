@@ -94,7 +94,7 @@ for (const width of [1440, 390, 320]) test(`Readable menu, visible banner and us
   await expect(menu).toBeVisible(); await expect(panel).toHaveCSS("background-color", "rgb(255, 255, 255)");
   await expect(panel).toHaveCSS("opacity", "1");
   await expect(menu.locator(".bt-category-item").first()).toHaveCSS("color", "rgb(23, 23, 23)");
-  await expect(trigger).toHaveCSS("color", "rgb(23, 23, 23)");
+  await expect(trigger).toHaveCSS("color", width >= 1024 ? "rgb(255, 255, 255)" : "rgb(23, 23, 23)");
   await panel.screenshot({ path: `/private/tmp/baotin-storefront-sliders/menu-${width}.png` });
   await page.keyboard.press("Escape");
   await page.goto(`${frontend}/products/${product.slug}`);
@@ -160,7 +160,7 @@ for (const width of [1440, 390, 320]) test(`Phone and quote actions remain reada
   await page.setViewportSize({ width, height: 1000 });
   await page.goto(`${frontend}/products/${product.slug}`);
   const quote = page.getByRole("link", { name: "Nhận báo giá", exact: true });
-  await expect(quote).toBeVisible(); await expect(quote).toHaveAttribute("href", "/contact#consultation");
+  await expect(quote).toBeVisible(); await expect(quote).toHaveAttribute("href", storeContact.zaloHref);
   await page.mouse.move(0, 0);
   await expect(quote).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   await expect(quote).toHaveCSS("color", "rgb(23, 23, 23)");
@@ -171,6 +171,17 @@ for (const width of [1440, 390, 320]) test(`Phone and quote actions remain reada
     return text.left >= button.left && text.right <= button.right;
   })).toBe(true);
   await quote.screenshot({ path: `/private/tmp/baotin-storefront-sliders/quote-${width}.png` });
+  await page.context().route(storeContact.zaloHref, route => route.fulfill({ contentType: "text/html", body: "<title>Zalo link QA</title>" }));
+  for (const name of ["Nhận tư vấn", "Nhận báo giá"]) {
+    const link = page.locator("header").getByRole("link", { name, exact: true });
+    await expect(link).toHaveAttribute("href", storeContact.zaloHref);
+    const popupPromise = page.waitForEvent("popup");
+    await link.click();
+    const chat = await popupPromise;
+    await expect(chat).toHaveURL(storeContact.zaloHref);
+    await expect(chat).toHaveTitle("Zalo link QA");
+    await chat.close();
+  }
   const panel = page.getByRole("complementary", { name: "Mua sản phẩm", exact: true });
   const phone = panel.getByRole("link", { name: "Gọi cho tôi", exact: true });
   await expect(phone).toBeVisible(); await expect(phone).toHaveAttribute("href", storeContact.phoneHref);

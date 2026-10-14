@@ -6,6 +6,7 @@ import { useCommerce } from "./commerce-provider";
 import { GuideCard } from "./content-pages";
 import { ProductGrid } from "./product-card";
 import { Breadcrumb, PageHeading } from "./ui";
+import { storeContact } from "@/lib/store-contact";
 export function GuideArticle({
   guide,
   guides,
@@ -44,7 +45,7 @@ export function GuideArticle({
             {paragraph}
           </p>
         ))}
-        <Link href="/contact" className="bt-button-secondary">
+        <Link href={storeContact.zaloHref} target="_blank" rel="noopener noreferrer" className="bt-button-secondary">
           Nhận tư vấn
         </Link>
       </article>

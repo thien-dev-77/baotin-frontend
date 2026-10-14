@@ -280,14 +280,14 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
   border-radius: 6px;
   background: var(--color-brand);
   padding: 0 16px;
-  color: var(--color-primary);
+  color: var(--color-background);
   font-size: 13px;
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
   transition: background-color 160ms ease;
 }
-.bt-category-trigger:hover, .bt-category-menu[data-state="open"] .bt-category-trigger { background: var(--color-brand-hover); color: var(--color-primary); }
+.bt-category-trigger:hover, .bt-category-menu[data-state="open"] .bt-category-trigger { background: var(--color-brand-hover); color: var(--color-background); }
 .bt-category-trigger-chevron { margin-left: auto; transition: transform 180ms ease; }
 .bt-category-menu[data-state="open"] .bt-category-trigger-chevron { transform: rotate(180deg); }
 .bt-category-backdrop {
@@ -376,7 +376,8 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
 .bt-site-header .bt-notification-badge { top: 0; right: 0; }
 .bt-header-search-form { overflow: hidden; border-radius: 6px; background: var(--color-section); }
 .bt-header-search-form input { padding-inline: 14px; }
-.bt-header-search-form button { width: 44px; height: 100%; margin-right: 0; border-radius: 0; padding: 0; }
+.bt-header-search-form button { width: 44px; height: 100%; margin-right: 0; border-radius: 0; background: var(--color-brand); padding: 0; color: var(--color-background); }
+.bt-header-search-form button:hover { background: var(--color-brand-hover); }
 .bt-header-navigation-row { display: flex; min-height: 56px; align-items: center; gap: 20px; }
 .bt-header-navigation { display: flex; min-width: 0; flex: 1; align-items: center; gap: 16px; overflow-x: auto; }
 .bt-header-nav-link { display: inline-flex; min-height: 44px; flex-shrink: 0; align-items: center; border-bottom: 2px solid transparent; color: var(--color-primary); font-size: 13px; font-weight: 500; line-height: 20px; white-space: nowrap; }

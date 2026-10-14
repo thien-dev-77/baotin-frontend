@@ -107,7 +107,7 @@ for (const width of [1440, 1024, 768, 390, 320]) test(`Brand logo, favicon and y
   const search = page.locator('header form[role="search"]:visible');
   const cta = search.getByRole("button", { name: "Tìm kiếm", exact: true });
   await expect(cta).toHaveCSS("background-color", "rgb(255, 196, 0)");
-  await expect(cta).toHaveCSS("color", "rgb(23, 23, 23)");
+  await expect(cta).toHaveCSS("color", "rgb(255, 255, 255)");
   await cta.hover();
   await expect(cta).toHaveCSS("background-color", "rgb(229, 176, 0)");
   await page.mouse.move(0, 0);
@@ -190,7 +190,7 @@ for (const width of [1440, 390, 320]) test(`Zalo consultation uses its blue chan
   await expect(action).toHaveCount(1);
   await expect(action).toHaveCSS("background-color", "rgb(0, 104, 255)");
   await expect(action).toHaveCSS("color", "rgb(255, 255, 255)");
-  await expect(action).toHaveAttribute("href", "/contact#zalo");
+  await expect(action).toHaveAttribute("href", storeContact.zaloHref);
   await expect(action.locator("[data-zalo-icon]")).toHaveAttribute("src", "/zalo-icon.svg");
   await action.hover();
   await expect(action).toHaveCSS("background-color", "rgb(0, 86, 214)");
@@ -209,7 +209,7 @@ for (const width of [1920, 1440, 1280, 1024, 768, 390, 320]) test(`Reference hea
   const header = page.locator("header");
   const quote = header.getByRole("link", { name: "Nhận báo giá", exact: true }).filter({ visible: true });
   await expect(quote).toHaveCount(1);
-  await expect(quote).toHaveAttribute("href", "/contact#consultation");
+  await expect(quote).toHaveAttribute("href", storeContact.zaloHref);
   await expect(quote).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   await expect(quote).toHaveCSS("color", "rgb(23, 23, 23)");
   const search = header.getByRole("search").filter({ visible: true });
@@ -247,11 +247,13 @@ for (const width of [1920, 1440, 1280, 1024, 768, 390, 320]) test(`Reference hea
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await mkdir("/private/tmp/baotin-reference-header", { recursive: true });
   await header.screenshot({ path: `/private/tmp/baotin-reference-header/header-${width}.png`, animations: "disabled" });
+  await page.context().route(storeContact.zaloHref, route => route.fulfill({ contentType: "text/html", body: "<title>Zalo link QA</title>" }));
+  const popupPromise = page.waitForEvent("popup");
   await quote.click();
-  await expect(page).toHaveURL(`${frontend}/contact#consultation`);
-  const consultation = page.locator("#consultation");
-  await expect(consultation.getByRole("heading", { name: "Gửi yêu cầu tư vấn", exact: true })).toBeVisible();
-  await expect.poll(() => consultation.evaluate(element => element.getBoundingClientRect().top >= (document.querySelector("header")?.getBoundingClientRect().bottom || 0))).toBe(true);
+  const chat = await popupPromise;
+  await expect(chat).toHaveURL(storeContact.zaloHref);
+  await expect(chat).toHaveTitle("Zalo link QA");
+  await chat.close();
   expect(errors).toEqual([]);
 });
 
