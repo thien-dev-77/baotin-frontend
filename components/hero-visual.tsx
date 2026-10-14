@@ -3,9 +3,8 @@
 import { heroSlides } from "@/lib/home-data";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { useRef } from "react";
+import { useState } from "react";
 import Image from "next/image";
-// @ts-ignore - Type definitions issue with @splidejs/react-splide package.json exports
 import { Splide, SplideSlide, SplideTrack } from "@splidejs/react-splide";
 import "@splidejs/react-splide/css/core";
 
@@ -16,18 +15,21 @@ function slideSizes(width: number, height: number) {
 }
 
 export function HeroVisual({ slides = heroSlides }: { slides?: { image: string; width: number; height: number; href: string; alt: string }[] }) {
-  const splideRef = useRef<any>(null);
+  const [active, setActive] = useState(0);
+  const [visited, setVisited] = useState<number[]>([0]);
 
   if (!slides || slides.length === 0) return null;
 
   return (
     <section className="bt-home-hero-banner" aria-label="Ảnh giải pháp nội thất Bảo Tín">
       <Splide
-        ref={splideRef}
+        className="bt-home-hero-slider"
         hasTrack={false}
         options={{
-          type: "loop",
-          autoplay: true,
+          type: "fade",
+          rewind: true,
+          speed: 220,
+          autoplay: slides.length > 1,
           interval: 5000,
           pauseOnHover: true,
           pauseOnFocus: true,
@@ -35,8 +37,10 @@ export function HeroVisual({ slides = heroSlides }: { slides?: { image: string; 
           arrows: slides.length > 1,
           pagination: slides.length > 1,
           drag: slides.length > 1,
-          keyboard: "global",
+          keyboard: "focused",
+          i18n: { prev: "Slide trước", next: "Slide tiếp", pageX: "Chọn slide %s", slideX: "Chọn slide %s" },
         }}
+        onMove={(_, index) => { setActive(index); setVisited(previous => previous.includes(index) ? previous : [...previous, index]); }}
         aria-label="Trình chiếu banner"
       >
         <SplideTrack>
@@ -48,7 +52,7 @@ export function HeroVisual({ slides = heroSlides }: { slides?: { image: string; 
                 aria-label={slide.alt} 
                 className="bt-home-hero-link"
               >
-                <Image
+                {visited.includes(index) && <Image
                   src={slide.image}
                   alt={slide.alt}
                   fill
@@ -56,8 +60,10 @@ export function HeroVisual({ slides = heroSlides }: { slides?: { image: string; 
                   quality={90}
                   priority={index === 0}
                   draggable={false}
+                  data-active={index === active}
+                  data-image-src={slide.image}
                   className="bt-home-hero-image"
-                />
+                />}
               </Link>
             </SplideSlide>
           ))}

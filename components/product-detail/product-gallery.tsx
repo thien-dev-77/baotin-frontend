@@ -5,15 +5,21 @@ import type { Product } from "@/lib/catalog";
 import { ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-// @ts-ignore - Type definitions issue with @splidejs/react-splide package.json exports
 import { Splide, SplideSlide, SplideTrack } from "@splidejs/react-splide";
+import type { Splide as SplideCore } from "@splidejs/splide";
 import "@splidejs/react-splide/css/core";
 
 export function ProductGallery({ product }: { product: Product }) {
+  const images = Array.from(new Set((product.gallery?.length ? product.gallery : [product.image]).filter(Boolean)));
+  if (!images.length) return <section aria-label="Hình ảnh sản phẩm" className="flex aspect-square items-center justify-center rounded-xl bg-section text-sm text-text-muted">Chưa có hình ảnh sản phẩm</section>;
+  return <Gallery key={product.id} product={product} images={images} />;
+}
+
+function Gallery({ product, images }: { product: Product; images: string[] }) {
   const [photo, setPhoto] = useState(0);
   const [zoom, setZoom] = useState(false);
-  const mainSplideRef = useRef<any>(null);
-  const thumbsSplideRef = useRef<any>(null);
+  const mainSplideRef = useRef<InstanceType<typeof Splide>>(null);
+  const thumbsSplideRef = useRef<InstanceType<typeof Splide>>(null);
 
   useEffect(() => {
     if (mainSplideRef.current && thumbsSplideRef.current) {
@@ -26,33 +32,35 @@ export function ProductGallery({ product }: { product: Product }) {
     }
   }, []);
 
-  const handleSlideChange = (splide: any) => {
+  const handleSlideChange = (splide: SplideCore) => {
     setPhoto(splide.index);
   };
 
   return (
     <>
-      <section aria-label="Hình ảnh sản phẩm" className="flex flex-col gap-3">
+      <section aria-label="Hình ảnh sản phẩm" className="bt-product-gallery flex min-w-0 flex-col gap-3">
         {/* Main image slider */}
         <Splide
           ref={mainSplideRef}
+          className="bt-product-gallery-main min-w-0 w-full"
           hasTrack={false}
           options={{
             type: "fade",
             rewind: true,
             pagination: false,
-            arrows: product.gallery.length > 1,
-            drag: product.gallery.length > 1,
-            keyboard: "global",
+            arrows: images.length > 1,
+            drag: images.length > 1,
+            keyboard: "focused",
+            i18n: { prev: "Ảnh trước", next: "Ảnh tiếp" },
           }}
           onMoved={handleSlideChange}
           aria-label="Ảnh sản phẩm"
         >
           <div className="relative">
             <SplideTrack>
-              {product.gallery.map((image, index) => (
+              {images.map((image, index) => (
                 <SplideSlide key={image}>
-                  <div className="relative aspect-square overflow-hidden rounded-xl bg-section shadow-sm">
+                  <div className="bt-product-gallery-frame relative w-full aspect-square overflow-hidden rounded-xl bg-section shadow-sm">
                     <Image
                       src={image}
                       alt={`${product.name} - Ảnh ${index + 1}`}
@@ -68,7 +76,7 @@ export function ProductGallery({ product }: { product: Product }) {
             </SplideTrack>
 
             {product.featured && (
-              <span className="absolute left-3 top-3 z-10 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white shadow-sm">
+              <span className="absolute left-3 top-3 z-10 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-primary shadow-sm">
                 Nổi bật
               </span>
             )}
@@ -82,12 +90,12 @@ export function ProductGallery({ product }: { product: Product }) {
               <ZoomIn size={20} />
             </button>
 
-            {product.gallery.length > 1 && (
+            {images.length > 1 && (
               <div className="splide__arrows">
-                <button className="splide__arrow splide__arrow--prev !left-3 !h-10 !w-10 !rounded-full !bg-white/95 !shadow-md transition-all hover:!scale-110 hover:!shadow-lg">
+                <button type="button" className="splide__arrow splide__arrow--prev">
                   <ChevronLeft size={20} className="text-primary" />
                 </button>
-                <button className="splide__arrow splide__arrow--next !right-3 !h-10 !w-10 !rounded-full !bg-white/95 !shadow-md transition-all hover:!scale-110 hover:!shadow-lg">
+                <button type="button" className="splide__arrow splide__arrow--next">
                   <ChevronRight size={20} className="text-primary" />
                 </button>
               </div>
@@ -96,10 +104,11 @@ export function ProductGallery({ product }: { product: Product }) {
         </Splide>
 
         {/* Thumbnails slider */}
-        {product.gallery.length > 1 && (
+        {images.length > 1 && (
           <>
             <Splide
               ref={thumbsSplideRef}
+              className="bt-product-gallery-thumbs min-w-0 w-full"
               options={{
                 type: "slide",
                 rewind: true,
@@ -121,10 +130,11 @@ export function ProductGallery({ product }: { product: Product }) {
               }}
               aria-label="Danh sách ảnh sản phẩm"
             >
-              {product.gallery.map((image, index) => (
+              {images.map((image, index) => (
                 <SplideSlide key={`thumb-${index}`}>
                   <button
-                    className={`relative block h-20 w-20 overflow-hidden rounded-lg border-2 bg-section transition-all ${
+                    type="button"
+                    className={`relative block h-full w-full overflow-hidden rounded-lg border-2 bg-section transition-all ${
                       photo === index
                         ? "border-brand shadow-md"
                         : "border-border hover:border-brand/50 hover:shadow-sm"
@@ -135,6 +145,7 @@ export function ProductGallery({ product }: { product: Product }) {
                       }
                     }}
                     aria-label={`Xem ảnh ${index + 1}`}
+                    aria-pressed={photo === index}
                   >
                     <Image
                       alt={`Ảnh ${index + 1}`}
@@ -154,7 +165,7 @@ export function ProductGallery({ product }: { product: Product }) {
 
             {/* Image counter */}
             <div className="text-center text-sm text-text-muted">
-              {photo + 1} / {product.gallery.length}
+              {Math.min(photo + 1, images.length)} / {images.length}
             </div>
           </>
         )}
@@ -162,7 +173,7 @@ export function ProductGallery({ product }: { product: Product }) {
 
       <Modal open={zoom} onClose={() => setZoom(false)} title={product.name}>
         <Image
-          src={product.gallery[photo]}
+          src={images[photo] || images[0]}
           alt={product.name}
           width={1000}
           height={1000}
