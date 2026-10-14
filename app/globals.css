@@ -9,6 +9,7 @@
   --color-brand-hover: #e5b000;
   --color-zalo: #0068ff;
   --color-zalo-hover: #0056d6;
+  --color-success: #168a5a;
   --color-background: #ffffff;
   --color-section: #fafaf7;
   --color-text: #171717;
@@ -386,14 +387,17 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
 .bt-header-service-copy { min-width: 0; }
 .bt-header-service-title { display: block; font-size: 12px; font-weight: 600; line-height: 16px; }
 .bt-header-service-description { display: block; color: var(--color-text-secondary); font-size: 11px; line-height: 16px; }
-.bt-header-service-link--accent { background: var(--color-brand); padding: 4px 10px; color: var(--color-primary); }
-.bt-header-service-link--accent svg { color: var(--color-primary); }
-.bt-header-service-link--accent .bt-header-service-description { color: rgba(255, 255, 255, 0.9); }
-.bt-header-service-link--accent:hover { background: var(--color-brand-hover); color: var(--color-primary); }
+.bt-header-service-link--accent { min-height: 40px; gap: 8px; border: 1px solid var(--color-primary); border-radius: 8px; background: var(--color-primary); padding: 8px 14px; color: white; }
+.bt-header-service-link--accent svg { width: 18px; height: 18px; color: var(--color-brand); }
+.bt-header-service-link--accent .bt-header-service-title { font-size: 13px; line-height: 20px; white-space: nowrap; }
+.bt-header-service-link--accent .bt-header-service-description { display: none; }
+.bt-header-service-link--accent:hover { border-color: var(--color-brand); background: var(--color-primary-dark); color: white; }
 .bt-header-service-link--zalo { background: var(--color-zalo); padding-inline: 10px; color: var(--color-background); }
 .bt-header-service-link--zalo .bt-header-service-description { color: var(--color-background); }
 .bt-header-service-link--zalo:hover { background: var(--color-zalo-hover); color: var(--color-background); }
 .bt-header-mobile-services { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 4px 0 8px; }
+.bt-header-mobile-services .bt-header-service-link--accent { padding-inline: 6px; }
+.bt-header-mobile-services .bt-header-service-link--accent svg { display: none; }
 .bt-header-service-link--compact { min-width: 0; min-height: 40px; justify-content: center; gap: 5px; }
 .bt-header-service-link--compact .bt-header-service-title { font-size: 11px; }
 .bt-header-service-link--compact .bt-header-service-description { display: none; }

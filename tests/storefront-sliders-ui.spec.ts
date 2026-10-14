@@ -6,11 +6,13 @@ import { mkdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { catalog, categoryCatalog } from "../lib/catalog";
 import { heroSlides } from "../lib/home-data";
+import { storeContact } from "../lib/store-contact";
 
 const frontend = "http://127.0.0.1:3053";
 const images = ["/images/catalog/hinge-detail.png", "/images/catalog/handle-brass-hd.jpg", "/images/catalog/hardware.png"];
 const product = { ...catalog[0], id: "qa-gallery", slug: "qa-gallery", name: "Sản phẩm kiểm tra gallery", image: images[0], gallery: images, featured: false };
 const fallbackProduct = { ...product, id: "qa-single-photo", slug: "qa-single-photo", gallery: [] };
+const showcaseProducts = [product, fallbackProduct, ...Array.from({ length: 8 }, (_, index) => ({ ...product, id: `qa-showcase-${index}`, slug: `qa-showcase-${index}`, code: `QA-${index}` }))];
 let server: Server;
 let child: ChildProcess;
 let logs = "";
@@ -29,7 +31,7 @@ test.beforeAll(async () => {
     let body: unknown = {};
     if (url.pathname === "/api/health") body = { ready: true };
     else if (url.pathname === "/api/auth/session") body = { user: null };
-    else if (url.pathname === "/api/catalog/bootstrap" || url.pathname === "/api/catalog/selection") body = { products: [product, fallbackProduct], categories: categoryCatalog };
+    else if (url.pathname === "/api/catalog/bootstrap" || url.pathname === "/api/catalog/selection") body = { products: showcaseProducts, categories: categoryCatalog };
     else if (url.pathname.startsWith("/api/catalog/product/")) body = url.pathname.endsWith(fallbackProduct.slug) ? fallbackProduct : product;
     else if (url.pathname === "/api/content") body = { items: heroSlides.map((slide, index) => ({ ...slide, id: `qa-banner-${index}`, slug: `qa-banner-${index}`, title: slide.alt, kind: "banner", position: index })) };
     else if (url.pathname.startsWith("/api/reviews/")) body = { items: [], summary: { rating: 0, count: 0 } };
@@ -125,4 +127,46 @@ test("A product with only a cover image has a usable gallery", async ({ page }) 
   const image = page.locator(".bt-product-gallery-main img");
   await expect(image).toBeVisible(); await expect.poll(() => image.evaluate((image: HTMLImageElement) => image.naturalWidth > 0 && image.clientWidth > 100)).toBe(true);
   await expect(page.getByRole("button", { name: "Xem ảnh 2", exact: true })).toHaveCount(0);
+});
+
+for (const width of [1440, 390, 320]) test(`Phone and quote actions remain readable at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 1000 });
+  await page.goto(`${frontend}/products/${product.slug}`);
+  const quote = page.getByRole("link", { name: "Nhận báo giá", exact: true });
+  await expect(quote).toBeVisible(); await expect(quote).toHaveAttribute("href", "/contact#consultation");
+  await page.mouse.move(0, 0);
+  await expect(quote).toHaveCSS("background-color", "rgb(23, 23, 23)");
+  await expect(quote).toHaveCSS("color", "rgb(255, 255, 255)");
+  await expect(quote.locator(".bt-header-service-description")).toHaveCSS("display", "none");
+  expect(await quote.evaluate(element => {
+    const range = document.createRange(); range.selectNodeContents(element.querySelector(".bt-header-service-title")!);
+    const text = range.getBoundingClientRect(), button = element.getBoundingClientRect();
+    return text.left >= button.left && text.right <= button.right;
+  })).toBe(true);
+  await quote.screenshot({ path: `/private/tmp/baotin-storefront-sliders/quote-${width}.png` });
+  const panel = page.getByRole("complementary", { name: "Mua sản phẩm", exact: true });
+  const phone = panel.getByRole("link", { name: "Gọi cho tôi", exact: true });
+  await expect(phone).toBeVisible(); await expect(phone).toHaveAttribute("href", storeContact.phoneHref);
+  await expect(phone).toHaveCSS("background-color", "rgb(22, 138, 90)");
+  await expect(phone).toHaveCSS("color", "rgb(255, 255, 255)");
+  await expect(phone.locator("svg")).toHaveCSS("color", "rgb(255, 255, 255)");
+  await panel.screenshot({ path: `/private/tmp/baotin-storefront-sliders/contact-${width}.png` });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+});
+
+test("The product slider's left arrow points left and returns to the preceding item", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 }); await page.goto(frontend);
+  const slider = page.locator("[data-product-showcase] .product-carousel");
+  const previous = slider.getByRole("button", { name: "Sản phẩm trước", exact: true });
+  const next = slider.getByRole("button", { name: "Sản phẩm tiếp", exact: true });
+  await expect(previous).toBeDisabled(); await expect(next).toBeEnabled();
+  await expect(previous.locator("path")).toHaveAttribute("d", "m15 18-6-6 6-6");
+  await expect(previous.locator("svg")).toHaveCSS("transform", "none");
+  const list = slider.locator(".splide__list");
+  const initial = await list.evaluate(element => element.getBoundingClientRect().left);
+  await next.click(); await expect(previous).toBeEnabled();
+  await expect.poll(() => list.evaluate(element => element.getBoundingClientRect().left)).toBeLessThan(initial - 20);
+  await previous.click(); await expect(previous).toBeDisabled();
+  await expect.poll(() => list.evaluate((element, start) => Math.abs(element.getBoundingClientRect().left - start), initial)).toBeLessThan(2);
+  await slider.screenshot({ path: "/private/tmp/baotin-storefront-sliders/product-arrows.png" });
 });

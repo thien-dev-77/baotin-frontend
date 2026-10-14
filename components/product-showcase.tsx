@@ -4,18 +4,15 @@ import { useCommerce } from "@/components/commerce-provider";
 import { ProductCard } from "@/components/product-card";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useFrequentlyBought } from "./frequently-bought";
 import { EmptyState } from "./ui";
 import { ResourceStatus } from "./admin/admin-resource";
 import { homeShowcaseProducts, HOME_SHOWCASE_LIMIT } from "@/lib/home-showcase";
-// @ts-ignore - Type definitions issue with @splidejs/react-splide package.json exports
-import { Splide, SplideSlide } from "@splidejs/react-splide";
+import { Splide, SplideSlide, SplideTrack } from "@splidejs/react-splide";
 import "@splidejs/react-splide/css/core";
 
 export function ProductCarousel({ products, title, children }: { products: Product[]; title: string; children?: React.ReactNode }) {
-  const splideRef = useRef<any>(null);
-
   return (
     <section className="mt-6">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -24,7 +21,7 @@ export function ProductCarousel({ products, title, children }: { products: Produ
       </div>
       <div className="relative product-carousel">
         <Splide
-          ref={splideRef}
+          hasTrack={false}
           options={{
             type: "slide",
             rewind: false,
@@ -35,7 +32,8 @@ export function ProductCarousel({ products, title, children }: { products: Produ
             pagination: false,
             arrows: products.length > 5,
             drag: true,
-            keyboard: "global",
+            keyboard: "focused",
+            i18n: { prev: "Sản phẩm trước", next: "Sản phẩm tiếp" },
             breakpoints: {
               1024: {
                 perPage: 4,
@@ -53,11 +51,15 @@ export function ProductCarousel({ products, title, children }: { products: Produ
           }}
           aria-label={title}
         >
-          {products.map(product => (
+          <SplideTrack>{products.map(product => (
             <SplideSlide key={product.id}>
               <ProductCard product={product} />
             </SplideSlide>
-          ))}
+          ))}</SplideTrack>
+          {products.length > 1 && <div className="splide__arrows">
+            <button type="button" className="splide__arrow splide__arrow--prev"><ChevronLeft size={20} aria-hidden="true" /></button>
+            <button type="button" className="splide__arrow splide__arrow--next"><ChevronRight size={20} aria-hidden="true" /></button>
+          </div>}
         </Splide>
       </div>
     </section>
