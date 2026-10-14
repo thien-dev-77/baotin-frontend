@@ -55,7 +55,6 @@ export function ProductGallery({ product }: { product: Product }) {
                   <div className="relative aspect-square overflow-hidden rounded-xl bg-section shadow-sm">
                     <Image
                       src={image}
-                      data-image-src={image}
                       alt={`${product.name} - Ảnh ${index + 1}`}
                       fill
                       sizes="(min-width: 1280px) 500px, (min-width: 1024px) 40vw, (min-width: 640px) 60vw, 100vw"
@@ -123,9 +122,9 @@ export function ProductGallery({ product }: { product: Product }) {
               aria-label="Danh sách ảnh sản phẩm"
             >
               {product.gallery.map((image, index) => (
-                <SplideSlide key={image}>
+                <SplideSlide key={`thumb-${index}`}>
                   <button
-                    className={`relative h-20 w-20 overflow-hidden rounded-lg border-2 bg-section transition-all ${
+                    className={`relative block h-20 w-20 overflow-hidden rounded-lg border-2 bg-section transition-all ${
                       photo === index
                         ? "border-brand shadow-md"
                         : "border-border hover:border-brand/50 hover:shadow-sm"
@@ -135,14 +134,14 @@ export function ProductGallery({ product }: { product: Product }) {
                         mainSplideRef.current.splide.go(index);
                       }
                     }}
+                    aria-label={`Xem ảnh ${index + 1}`}
                   >
                     <Image
                       alt={`Ảnh ${index + 1}`}
                       src={image}
-                      data-image-src={image}
                       fill
                       sizes="80px"
-                      quality={85}
+                      quality={75}
                       className="object-contain p-1.5"
                     />
                     {photo === index && (
@@ -164,7 +163,6 @@ export function ProductGallery({ product }: { product: Product }) {
       <Modal open={zoom} onClose={() => setZoom(false)} title={product.name}>
         <Image
           src={product.gallery[photo]}
-          data-image-src={product.gallery[photo]}
           alt={product.name}
           width={1000}
           height={1000}
