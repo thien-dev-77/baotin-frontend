@@ -126,6 +126,57 @@ for (const width of [1440, 1024, 768, 390, 320]) test(`Brand logo, favicon and y
   expect(errors).toEqual([]);
 });
 
+for (const width of [1440, 1024, 768, 390, 320]) test(`Order process alignment and shared Zalo icons remain consistent at ${width}px`, async ({ page, request }) => {
+  await page.setViewportSize({ width, height: 1000 });
+  await page.route("https://www.openstreetmap.org/**", route => route.fulfill({ contentType: "text/html", body: "<title>Map fixture</title>" }));
+  const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
+  await page.goto(frontend);
+  const headerIcon = page.locator("header [data-zalo-icon]:visible");
+  await expect(headerIcon).toHaveCount(1);
+  await expect(headerIcon).toHaveAttribute("src", "/zalo-icon.svg");
+  const steps = page.getByRole("list", { name: "Các bước đặt hàng", exact: true });
+  await steps.scrollIntoViewIfNeeded();
+  await expect(steps.getByRole("listitem")).toHaveCount(5);
+  const numbers = steps.locator(".bt-order-step-number");
+  await expect(numbers).toHaveText(["1", "2", "3", "4", "5"]);
+  const markers = await numbers.evaluateAll(elements => elements.map(element => { const rect = element.getBoundingClientRect(); return { x: rect.x, y: rect.y, width: rect.width, height: rect.height }; }));
+  expect(markers.every(marker => marker.width === 36 && marker.height === 36)).toBe(true);
+  if (width >= 1024) {
+    expect(Math.max(...markers.map(marker => marker.y)) - Math.min(...markers.map(marker => marker.y))).toBeLessThan(1);
+    const gaps = markers.slice(1).map((marker, index) => marker.x - markers[index].x);
+    expect(Math.max(...gaps) - Math.min(...gaps)).toBeLessThan(1);
+    const descriptions = await steps.locator("p").evaluateAll(elements => elements.map(element => element.getBoundingClientRect().y));
+    expect(Math.max(...descriptions) - Math.min(...descriptions)).toBeLessThan(1);
+  } else {
+    expect(Math.max(...markers.map(marker => marker.x)) - Math.min(...markers.map(marker => marker.x))).toBeLessThan(1);
+    expect(markers.every((marker, index) => !index || marker.y >= markers[index - 1].y + 36)).toBe(true);
+  }
+  expect(await steps.evaluate(element => Array.from(element.querySelectorAll("li, h3, p")).every(child => child.scrollWidth <= child.clientWidth + 1))).toBe(true);
+  expect(await page.locator("[data-order-process]").evaluate(element => {
+    const bottom = element.getBoundingClientRect().bottom;
+    return Array.from(element.querySelectorAll("h3, p")).every(child => child.getBoundingClientRect().bottom <= bottom + 1 && child.scrollHeight <= child.clientHeight + 1);
+  })).toBe(true);
+  const support = page.locator("[data-home-support]");
+  const cards = support.locator(".bt-home-support-card");
+  await expect(cards).toHaveCount(4);
+  await support.scrollIntoViewIfNeeded();
+  const heights = await cards.evaluateAll(elements => elements.map(element => element.getBoundingClientRect().height));
+  expect(Math.max(...heights) - Math.min(...heights)).toBeLessThan(1);
+  await expect(support.locator("[data-zalo-icon]")).toHaveAttribute("src", "/zalo-icon.svg");
+  await expect.poll(() => support.locator("[data-zalo-icon]").evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
+  const asset = await request.get(`${frontend}/zalo-icon.svg`);
+  expect(asset.ok()).toBe(true);
+  expect(asset.headers()["content-type"]).toContain("image/svg+xml");
+  await mkdir("/private/tmp/baotin-contact-design", { recursive: true });
+  await page.locator("[data-order-process]").screenshot({ path: `/private/tmp/baotin-contact-design/process-${width}.png`, animations: "disabled", style: "header { visibility: hidden; }" });
+  await support.screenshot({ path: `/private/tmp/baotin-contact-design/support-${width}.png`, animations: "disabled", style: "header { visibility: hidden; }" });
+  await page.goto(`${frontend}/contact`);
+  await expect(page.locator("#zalo [data-zalo-icon]")).toHaveAttribute("src", "/zalo-icon.svg");
+  await expect.poll(() => page.locator("#zalo [data-zalo-icon]").evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  expect(errors).toEqual([]);
+});
+
 test("Brand promotion accent does not use error red", async ({ page }) => {
   await page.goto(`${frontend}/promotions`);
   const label = page.getByText("ƯU ĐÃI THÁNG 10", { exact: true });

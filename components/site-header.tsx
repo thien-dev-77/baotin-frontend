@@ -12,12 +12,14 @@ import { useState } from "react";
 import { NotificationBell } from "./notifications";
 import { categoryRoots } from "@/lib/category-tree";
 import { CategoryLinks } from "./category-links";
+import { ZaloIcon } from "./zalo-icon";
 
 type HeaderService = {
   title: string;
   description: string;
   href: string;
   icon: LucideIcon;
+  isZalo?: boolean;
 };
 
 function HeaderServiceLink({
@@ -37,7 +39,7 @@ function HeaderServiceLink({
       title={`${action.title} - ${action.description}`}
       className={`bt-header-service-link${compact ? " bt-header-service-link--compact" : ""}${accent ? " bt-header-service-link--accent" : ""}`}
     >
-      <Icon size={compact ? 16 : 20} strokeWidth={1.8} aria-hidden="true" />
+      {action.isZalo ? <ZaloIcon size={compact ? 20 : 24} /> : <Icon size={compact ? 16 : 20} strokeWidth={1.8} aria-hidden="true" />}
       <span className="bt-header-service-copy">
         <span className="bt-header-service-title">{action.title}</span>
         <span className="bt-header-service-description">

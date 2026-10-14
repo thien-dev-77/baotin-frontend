@@ -333,6 +333,7 @@ export const supportCards = [
     title: "Nhắn Zalo",
     href: "/contact#zalo",
     description: "Tư vấn sản phẩm, báo giá nhanh",
+    isZalo: true,
     icon: MessageCircle
   },
   {
@@ -387,6 +388,7 @@ export const heroActions = [
     title: "Nhận tư vấn",
     href: "/contact#zalo",
     description: "Qua Zalo",
+    isZalo: true,
     icon: MessageCircle
   },
   {

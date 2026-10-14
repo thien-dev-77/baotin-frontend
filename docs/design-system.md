@@ -101,6 +101,7 @@ Danger: #D92D20
 - Header: rong 192px desktop, 152px mobile; admin dung `Logo compact` rong 176px. Chieu cao theo ti le anh.
 - `Logo inverted` dung `public/logo-baotin-white.png` o footer den, cung ti le 919:271. Nen trong suot, khong co khung trang/padding va khong dung filter lam bien doi artwork. Logo footer lazy-load; logo header/admin eager.
 - Favicon, shortcut va Apple touch icon dung `public/favicon-baotin.png` qua `metadata.icons` trong `app/layout.tsx`. Hai asset nay nam o FE, khong phu thuoc media backend.
+- Moi icon Zalo o header, ho tro nhanh, trang Lien he va product detail dung `components/zalo-icon.tsx` voi `public/zalo-icon.svg`. Giu nguyen artwork xanh/trang cua Zalo, khong ve lai bang MessageCircle/chu Zalo hay dat trong vong tron vang. SVG nay la asset co dinh, Next Image `unoptimized`, alt rong va aria-hidden vi link da co nhan; khong bat dangerouslyAllowSVG cho anh san pham. Co kich thuoc co dinh 20-32px theo ngu canh. Du lieu lien ket Zalo dung `isZalo: true` de renderer chon dung icon.
 
 ## 4. Radius
 
@@ -232,6 +233,7 @@ Homepage:
 - Search la hanh dong chinh.
 - Danh muc va B2B quick actions nam trong first scroll.
 - Product carousel co tabs.
+- Quy trinh dat hang dung ordered list 5 buoc. Desktop >=1024px: 5 cot deu, moc so 36px can giua va duong noi xam mong, chu den, vien vang; ten buoc 13px/20px weight 600 va mo ta 12px/18px can hang. Tablet/mobile: truc doc, so va noi dung tach cot, duong noi nam giua cac moc; khong chen mui ten len text. Ho tro nhanh dung 4 card cao deu toi thieu 104px, icon 32px va text can tren, desktop 4 cot, tablet 2 cot, mobile 1 cot.
 
 Product detail:
 
@@ -241,7 +243,7 @@ Product detail:
 - Khoi mua hang bam duoi header voi khoang cach 16px, dung lai khi het cot noi dung. Man hinh thap cho cuon noi dung khoi mua hang bang chuot/ban phim; tablet/mobile khong sticky va dat mua hang truoc bang thong so.
 - Ma hang va tinh trang hang hien ro.
 - Gia B2C/B2B khong bi lan.
-- Duoi nut them gio hang co hai lien ket "Chat Zalo" va "Goi cho toi", nen trang, vien `Border`, text `Primary`, icon vang; hover nen `Section`, vien `Brand`, chu den. Chu viet thuong theo nhan, khong ep in hoa. Chieu cao toi thieu 56px. Link Zalo mo tab moi; nut goi dung `tel:`. Van hien khi san pham het hang. Nut them gio hang giu nen `Brand` chu den de phan biet hanh dong chinh; gia mua dung `Primary`, khong dung `Danger`.
+- Duoi nut them gio hang co hai lien ket "Chat Zalo" va "Goi cho toi", nen trang, vien `Border`, text `Primary` 13px/20px weight 500, radius 6px; hover nen `Section`, vien `Brand`, chu den. Zalo dung SVG goc 24px; icon PhoneCall den 20px/net 1.8, ca hai nam trong khung icon 24px. Khong dung icon tron vang hay icon dien thoai vang. Chu viet thuong theo nhan, khong ep in hoa. Hai nut rong bang nhau, cao toi thieu 48px. Link Zalo mo tab moi; nut goi dung `tel:`. Van hien khi san pham het hang. Nut them gio hang giu nen `Brand` chu den de phan biet hanh dong chinh; gia mua dung `Primary`, khong dung `Danger`.
 - So dien thoai va link Zalo dung chung tu `lib/store-contact.ts`, dong bo voi trang Lien he va ho tro trang chu.
 - Thong so ky thuat dang bang.
 - San pham lien quan nam cuoi trang duoi khoi mua kem, dung `ProductCard` theo hang ngang (4 item hien tai), cuon ngang tren tablet/mobile.

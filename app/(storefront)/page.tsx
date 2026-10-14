@@ -9,7 +9,8 @@ import {
   solutions,
   supportCards
 } from "@/lib/home-data";
-import { ArrowRight, MessageCircle } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { ZaloIcon } from "@/components/zalo-icon";
 import { guideCatalog as guides } from "@/lib/catalog";
 import { HomeCategorySection } from "@/components/category-section";
 import Link from "next/link";
@@ -175,45 +176,21 @@ function BuyingGuides({ items }: { items?: PublicContent[] }) {
 
 function OrderProcess() {
   return (
-    <section className="bt-container mt-6">
-      <div>
-        <SectionHeading
-          title="Quy trình đặt hàng"
-          subtitle="Đơn giản, rõ ràng, thống nhất cho cả B2B và B2C"
-        />
-        <div className="mt-5 grid gap-5 lg:grid-cols-5 lg:gap-6">
-          {processSteps.map((step, index) => {
-            return (
-              <div key={step.title} className="relative flex items-start gap-3">
-                {index < processSteps.length - 1 ? (
-                  <ArrowRight
-                    size={18}
-                    strokeWidth={1.5}
-                    aria-hidden="true"
-                    className="absolute -right-5 top-3 hidden text-text-muted lg:block"
-                  />
-                ) : null}
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-base font-semibold text-primary">
-                  {index + 1}
-                </div>
-                <div className="min-w-0 pt-0.5">
-                  <h3 className="text-xs font-bold leading-[18px] text-primary xl:text-[13px]">{step.title}</h3>
-                  <p className="mt-1 text-[11px] leading-[17px] text-text-secondary xl:text-xs">
-                    {step.description}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+    <section className="bt-container mt-6" data-order-process>
+      <SectionHeading title="Quy trình đặt hàng" subtitle="Đơn giản, rõ ràng, thống nhất cho cả B2B và B2C" />
+      <ol className="bt-order-process" aria-label="Các bước đặt hàng">
+        {processSteps.map((step, index) => <li key={step.title} className="bt-order-step">
+          <span className="bt-order-step-number" aria-hidden="true">{index + 1}</span>
+          <div className="bt-order-step-copy"><h3>{step.title}</h3><p>{step.description}</p></div>
+        </li>)}
+      </ol>
     </section>
   );
 }
 
 function SupportSection() {
   return (
-    <section className="bt-container mt-7 pb-5">
+    <section className="bt-container mt-7 pb-5" data-home-support>
       <SectionHeading title="Hỗ trợ nhanh" />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {supportCards.map((card) => {
@@ -222,16 +199,9 @@ function SupportSection() {
             <a
               key={card.title}
               href={card.href}
-              className="flex min-h-[88px] items-center gap-3.5 rounded-lg border border-border bg-white px-3.5 py-3 transition hover:border-brand hover:bg-section"
+              className="bt-home-support-card"
             >
-              {card.title === "Nhắn Zalo" ? (
-                <span aria-hidden="true" className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand">
-                  <MessageCircle size={30} strokeWidth={1.5} className="fill-white text-white" />
-                  <span className="absolute top-2.5 text-[9px] font-bold leading-none text-primary">Zalo</span>
-                </span>
-              ) : (
-                <Icon aria-hidden="true" className="shrink-0 text-brand" size={32} strokeWidth={2.5} />
-              )}
+              <span className="bt-home-support-icon" aria-hidden="true">{card.isZalo ? <ZaloIcon size={32} /> : <Icon size={28} strokeWidth={1.8} />}</span>
               <span className="min-w-0">
                 <span className="block text-[13px] font-bold leading-[18px] text-primary">{card.title}</span>
                 {card.detail ? <span className="mt-1 block text-[13px] font-bold leading-[18px] text-primary">{card.detail}</span> : null}

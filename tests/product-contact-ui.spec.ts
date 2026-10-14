@@ -108,8 +108,14 @@ for (const width of [1440, 1024, 768, 390, 320]) {
       await expect(contact).toHaveCSS("color", "rgb(23, 23, 23)");
       await page.mouse.move(0, 0);
     }
-    await expect(phone.locator("svg")).toHaveCSS("color", "rgb(255, 196, 0)");
-    await expect(zalo.locator(".bt-product-contact-zalo")).toHaveCSS("color", "rgb(23, 23, 23)");
+    await expect(phone.locator("svg")).toHaveCSS("color", "rgb(23, 23, 23)");
+    await expect(phone.locator("svg")).toHaveAttribute("stroke-width", "1.8");
+    const icon = zalo.locator("[data-zalo-icon]");
+    await expect(icon).toHaveAttribute("src", "/zalo-icon.svg");
+    await expect(icon).toHaveCSS("width", "24px");
+    await expect.poll(() => icon.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
+    await expect(zalo).toHaveCSS("font-weight", "500");
+    await expect(phone).toHaveCSS("font-weight", "500");
     await zalo.focus();
     await zalo.press("Tab");
     await expect(phone).toBeFocused();
@@ -119,7 +125,7 @@ for (const width of [1440, 1024, 768, 390, 320]) {
     const second = (await phone.boundingBox())!;
     expect(Math.abs(first.y - second.y)).toBeLessThan(1);
     expect(Math.abs(first.height - second.height)).toBeLessThan(1);
-    expect(first.height).toBeGreaterThanOrEqual(56);
+    expect(first.height).toBeGreaterThanOrEqual(48);
     expect(first.x + first.width).toBeLessThan(second.x);
     expect(await group.evaluate(element => Array.from(element.querySelectorAll("a")).every(link => link.scrollWidth <= link.clientWidth))).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);

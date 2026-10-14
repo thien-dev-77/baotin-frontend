@@ -22,6 +22,7 @@ import { readCatalogPage } from "@/lib/commerce-api";
 import type { CatalogPageResponse } from "@/lib/api-types";
 import { ResourceStatus } from "./admin/admin-resource";
 import { storeContact } from "@/lib/store-contact";
+import { ZaloIcon } from "@/components/zalo-icon";
 
 export function GuideCard({ guide }: { guide: (typeof guideCatalog)[number] }) {
   return (
@@ -254,6 +255,7 @@ export function ContactView() {
             title: "Nhắn Zalo",
             text: "Tư vấn sản phẩm, báo giá nhanh",
             href: storeContact.zaloHref,
+            isZalo: true,
           },
           {
             icon: Mail,
@@ -267,14 +269,14 @@ export function ContactView() {
             text: "8:00 – 17:30, thứ 2 đến thứ 7",
             href: "#stores",
           },
-        ].map(({ icon: Icon, title, text, href }) => (
+        ].map(({ icon: Icon, title, text, href, isZalo }) => (
           <a
-            id={title === "Nhắn Zalo" ? "zalo" : undefined}
+            id={isZalo ? "zalo" : undefined}
             href={href}
             key={title}
             className="flex items-center gap-3 rounded-lg border border-border p-4"
           >
-            <Icon className="shrink-0 text-primary" size={25} />
+            {isZalo ? <ZaloIcon size={28} /> : <Icon className="shrink-0 text-primary" size={25} />}
             <span>
               <strong className="block text-sm text-primary">{title}</strong>
               <span className="mt-1 block break-words text-xs leading-5 text-text-secondary">
