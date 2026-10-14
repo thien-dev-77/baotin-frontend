@@ -6,6 +6,7 @@ import { mkdir } from "node:fs/promises";
 import { catalog, categoryCatalog } from "../lib/catalog";
 import { previewCatalogPage } from "../lib/catalog-query";
 import { storeContact } from "../lib/store-contact";
+import type { Product } from "../lib/types";
 
 const frontend = "http://127.0.0.1:3046";
 const backend = "http://127.0.0.1:4016";
@@ -13,7 +14,19 @@ const imageBackend = process.env.QA_BACKEND_URL || "http://127.0.0.1:4000";
 if (!["127.0.0.1", "localhost"].includes(new URL(imageBackend).hostname)) throw new Error("Contact QA only targets local servers.");
 const product = { ...catalog[0], stock: 10 };
 const unavailable = { ...product, id: "QA-CONTACT-SOLD-OUT", slug: "qa-contact-sold-out", stock: 0 };
-const products = [product, unavailable];
+const variantSmall: Product = {
+  ...product, id: "QA-DETAIL-VARIANT-600", slug: "qa-detail-variant-600", code: "QA-600",
+  name: "Giá bát inox 304", shortDescription: "Giá bát cố định, dễ vệ sinh.",
+  specification: "600mm · Inox 304", technicalDetails: "Tải trọng tối đa: 10kg", size: "600mm", material: "Inox 304",
+  listPrice: 650000, price: 650000, customerPrice: 455000, oldPrice: undefined, b2cDiscount: 0, b2bDiscount: 30,
+  variantGroupId: "QA-DETAIL-VARIANT-600", variantAttributes: [{ name: "Kích thước", value: "600mm" }],
+};
+const variantLarge: Product = {
+  ...variantSmall, id: "QA-DETAIL-VARIANT-800", slug: "qa-detail-variant-800", code: "QA-800",
+  specification: "800mm · Inox 304", size: "800mm", listPrice: 850000, price: 850000, customerPrice: 595000,
+  variantAttributes: [{ name: "Kích thước", value: "800mm" }],
+};
+const products: Product[] = [product, unavailable, variantSmall, variantLarge];
 let server: Server;
 let child: ChildProcess;
 let logs = "";
@@ -39,7 +52,8 @@ test.beforeAll(async ({ request }) => {
       if (url.pathname === "/api/catalog/bootstrap") json({ products, categories: categoryCatalog });
       else if (url.pathname.startsWith("/api/catalog/product/")) {
         const selected = products.find(item => item.slug === decodeURIComponent(url.pathname.split("/").at(-1)!));
-        json(selected || { message: "QA product not found" }, selected ? 200 : 404);
+        const detail = selected?.variantGroupId ? { ...selected, variants: products.filter(item => item.variantGroupId === selected.variantGroupId) } : selected;
+        json(detail || { message: "QA product not found" }, selected ? 200 : 404);
       }
       else if (url.pathname === "/api/catalog/selection") json({ products: products.filter(item => url.searchParams.getAll("ids").includes(item.id)) });
       else if (url.pathname === "/api/catalog/search") json(previewCatalogPage(products, categoryCatalog, url.searchParams));
@@ -146,4 +160,63 @@ test("Sold-out products still offer Zalo and phone contact", async ({ page }) =>
   await expect(panel.getByRole("button", { name: "Thêm vào giỏ hàng", exact: true })).toBeDisabled();
   await expect(panel.getByRole("link", { name: "Chat Zalo", exact: true })).toBeVisible();
   await expect(panel.getByRole("link", { name: "Gọi cho tôi", exact: true })).toBeVisible();
+});
+
+for (const width of [1440, 1024, 768, 390, 320]) {
+  test(`Product intro avoids duplicate specifications and highlights variants at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    const errors: string[] = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.goto(`${frontend}/products/${variantSmall.slug}`);
+    const intro = page.locator(".bt-product-detail-intro");
+    const overview = intro.getByRole("region", { name: "Thông tin sản phẩm", exact: true });
+    await expect(overview.getByRole("heading", { level: 1 })).toHaveText(variantSmall.name);
+    await expect(overview.getByText(variantSmall.shortDescription!, { exact: true })).toBeVisible();
+    await expect(overview.locator("dl, table, .rounded-full")).toHaveCount(0);
+    await expect(overview.getByText("Mã hàng", { exact: true })).toHaveCount(0);
+    const information = page.locator(".bt-product-detail-information");
+    await expect(information.getByRole("heading", { name: "Thông số kỹ thuật", exact: true })).toHaveCount(1);
+    await expect(information.getByRole("row").filter({ has: page.getByRole("rowheader", { name: "Mã hàng", exact: true }) })).toContainText(variantSmall.code);
+    await expect(information.getByText(variantSmall.technicalDetails!, { exact: true })).toHaveCount(1);
+
+    const selector = intro.getByRole("region", { name: "Chọn biến thể", exact: true });
+    const small = selector.getByRole("link", { name: "600mm", exact: true });
+    const large = selector.getByRole("link", { name: "800mm", exact: true });
+    await expect(small).toHaveAttribute("aria-current", "page");
+    await expect(small).toHaveCSS("background-color", "rgb(255, 196, 0)");
+    await expect(large).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    await large.hover();
+    await expect(large).toHaveCSS("background-color", "rgb(255, 196, 0)");
+    await expect(large).toHaveCSS("color", "rgb(23, 23, 23)");
+    await expect(large).toHaveCSS("text-decoration-line", "none");
+    await small.focus();
+    await small.press("Tab");
+    await expect(large).toBeFocused();
+    await expect(large).toHaveCSS("outline-color", "rgb(23, 23, 23)");
+    await expect(large).toHaveCSS("outline-width", "2px");
+    expect(await selector.evaluate(element => Array.from(element.querySelectorAll("a")).every(link => link.scrollWidth <= link.clientWidth))).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    await mkdir("/private/tmp/baotin-detail-refinement", { recursive: true });
+    await intro.screenshot({ path: `/private/tmp/baotin-detail-refinement/intro-${width}.png`, animations: "disabled", style: "header { visibility: hidden; }" });
+
+    await large.press("Enter");
+    await expect(page).toHaveURL(`${frontend}/products/${variantLarge.slug}`);
+    await expect(selector.getByText(`Mã: ${variantLarge.code}`, { exact: true })).toBeVisible();
+    await expect(large).toHaveAttribute("aria-current", "page");
+    await page.mouse.move(0, 0);
+    await expect(large).toHaveCSS("background-color", "rgb(255, 196, 0)");
+    await expect(small).not.toHaveAttribute("aria-current", "page");
+    await expect(page.getByRole("complementary", { name: "Mua sản phẩm", exact: true }).locator("strong").first()).toContainText("850.000");
+    await expect(information.getByRole("row").filter({ has: page.getByRole("rowheader", { name: "Kích thước", exact: true }) })).toContainText("800mm");
+    expect(errors).toEqual([]);
+  });
+}
+
+test("A single-SKU product keeps specifications below without an empty variant selector", async ({ page }) => {
+  await page.goto(`${frontend}/products/${product.slug}`);
+  const intro = page.locator(".bt-product-detail-intro");
+  await expect(intro.getByRole("region", { name: "Thông tin sản phẩm", exact: true })).toBeVisible();
+  await expect(intro.locator("dl, table")).toHaveCount(0);
+  await expect(intro.getByRole("region", { name: "Chọn biến thể", exact: true })).toHaveCount(0);
+  await expect(page.locator(".bt-product-detail-information").getByRole("row").filter({ has: page.getByRole("rowheader", { name: "Mã hàng", exact: true }) })).toContainText(product.code);
 });

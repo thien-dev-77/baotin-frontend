@@ -3,9 +3,10 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { createServer, type Server } from "node:http";
 import { once } from "node:events";
 import { mkdir } from "node:fs/promises";
-import type { Category } from "../lib/types";
+import type { Category, SessionUser } from "../lib/types";
 import { heroSlides } from "../lib/home-data";
 import { previewCatalogPage } from "../lib/catalog-query";
+import { storeContact } from "../lib/store-contact";
 
 const frontend = "http://127.0.0.1:3048";
 const imageBackend = process.env.QA_BACKEND_URL || "http://127.0.0.1:4000";
@@ -26,9 +27,10 @@ let child: ChildProcess;
 let logs: string;
 let unexpected: string[];
 let reads: string[];
+let sessionUser: SessionUser | null;
 
 test.beforeEach(async ({ request }) => {
-  categories = structuredClone(tree); logs = ""; unexpected = []; reads = [];
+  categories = structuredClone(tree); logs = ""; unexpected = []; reads = []; sessionUser = null;
   server = createServer(async (incoming, outgoing) => {
     try {
       const url = new URL(incoming.url!, frontend);
@@ -41,7 +43,7 @@ test.beforeEach(async ({ request }) => {
       }
       const json = (data: unknown, status = 200) => { outgoing.writeHead(status, { "Content-Type": "application/json" }); outgoing.end(JSON.stringify(data)); };
       if (url.pathname === "/api/health") json({ ready: true });
-      else if (url.pathname === "/api/catalog/bootstrap") json({ products: [], categories });
+      else if (url.pathname === "/api/catalog/bootstrap") json({ products: [], categories, brands: ["Fulco"] });
       else if (url.pathname === "/api/catalog/search") json(previewCatalogPage([], categories, url.searchParams));
       else if (url.pathname === "/api/catalog/selection") json({ products: [] });
       else if (url.pathname === "/api/content") json({ items: heroSlides.map((slide, index) => ({ ...slide, id: `qa-hero-${index}`, slug: `qa-hero-${index}`, title: slide.alt, kind: "banner", position: index })) });
@@ -49,7 +51,9 @@ test.beforeEach(async ({ request }) => {
         const category = categories.find(item => item.slug === decodeURIComponent(url.pathname.split("/").at(-1)!));
         json(category || { message: "QA category not found" }, category ? 200 : 404);
       }
-      else if (url.pathname === "/api/auth/session") json({ user: null });
+      else if (url.pathname === "/api/auth/session") json({ user: sessionUser });
+      else if (url.pathname === "/api/notifications/count") json({ unreadCount: 3 });
+      else if (url.pathname === "/api/account") json({ favorites: [] });
       else if (url.pathname === "/api/orders") json([]);
       else { unexpected.push(`GET ${url.pathname}`); json({ message: "Unexpected QA request" }, 404); }
     } catch { outgoing.writeHead(500); outgoing.end(); }
@@ -93,7 +97,7 @@ for (const width of [1440, 1024, 768, 390, 320]) test(`Brand logo, favicon and y
   await expect.poll(() => logo.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
   const rect = (await logo.boundingBox())!;
   expect(Math.abs(rect.width / rect.height - 919 / 271)).toBeLessThan(0.02);
-  expect(rect.width).toBe(width < 640 ? 152 : 192);
+  expect(rect.width).toBe(width >= 1280 ? 220 : width < 640 ? 152 : 192);
   await expect(page.locator('head link[rel="icon"]')).toHaveAttribute("href", "/favicon-baotin.png");
   for (const asset of ["/logo-baotin.png", "/logo-baotin-white.png", "/favicon-baotin.png"]) {
     const response = await request.get(`${frontend}${asset}`);
@@ -140,7 +144,7 @@ for (const width of [1440, 1024, 768, 390, 320]) test(`Order process alignment a
   const numbers = steps.locator(".bt-order-step-number");
   await expect(numbers).toHaveText(["1", "2", "3", "4", "5"]);
   const markers = await numbers.evaluateAll(elements => elements.map(element => { const rect = element.getBoundingClientRect(); return { x: rect.x, y: rect.y, width: rect.width, height: rect.height }; }));
-  expect(markers.every(marker => marker.width === 36 && marker.height === 36)).toBe(true);
+  expect(markers.every(marker => marker.width === 28 && marker.height === 28)).toBe(true);
   if (width >= 1024) {
     expect(Math.max(...markers.map(marker => marker.y)) - Math.min(...markers.map(marker => marker.y))).toBeLessThan(1);
     const gaps = markers.slice(1).map((marker, index) => marker.x - markers[index].x);
@@ -149,7 +153,7 @@ for (const width of [1440, 1024, 768, 390, 320]) test(`Order process alignment a
     expect(Math.max(...descriptions) - Math.min(...descriptions)).toBeLessThan(1);
   } else {
     expect(Math.max(...markers.map(marker => marker.x)) - Math.min(...markers.map(marker => marker.x))).toBeLessThan(1);
-    expect(markers.every((marker, index) => !index || marker.y >= markers[index - 1].y + 36)).toBe(true);
+    expect(markers.every((marker, index) => !index || marker.y >= markers[index - 1].y + 28)).toBe(true);
   }
   expect(await steps.evaluate(element => Array.from(element.querySelectorAll("li, h3, p")).every(child => child.scrollWidth <= child.clientWidth + 1))).toBe(true);
   expect(await page.locator("[data-order-process]").evaluate(element => {
@@ -170,11 +174,118 @@ for (const width of [1440, 1024, 768, 390, 320]) test(`Order process alignment a
   await mkdir("/private/tmp/baotin-contact-design", { recursive: true });
   await page.locator("[data-order-process]").screenshot({ path: `/private/tmp/baotin-contact-design/process-${width}.png`, animations: "disabled", style: "header { visibility: hidden; }" });
   await support.screenshot({ path: `/private/tmp/baotin-contact-design/support-${width}.png`, animations: "disabled", style: "header { visibility: hidden; }" });
+  await mkdir("/private/tmp/baotin-service-refinement", { recursive: true });
+  await page.locator(".bt-home-services").screenshot({ path: `/private/tmp/baotin-service-refinement/services-${width}.png`, animations: "disabled", style: "header { visibility: hidden; }" });
   await page.goto(`${frontend}/contact`);
   await expect(page.locator("#zalo [data-zalo-icon]")).toHaveAttribute("src", "/zalo-icon.svg");
   await expect.poll(() => page.locator("#zalo [data-zalo-icon]").evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   expect(errors).toEqual([]);
+});
+
+for (const width of [1440, 390, 320]) test(`Zalo consultation uses its blue channel color at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 1000 });
+  await page.goto(frontend);
+  const action = page.locator("header .bt-header-service-link--zalo:visible");
+  await expect(action).toHaveCount(1);
+  await expect(action).toHaveCSS("background-color", "rgb(0, 104, 255)");
+  await expect(action).toHaveCSS("color", "rgb(255, 255, 255)");
+  await expect(action).toHaveAttribute("href", "/contact#zalo");
+  await expect(action.locator("[data-zalo-icon]")).toHaveAttribute("src", "/zalo-icon.svg");
+  await action.hover();
+  await expect(action).toHaveCSS("background-color", "rgb(0, 86, 214)");
+  expect(await action.evaluate(element => element.scrollWidth <= element.clientWidth && element.scrollHeight <= element.clientHeight)).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await mkdir("/private/tmp/baotin-service-refinement", { recursive: true });
+  await page.locator("header").screenshot({ path: `/private/tmp/baotin-service-refinement/header-${width}.png`, animations: "disabled" });
+});
+
+for (const width of [1920, 1440, 1280, 1024, 768, 390, 320]) test(`Reference header keeps aligned actions and usable navigation at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 1000 });
+  await page.route("https://www.openstreetmap.org/**", route => route.fulfill({ contentType: "text/html", body: "<title>Map fixture</title>" }));
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.goto(frontend);
+  const header = page.locator("header");
+  const quote = header.getByRole("link", { name: "Nhận báo giá", exact: true }).filter({ visible: true });
+  await expect(quote).toHaveCount(1);
+  await expect(quote).toHaveAttribute("href", "/contact#consultation");
+  await expect(quote).toHaveCSS("background-color", "rgb(255, 196, 0)");
+  await expect(quote).toHaveCSS("color", "rgb(23, 23, 23)");
+  const search = header.getByRole("search").filter({ visible: true });
+  await expect(search.getByRole("button", { name: "Tìm kiếm", exact: true }).locator("svg")).toHaveCount(1);
+  const cart = header.getByRole("link", { name: /^Giỏ hàng, / }).filter({ visible: true });
+  await expect(cart).toHaveAttribute("href", "/cart");
+  await expect(cart.locator(".bt-header-cart-badge")).toHaveText("0");
+  await expect(cart.locator(".bt-header-cart-badge")).toHaveCSS("background-color", "rgb(255, 196, 0)");
+  if (width >= 1024) {
+    await expect(header.getByRole("navigation", { name: "Hỗ trợ khách hàng", exact: true })).toBeVisible();
+    await expect(header.getByRole("link", { name: "Đăng nhập B2B", exact: true })).toHaveAttribute("href", "/login");
+    await expect(header.getByRole("link", { name: "Yêu thích", exact: true })).toHaveAttribute("href", "/wishlist");
+    const navigation = header.getByRole("navigation", { name: "Điều hướng chính", exact: true });
+    await expect(navigation.getByRole("link", { name: "Sản phẩm", exact: true })).toHaveAttribute("href", "/catalog");
+    await expect(navigation.getByRole("link", { name: "Thương hiệu", exact: true })).toHaveAttribute("href", "/brand/fulco");
+    const category = header.getByRole("button", { name: "Danh mục sản phẩm", exact: true });
+    await expect(category).toHaveCSS("background-color", "rgb(255, 196, 0)");
+    expect((await category.boundingBox())!.height).toBe(44);
+    const components = [header.locator(".bt-header-brand"), search, header.locator(".bt-header-account-nav")];
+    const bounds = await Promise.all(components.map(component => component.boundingBox()));
+    expect(bounds.every(Boolean)).toBe(true);
+    expect(bounds[0]!.x + bounds[0]!.width).toBeLessThan(bounds[1]!.x);
+    expect(bounds[1]!.x + bounds[1]!.width).toBeLessThan(bounds[2]!.x);
+    const hotline = header.locator(".bt-header-hotline");
+    if (width >= 1280) {
+      await expect(hotline).toBeVisible();
+      await expect(hotline).toHaveAttribute("href", storeContact.phoneHref);
+      await expect(hotline).toContainText(storeContact.displayPhone);
+    } else await expect(hotline).toBeHidden();
+  } else {
+    await expect(header.getByRole("button", { name: "Mở menu", exact: true })).toBeVisible();
+    await expect(header.getByRole("navigation", { name: "Điều hướng chính", exact: true })).toBeHidden();
+  }
+  expect(await header.evaluate(element => Array.from(element.querySelectorAll("a, button")).filter(child => child.getBoundingClientRect().width > 0).every(child => child.scrollWidth <= child.clientWidth + 1 && child.scrollHeight <= child.clientHeight + 1))).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await mkdir("/private/tmp/baotin-reference-header", { recursive: true });
+  await header.screenshot({ path: `/private/tmp/baotin-reference-header/header-${width}.png`, animations: "disabled" });
+  await quote.click();
+  await expect(page).toHaveURL(`${frontend}/contact#consultation`);
+  const consultation = page.locator("#consultation");
+  await expect(consultation.getByRole("heading", { name: "Gửi yêu cầu tư vấn", exact: true })).toBeVisible();
+  await expect.poll(() => consultation.evaluate(element => element.getBoundingClientRect().top >= (document.querySelector("header")?.getBoundingClientRect().bottom || 0))).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+for (const width of [1440, 390]) test(`Header icon search submits an encoded query at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 1000 });
+  await page.goto(frontend);
+  const input = page.locator("header").getByRole("combobox").filter({ visible: true });
+  await input.click();
+  const search = width < 640 ? page.getByRole("dialog", { name: "Tìm kiếm sản phẩm", exact: true }).getByRole("search") : page.locator("header").getByRole("search").filter({ visible: true });
+  await search.getByRole("combobox").fill("Vòi rửa");
+  await search.getByRole("button", { name: "Tìm kiếm", exact: true }).click();
+  await expect(page).toHaveURL(`${frontend}/search?q=${encodeURIComponent("Vòi rửa")}`);
+});
+
+for (const width of [1024, 390, 320]) test(`Signed-in header fits notification and large cart badges at ${width}px`, async ({ page }) => {
+  sessionUser = {
+    id: "qa-header-b2b", name: "QA Customer", email: "qa@example.test", role: "b2b", branches: ["Quy Nhơn"],
+    customer: { id: "qa-header-customer", name: "QA Customer", email: "qa@example.test", phone: "0901234567", company: "QA", role: "b2b", status: "active", creditLimit: 0, debt: 0 },
+  };
+  await page.addInitScript(() => {
+    localStorage.setItem("baotin-commerce-api-v1", JSON.stringify({ cart: [{ productId: "qa-header-item", quantity: 100 }], favorites: [], orders: [], coupon: "" }));
+  });
+  await page.setViewportSize({ width, height: 1000 });
+  await page.goto(frontend);
+  const header = page.locator("header");
+  await expect(header).toHaveAttribute("aria-busy", "false");
+  await expect(header.getByRole("link", { name: "Tài khoản B2B", exact: true }).filter({ visible: true })).toHaveAttribute("href", "/account");
+  await expect(header.getByRole("link", { name: "Thông báo, 3 chưa đọc", exact: true }).filter({ visible: true })).toHaveAttribute("href", "/account/notifications");
+  const cart = header.getByRole("link", { name: "Giỏ hàng, 100 sản phẩm", exact: true }).filter({ visible: true });
+  await expect(cart.locator(".bt-header-cart-badge")).toHaveText("99+");
+  expect(await header.evaluate(element => Array.from(element.querySelectorAll("a, button")).filter(child => child.getBoundingClientRect().width > 0).every(child => child.scrollWidth <= child.clientWidth + 1 && child.scrollHeight <= child.clientHeight + 1))).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await mkdir("/private/tmp/baotin-reference-header", { recursive: true });
+  await header.screenshot({ path: `/private/tmp/baotin-reference-header/signed-in-${width}.png`, animations: "disabled" });
 });
 
 test("Brand promotion accent does not use error red", async ({ page }) => {

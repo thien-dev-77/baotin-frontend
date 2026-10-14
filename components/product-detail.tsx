@@ -62,7 +62,7 @@ export function ProductDetail({ product: initialProduct }: { product: Product & 
       <div className="bt-product-detail-layout">
         <div className="bt-product-detail-intro grid items-start gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
           <ProductGallery product={product} />
-          <div><ProductOverview product={product} specifications={specifications} reviewCount={visibleReviews.length} rating={rating} onShowReviews={showReviews} /><ProductVariantSelector product={product} variants={variants} /></div>
+          <div><ProductOverview product={product} reviewCount={visibleReviews.length} rating={rating} onShowReviews={showReviews} /><ProductVariantSelector product={product} variants={variants} /></div>
         </div>
         <ProductPurchasePanel product={product} />
         <section className="bt-product-detail-information">

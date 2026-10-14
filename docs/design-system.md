@@ -34,7 +34,7 @@ Fallback: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI,
 Quy tac:
 
 - Body: 14px, line-height 1.5; metadata 12px, label phu 11-12px.
-- Header/nav: 12px, weight 500-600; dropdown item 16px.
+- Header/nav: dieu huong chinh 13px/20px weight 500-600, utility/nhan icon 11px/16px; dropdown item 16px.
 - H1 desktop homepage: 30px, weight 700.
 - H1 desktop product: 20-22px, weight 700.
 - H1 mobile homepage: 26px; trang noi dung 24px.
@@ -91,6 +91,7 @@ Danger: #D92D20
 - Ty le muc tieu: 70% white/off-white, 20% black/gray, 10% yellow.
 - Vang chi cho CTA, icon, vien, nhan giam gia va diem nhan; khong phu vang hero hay section lon.
 - Nut vang dung chu den `#171717`, khong chu trang. Lien ket tren nen trang dung chu den va underline/vien vang khi hover, khong dung chu vang nho.
+- Nut "Nhan tu van / Qua Zalo" o header la ngoai le mau kenh: nen `#0068FF`, hover `#0056D6`, chu trang va icon SVG Zalo goc. Ap dung ca desktop/mobile; mau xanh nay khong thay token thuong hieu vang o cac CTA mua hang.
 - Green/red chi cho trang thai thanh cong, loi va thao tac nguy hiem; khong dung lam mau thuong hieu hay gia san pham.
 - Focus co outline den 2px; input/selection co vien vang. Khong chi dua vao mau de truyen dat active/loading/error.
 - Token mau nam trong `tailwind.config.ts` va `:root` cua `app/globals.css`; khi doi phai cap nhat ca hai va chay branding QA. Khong them mau xanh/navy hardcode o component.
@@ -98,10 +99,10 @@ Danger: #D92D20
 ## 3.1. Logo va favicon
 
 - `components/logo.tsx` dung Next Image voi `public/logo-baotin.png`, ti le goc 919:271. Khong ve lai, doi mau, crop hay keo gian logo.
-- Header: rong 192px desktop, 152px mobile; admin dung `Logo compact` rong 176px. Chieu cao theo ti le anh.
+- Header: rong 220px desktop >=1280px, 192px tablet/desktop hep, 152px mobile; admin dung `Logo compact` rong 176px. Chieu cao theo ti le anh, Next Image sizes khop voi chieu rong hien thi.
 - `Logo inverted` dung `public/logo-baotin-white.png` o footer den, cung ti le 919:271. Nen trong suot, khong co khung trang/padding va khong dung filter lam bien doi artwork. Logo footer lazy-load; logo header/admin eager.
 - Favicon, shortcut va Apple touch icon dung `public/favicon-baotin.png` qua `metadata.icons` trong `app/layout.tsx`. Hai asset nay nam o FE, khong phu thuoc media backend.
-- Moi icon Zalo o header, ho tro nhanh, trang Lien he va product detail dung `components/zalo-icon.tsx` voi `public/zalo-icon.svg`. Giu nguyen artwork xanh/trang cua Zalo, khong ve lai bang MessageCircle/chu Zalo hay dat trong vong tron vang. SVG nay la asset co dinh, Next Image `unoptimized`, alt rong va aria-hidden vi link da co nhan; khong bat dangerouslyAllowSVG cho anh san pham. Co kich thuoc co dinh 20-32px theo ngu canh. Du lieu lien ket Zalo dung `isZalo: true` de renderer chon dung icon.
+- Moi icon Zalo o header, ho tro nhanh, trang Lien he va product detail dung `components/zalo-icon.tsx` voi `public/zalo-icon.svg`. Giu nguyen artwork xanh/trang cua Zalo, khong ve lai bang MessageCircle/chu Zalo hay dat trong vong tron vang. SVG nay la asset co dinh, Next Image `unoptimized`, alt rong va aria-hidden vi link da co nhan; khong bat dangerouslyAllowSVG cho anh san pham. Co kich thuoc co dinh 18-32px theo ngu canh. Du lieu lien ket Zalo dung `isZalo: true` de renderer chon dung icon.
 
 ## 4. Radius
 
@@ -117,17 +118,19 @@ Quy tac:
 
 - Button/input khong nen qua tron.
 - Card san pham dung radius 3px, vien xam 1px, nen trang, khong shadow; card category giu radius 8px.
-- Dropdown danh muc rong 320px, radius 8px; item chinh 44px, lien ket phu 36px, trigger 32px.
+- Dropdown danh muc rong 320px, radius 8px; item chinh 44px, lien ket phu 36px. Trigger rong 220px/cao 44px, nen `Brand`, chu `Primary` 13px/600, hover/open dung `Brand Hover`.
 - Homepage desktop: sidebar danh muc 256px ben trai hero, gap 16px, ca hai cao 408px. Tieu de va ten danh muc dung font 14px, line-height 20px. Duoi moi danh muc cha hien toi da 2 ten danh muc con, font 12px/16px mau Secondary, 1 dong ellipsis; tooltip giu day du ten. Lay tu cay danh muc trong API, fallback nhom subcategory cu neu chua co danh muc con. Link "Xem tat ca danh muc" co dinh o cuoi sidebar, danh sach cuon ben trong khi nhieu muc; khong tang chieu cao hero. Dung chung `CategoryLinks` voi dropdown, nhung dropdown/mobile khong hien preview va dropdown giu font 16px.
 - Sidebar hover: `CategoryLinks flyout` mo panel con sang phai, hover delay 80ms va close delay 180ms de di chuot qua khe giua cac cot. Portal vao body de khong bi cat boi vung cuon; toi da 3 panel cho cay 4 cap. Panel rong toi da 272px, tu giam rong tren desktop hep de cac cot khong chong nhau; gioi han chieu cao/vi tri theo viewport, nen trang, radius 6px, font 14px/20px Regular. Giu preview khi mo de sidebar khong doi chieu cao. Mui ten phai mo va focus muc dau; len/xuong, Home/End chuyen muc; trai/Escape dong mot cap va tra focus. Click nut mui ten ho tro thiet bi touch desktop. Click ben ngoai, roi focus, cuon sidebar/trang, resize hoac chuyen trang thi dong; cuon panel chi dong cap sau. Hover chi ap dung desktop co chuot; dropdown va menu mobile van mo cay inline bang nut bam. Khong phat sinh API request khi hover.
 - Hero chi co slide anh va control chuyen slide, khong text/caption, search hay overlay mau. Desktop cao 408px; tablet/mobile ti le 16:7.
-- Search, B2B, tu van, catalog va 3 cam ket dich vu chi nam trong header. Mobile co hang lien ket nhanh gon.
+- Header desktop co 3 hang: utility 36px nen `Section` (tagline, ho tro B2B, tai lieu, chinh sach, Zalo xanh), hang logo/tim kiem/tai khoan 88px, dieu huong 56px voi trigger danh muc vang. Search nen `Section`, cao 46px, nut icon Search vang 48px co aria-label/title. Dang nhap, yeu thich va gio hang dung icon 24px/nhan 11px, badge gio hang vang hien so luong thuc (gio trong hien 0, >99 hien 99+). CTA `Nhan bao gia` vang mo `/contact#consultation`; hotline >=1280px dung `storeContact`, khong che dieu huong o desktop hep. Link thuong hieu lay tu brand API, khong co dinh Hafele. Dieu huong chi dung trang co that, khong tao lien ket Du an/Tin tuc rong. Link header prefetch=false de khong tai API cac trang chua mo.
+- Mobile: logo/hang icon 64px, search 40px va 3 lien ket nhanh (dang nhap, bao gia, Zalo); menu drawer giu danh muc long nhau, catalog, yeu thich, tai khoan va cac lien ket chinh. Khong lap search hay CTA o hero.
+- Khi da dang nhap, icon thong bao desktop co nhan va can hang voi tai khoan/gio hang. Badge nam trong vung nut de khong tran hay de len control ben canh; van dung API count/Redux auth hien co, khong tai danh sach thong bao khi chua vao inbox. `NotificationBell withLabel` chi doi cach render trong header, default o admin/mobile khong doi.
 - Tablet/mobile an sidebar va dung menu trong header; slide ho tro vuot, ban phim va click den danh muc.
 - Trang category khong co banner: breadcrumb, tieu de/mo ta, danh muc con, bo loc va danh sach san pham.
 - Section "Danh sach san pham" tren trang chu dang an; giu carousel va toi da 5 section danh muc co san pham cong khai, theo thu tu danh muc trong admin. Listing danh muc/tim kiem/thuong hieu/khuyen mai dung `ProductGrid desktopColumns={4}`: desktop >=1024px 4 cot, tablet 3 cot, mobile 2 cot. Cac grid khac mac dinh 5 cot desktop; section danh muc va carousel homepage van hien 5 item.
 - Section danh muc khong co banner: tieu de uppercase ben trai, "Xem tat ca" ben phai, duong ke xam va lien ket subcategory nen xam o duoi. Khong goi API rieng cho moi section; du lieu lay tu catalog bootstrap.
 - Tieu de `ProductCard` dung Inter Regular 400, 15px/22px, toi da 2 dong; card hep dung 14px/22px. Khong dung Medium/SemiBold cho ten san pham, khong them letter spacing va khong gach chan khi hover title.
-- Anh `ProductCard` dung khung ti le 4:3, `object-fit: contain`, padding 6px de giam khoang trang nhung khong cat san pham. Noi dung padding 10px (8px tren card rat hep); spacing gia 6px, danh gia/tag 8px. Tag cao theo noi dung, khong dat min-height 64px hay de trong hai hang; ma hang/don vi cach noi dung toi thieu 10px va can cuoi row. "Xem chi tiet" hien nut vang `Brand` chu den cao 44px, cach mep trai/phai/duoi anh 6px, radius 6px, chu Inter Regular 400 15px/22px, icon Eye 18px net 1.6. Nut fade/slide 180ms khi hover/focus tren desktop >=1024px co chuot (`hover: hover`, `pointer: fine`). Tablet/mobile va thiet bi cam ung an hoan toan nut nay; bam anh hoac ten de vao chi tiet. Card khong co nut them vao gio; mua hang tai trang chi tiet. Nut nam absolute, khong day noi dung card khi xuat hien; reduced motion tat transition.
+- Anh `ProductCard` dung khung ti le 4:3, `object-fit: contain`, padding 6px de giam khoang trang nhung khong cat san pham. Noi dung padding 10px (8px tren card rat hep); spacing gia 6px, danh gia/tag 8px. Tag cao theo noi dung, khong dat min-height 64px hay de trong hai hang; ma hang/don vi cach noi dung toi thieu 10px va can cuoi row. "Xem chi tiet" la nut den chu trang cao 36px, rong theo noi dung, can giua va cach day anh 10px, radius 4px; Inter 13px/20px weight 500, card <=160px dung 12px; icon Eye 16px net 1.6. Khong phu thanh vang het chieu rong anh. Hover vien vang, keyboard focus vien trang ben trong; fade/slide 180ms tren desktop >=1024px co chuot (`hover: hover`, `pointer: fine`). Wishlist dich len 46px de khong che nut. Tablet/mobile va thiet bi cam ung an hoan toan nut nay; bam anh hoac ten de vao chi tiet. Card khong co nut them vao gio; mua hang tai trang chi tiet. Nut nam absolute, khong day noi dung card khi xuat hien; reduced motion tat transition.
 - Gia ban mau den `Primary` 20px, gia niem yet mau `Muted` gach ngang ben canh; card hep tu dong xuong 17px/14px theo container query. Gia goc chi hien khi cao hon gia ban thuc te cua khach. Nhan giam gia dung nen `Brand`, chu den; yeu thich dung vang. Khong dung mau `Danger` cho gia, nhan khuyen mai hay hanh dong mua hang.
 - Khong long card trong card.
 
@@ -233,12 +236,15 @@ Homepage:
 - Search la hanh dong chinh.
 - Danh muc va B2B quick actions nam trong first scroll.
 - Product carousel co tabs.
-- Quy trinh dat hang dung ordered list 5 buoc. Desktop >=1024px: 5 cot deu, moc so 36px can giua va duong noi xam mong, chu den, vien vang; ten buoc 13px/20px weight 600 va mo ta 12px/18px can hang. Tablet/mobile: truc doc, so va noi dung tach cot, duong noi nam giua cac moc; khong chen mui ten len text. Ho tro nhanh dung 4 card cao deu toi thieu 104px, icon 32px va text can tren, desktop 4 cot, tablet 2 cot, mobile 1 cot.
+- Section san pham theo danh muc tren homepage an root `phu-kien-noi-that` (Phu kien moc noi that). Chi loc tai `HomeCategoryProducts` truoc gioi han so section; khong doi visibility API, sidebar/menu, tile danh muc, catalog hay admin. Cac section con lai van hien binh thuong.
+- Quy trinh va ho tro nam trong mot band full-width nen `Section`, padding doc 24px va mot container chung. Quy trinh dung ordered list 5 buoc: desktop >=1024px 5 cot deu, moc so vang 28px/radius 4px o trai, ten buoc 13px/20px weight 600 va mo ta 12px/18px can hang; khong duong noi dai hay mui ten chen text. Tablet/mobile dung danh sach doc. Ho tro nhanh la 4 lien ket khong co khung card lon, icon 28px va text can tren, cao toi thieu 90px: desktop 4 cot voi divider doc, tablet 2 cot, mobile 1 cot voi divider ngang. So dien thoai va gio goi duoc xep cung hang khi du cho; noi dung van xuong dong khi hep.
 
 Product detail:
 
 - Breadcrumb tren cung.
 - Desktop dung grid chung hai cot: noi dung ben trai, khoi gia/mua hang sticky ben phai. Dau cot noi dung chia gallery va thong tin tom tat.
+- Thong tin tom tat chi hien thuong hieu, ten, danh gia va mo ta ngan; khong lap tag thong so hay bang thong so o tren. Lua chon bien the nam ngay sau mo ta ngan.
+- Bien the dang chon dung nen/vien `Brand`, chu `Primary` va aria-current; lua chon khac nen trang, hover nen/vien `Brand`, khong gach chan. Hover bien the dang chon dung `Brand Hover`. Keyboard focus co outline `Primary` 2px, offset 2px. Giu lien ket toi SKU thuc va minimum touch target 40px.
 - Bang thong so va tabs nam ngay duoi gallery/thong tin, trong cung cot noi dung va container; khong tao container long nhau.
 - Khoi mua hang bam duoi header voi khoang cach 16px, dung lai khi het cot noi dung. Man hinh thap cho cuon noi dung khoi mua hang bang chuot/ban phim; tablet/mobile khong sticky va dat mua hang truoc bang thong so.
 - Ma hang va tinh trang hang hien ro.
@@ -306,7 +312,7 @@ Admin API actions:
 
 Responsive:
 
-- Desktop >=1024px: header hai hang, sidebar loc, detail co cot noi dung va sidebar mua hang sticky.
+- Desktop >=1024px: header ba hang, sidebar loc, detail co cot noi dung va sidebar mua hang sticky.
 - Tablet 640-1023px: toolbar loc, grid ba cot, account menu drawer.
 - Mobile <640px: grid hai cot, search fullscreen, filter bottom sheet, cart item dung doc, tong tien co dinh.
 - Homepage danh muc/giai phap/carousel cho phep cuon ngang; quy trinh dat hang dung doc tren mobile.

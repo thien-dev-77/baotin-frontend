@@ -40,8 +40,8 @@ try {
     await expect(hero.getByRole("heading")).toHaveCount(0);
     await expect(hero.locator(".bt-home-hero-shade, .bt-home-hero-copy, .bt-home-hero-caption")).toHaveCount(0);
     await expect(page.getByRole("search")).toHaveCount(1);
-    for (const label of ["Hàng chính hãng", "Báo giá nhanh", "Hỗ trợ kỹ thuật"]) await expect(page.locator("header").getByText(label, { exact: true })).toBeVisible();
-    for (const [name, href] of [["Đăng nhập B2B", "/login"], ["Nhận tư vấn", "/contact#zalo"], ["Xem catalog", "/catalog"]]) {
+    await expect(page.locator(".bt-header-tagline")).toBeVisible();
+    for (const [name, href] of [["Đăng nhập B2B", "/login"], ["Nhận tư vấn", "/contact#zalo"], ["Nhận báo giá", "/contact#consultation"]]) {
       const link = page.locator("header").getByRole("link", { name, exact: true });
       await expect(link).toBeVisible();
       await expect(link).toHaveAttribute("href", href);
@@ -101,7 +101,7 @@ try {
     await expect(last).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(menu).toHaveCount(0);
-    await expect(page.locator('header nav[aria-label="Danh mục sản phẩm"]').getByRole("link").first()).toBeFocused();
+    await expect(page.locator('header nav[aria-label="Điều hướng chính"]').getByRole("link").first()).toBeFocused();
     await trigger.click();
     await page.mouse.click(width - 30, height - 30);
     await expect(menu).toHaveCount(0);
@@ -164,7 +164,7 @@ try {
     await expect(hero.getByRole("combobox")).toHaveCount(0);
     const bounds = await hero.boundingBox();
     expect(Math.abs(bounds.width / bounds.height - 16 / 7)).toBeLessThan(0.01);
-    for (const name of ["Đăng nhập B2B", "Nhận tư vấn", "Xem catalog"]) await expect(page.locator("header").getByRole("link", { name, exact: true })).toBeVisible();
+    for (const name of ["Đăng nhập B2B", "Nhận tư vấn", "Nhận báo giá"]) await expect(page.locator("header").getByRole("link", { name, exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Chọn slide 2", exact: true }).click();
     await expect(page.getByRole("button", { name: "Chọn slide 2", exact: true })).toHaveAttribute("aria-pressed", "true");
     await hero.locator('img[data-active="true"]').evaluate((image) => image.decode());
@@ -178,7 +178,7 @@ try {
     await page.getByRole("button", { name: "Chọn slide 2", exact: true }).click();
     await expect(hero.locator('img[data-active="true"]')).toHaveCSS("opacity", "1");
     await page.evaluate(() => document.fonts.ready);
-    const promises = await page.locator(".bt-header-promises span").evaluateAll((elements) => elements.map((element) => {
+    const promises = await page.locator(".bt-header-tagline span").evaluateAll((elements) => elements.map((element) => {
       const bounds = element.getBoundingClientRect();
       return { left: bounds.left, right: bounds.right };
     }));

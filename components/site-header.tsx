@@ -4,15 +4,17 @@ import { Logo } from "@/components/logo";
 import { SearchBox } from "@/components/search-box";
 import { Modal } from "@/components/ui";
 import { useCommerce } from "@/components/commerce-provider";
-import { heroActions, trustBadges } from "@/lib/home-data";
-import { Heart, Menu, ShoppingCart } from "lucide-react";
+import { heroActions } from "@/lib/home-data";
+import { BadgeCheck, BadgeDollarSign, FileText, Headset, Heart, Menu, Phone, ShieldCheck, ShoppingCart, UserRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { NotificationBell } from "./notifications";
-import { categoryRoots } from "@/lib/category-tree";
 import { CategoryLinks } from "./category-links";
 import { ZaloIcon } from "./zalo-icon";
+import { slugify } from "@/lib/catalog";
+import { storeContact } from "@/lib/store-contact";
+import { usePathname } from "next/navigation";
 
 type HeaderService = {
   title: string;
@@ -21,6 +23,23 @@ type HeaderService = {
   icon: LucideIcon;
   isZalo?: boolean;
 };
+
+const quoteAction: HeaderService = {
+  title: "Nhận báo giá",
+  description: "B2B & B2C",
+  href: "/contact#consultation",
+  icon: BadgeDollarSign,
+};
+
+const utilityLinks = [
+  { label: "Hỗ trợ B2B", href: "/contact#consultation", icon: Headset },
+  { label: "Tài liệu kỹ thuật", href: "/guides", icon: FileText },
+  { label: "Chính sách B2B", href: "/policies/cong-no", icon: BadgeCheck },
+];
+
+function CartBadge({ count }: { count: number }) {
+  return <span aria-hidden="true" className="bt-header-cart-badge">{count > 99 ? "99+" : count}</span>;
+}
 
 function HeaderServiceLink({
   action,
@@ -35,9 +54,10 @@ function HeaderServiceLink({
   return (
     <Link
       href={action.href}
+      prefetch={false}
       aria-label={action.title}
       title={`${action.title} - ${action.description}`}
-      className={`bt-header-service-link${compact ? " bt-header-service-link--compact" : ""}${accent ? " bt-header-service-link--accent" : ""}`}
+      className={`bt-header-service-link${compact ? " bt-header-service-link--compact" : ""}${accent ? " bt-header-service-link--accent" : ""}${action.isZalo ? " bt-header-service-link--zalo" : ""}`}
     >
       {action.isZalo ? <ZaloIcon size={compact ? 20 : 24} /> : <Icon size={compact ? 16 : 20} strokeWidth={1.8} aria-hidden="true" />}
       <span className="bt-header-service-copy">
@@ -51,7 +71,8 @@ function HeaderServiceLink({
 }
 
 export function SiteHeader() {
-  const { cart, customer, ready, categories } = useCommerce();
+  const { cart, customer, ready, brands } = useCommerce();
+  const pathname = usePathname();
   const [mobile, setMobile] = useState(false);
   const count = cart.reduce((sum, line) => sum + line.quantity, 0);
   const services = heroActions.map((action) =>
@@ -64,9 +85,24 @@ export function SiteHeader() {
       : action,
   );
   const actions = [
-    { label: "Giỏ hàng", href: "/cart", icon: ShoppingCart },
-    { label: "Yêu thích", href: "/wishlist", icon: Heart },
+    { label: customer ? "Tài khoản" : "Đăng nhập", accessibleName: services[0].title, href: services[0].href, icon: UserRound },
+    { label: "Yêu thích", accessibleName: "Yêu thích", href: "/wishlist", icon: Heart },
+    { label: "Giỏ hàng", accessibleName: `Giỏ hàng, ${count} sản phẩm`, href: "/cart", icon: ShoppingCart },
   ];
+  const navigation = [
+    { label: "Sản phẩm", href: "/catalog" },
+    { label: "Đặt hàng B2B", href: "/account/products" },
+    { label: "Thương hiệu", href: brands.length ? `/brand/${slugify(brands[0])}` : "/catalog" },
+    { label: "Khuyến mãi", href: "/promotions" },
+    { label: "Tài liệu kỹ thuật", href: "/guides" },
+    { label: "Liên hệ", href: "/contact" },
+  ];
+  const quickServices = [services[0], quoteAction, services[1]];
+  const drawerLinks = Array.from(new Map([
+    ...actions, ...services.map(action => ({ label: action.title, href: action.href })),
+    { label: quoteAction.title, href: quoteAction.href }, ...navigation,
+    { label: "Chính sách B2B", href: "/policies/cong-no" },
+  ].map(item => [item.href, item])).values());
   return (
     <>
       <a
@@ -77,68 +113,60 @@ export function SiteHeader() {
       </a>
       <header
         aria-busy={!ready}
-        className="sticky top-0 z-40 border-b border-border bg-white"
+        className="bt-site-header sticky top-0 z-40 border-b border-border bg-white"
       >
         <div className="bt-header-promises">
-          <div className="bt-container">
-            {trustBadges.map(({ label, icon: Icon }) => (
-              <span key={label}>
-                <Icon size={13} strokeWidth={1.8} aria-hidden="true" />
-                {label}
-              </span>
-            ))}
+          <div className="bt-container bt-header-top-row">
+            <p className="bt-header-tagline"><ShieldCheck size={14} strokeWidth={1.8} aria-hidden="true" /><span>Hệ thống phân phối thiết bị bếp & phụ kiện nội thất</span></p>
+            <nav className="bt-header-utilities" aria-label="Hỗ trợ khách hàng">
+              {utilityLinks.map(({ label, href, icon: Icon }) => <Link key={href} href={href} prefetch={false} className="bt-header-utility-link"><Icon size={14} strokeWidth={1.8} aria-hidden="true" />{label}</Link>)}
+              <HeaderServiceLink action={services[1]} compact />
+            </nav>
           </div>
         </div>
         <div className="border-b border-border">
-          <div className="bt-container flex h-16 items-center gap-4">
+          <div className="bt-container bt-header-main-row">
             <Link
               href="/"
               aria-label="Bảo Tín - Trang chủ"
-              className="shrink-0"
+              className="bt-header-brand"
             >
-              <Logo />
+              <Logo sizes="(min-width: 1280px) 220px, (max-width: 639px) 152px, 192px" />
             </Link>
-            <div className="hidden min-w-0 flex-1 lg:block">
-              <SearchBox compactButton />
+            <div className="bt-header-desktop-search">
+              <SearchBox compactButton iconButton />
             </div>
             <nav
               aria-label="Tài khoản và hỗ trợ"
-              className="ml-auto hidden items-center gap-3 lg:flex"
+              className="bt-header-account-nav"
             >
-              <HeaderServiceLink action={services[0]} />
-              <HeaderServiceLink action={services[2]} />
-              <NotificationBell />
-              {actions.map(({ label, href, icon: Icon }) => (
+              {actions.map(({ label, accessibleName, href, icon: Icon }) => (
                 <Link
                   key={href}
                   href={href}
+                  prefetch={false}
+                  aria-label={accessibleName}
                   title={label}
-                  className="relative flex shrink-0 flex-col items-center gap-0.5 text-[11px] font-medium text-primary hover:text-primary hover:underline decoration-brand underline-offset-4"
+                  className="bt-header-account-link"
                 >
-                  <Icon size={21} strokeWidth={1.8} aria-hidden="true" />
+                  <Icon size={24} strokeWidth={1.8} aria-hidden="true" />
                   <span>{label}</span>
-                  {href === "/cart" && count > 0 && (
-                    <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[9px] font-bold text-white">
-                      {count}
-                    </span>
-                  )}
+                  {href === "/cart" && <CartBadge count={count} />}
                 </Link>
               ))}
-              <HeaderServiceLink action={services[1]} accent />
+              <NotificationBell withLabel />
+              <HeaderServiceLink action={quoteAction} accent />
             </nav>
             <div className="ml-auto flex items-center gap-3 lg:hidden">
               <NotificationBell />
               <Link
                 href="/cart"
+                prefetch={false}
                 aria-label={`Giỏ hàng, ${count} sản phẩm`}
                 className="relative bt-icon-button"
               >
                 <ShoppingCart size={23} />
-                {count > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[9px] text-white">
-                    {count}
-                  </span>
-                )}
+                <CartBadge count={count} />
               </Link>
               <button
                 className="bt-icon-button border border-border"
@@ -150,46 +178,37 @@ export function SiteHeader() {
             </div>
           </div>
           <div className="bt-container lg:hidden">
-            <SearchBox compactButton />
+            <SearchBox compactButton iconButton />
             <nav
               aria-label="Liên kết nhanh"
               className="bt-header-mobile-services"
             >
-              {services.map((action) => (
-                <HeaderServiceLink key={action.href} action={action} compact />
+              {quickServices.map((action) => (
+                <HeaderServiceLink key={action.href} action={action} compact accent={action === quoteAction} />
               ))}
             </nav>
           </div>
         </div>
         <div className="hidden lg:block">
-          <div className="bt-container flex h-10 items-center gap-4">
+          <div className="bt-container bt-header-navigation-row">
             <CategoryMenu />
             <nav
-              aria-label="Danh mục sản phẩm"
-              className="scrollbar-hide flex min-w-0 flex-1 items-center gap-4 overflow-x-auto"
+              aria-label="Điều hướng chính"
+              className="bt-header-navigation scrollbar-hide"
             >
-              {categoryRoots(categories).map((category) => (
+              {navigation.map(({ label, href }) => (
                 <Link
-                  key={category.slug}
-                  href={`/category/${category.slug}`}
-                  className="shrink-0 whitespace-nowrap text-xs font-medium text-primary hover:text-primary hover:underline decoration-brand underline-offset-4"
+                  key={label}
+                  href={href}
+                  prefetch={false}
+                  aria-current={pathname === href ? "page" : undefined}
+                  className="bt-header-nav-link"
                 >
-                  {category.name}
+                  {label}
                 </Link>
               ))}
             </nav>
-            <Link
-              className="shrink-0 text-xs font-medium text-primary"
-              href="/brand/hafele"
-            >
-              Thương hiệu
-            </Link>
-            <Link
-              className="shrink-0 border-b-2 border-brand text-xs font-semibold text-primary"
-              href="/promotions"
-            >
-              Khuyến mãi
-            </Link>
+            <a href={storeContact.phoneHref} className="bt-header-hotline"><Phone size={15} strokeWidth={1.8} aria-hidden="true" /><span>Hotline: <strong>{storeContact.displayPhone}</strong></span></a>
           </div>
         </div>
       </header>
@@ -201,19 +220,11 @@ export function SiteHeader() {
       >
         <nav className="space-y-1">
           <CategoryLinks onNavigate={() => setMobile(false)} />
-          {[
-            ...services.map((action) => ({
-              label: action.title,
-              href: action.href,
-            })),
-            ...actions,
-            { label: "Khuyến mãi", href: "/promotions" },
-            { label: "Hướng dẫn chọn sản phẩm", href: "/guides" },
-            { label: "Liên hệ", href: "/contact" },
-          ].map((item) => (
+          {drawerLinks.map((item) => (
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               onClick={() => setMobile(false)}
               className="block py-3 text-sm font-semibold text-primary"
             >

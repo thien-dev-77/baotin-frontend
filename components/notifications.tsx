@@ -77,7 +77,7 @@ export function NotificationsProvider({
     </Context.Provider>
   );
 }
-export function NotificationBell() {
+export function NotificationBell({ withLabel = false }: { withLabel?: boolean } = {}) {
   const { sessionUser } = useCommerce();
   const { unreadCount } = useContext(Context);
   if (!apiMode || !sessionUser) return null;
@@ -88,13 +88,14 @@ export function NotificationBell() {
           ? "/account/notifications"
           : "/admin/notifications"
       }
-      className="bt-icon-button relative shrink-0"
+      className={withLabel ? "bt-header-account-link" : "bt-icon-button relative shrink-0"}
       title="Thông báo"
       aria-label={`Thông báo, ${unreadCount} chưa đọc`}
     >
-      <Bell size={20} />
+      <Bell size={withLabel ? 24 : 20} strokeWidth={withLabel ? 1.8 : 2} aria-hidden="true" />
+      {withLabel && <span>Thông báo</span>}
       {unreadCount > 0 && (
-        <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[9px] font-semibold text-white">
+        <span className="bt-notification-badge absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[9px] font-semibold text-white">
           {unreadCount > 99 ? "99+" : unreadCount}
         </span>
       )}

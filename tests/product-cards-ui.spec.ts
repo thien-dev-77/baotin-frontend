@@ -18,7 +18,7 @@ const products: Product[] = [
   ...catalog.filter(item => item.category === "phu-kien-bep").slice(0, 5).map(product => ({ ...product, reviewSummary: { rating: 0, count: 0 } })),
 ];
 
-async function mockCards(page: Page, customer = buyer, rows = products) {
+async function mockCards(page: Page, customer = buyer, rows = products, categoryRows: Category[] = categories) {
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
   const calls: string[] = [];
@@ -27,9 +27,9 @@ async function mockCards(page: Page, customer = buyer, rows = products) {
     const path = url.pathname.slice("/api/backend".length);
     calls.push(path);
     const responses: Record<string, unknown> = {
-      "/auth/session": { user: customer }, "/catalog/bootstrap": { products: rows, categories },
+      "/auth/session": { user: customer }, "/catalog/bootstrap": { products: rows, categories: categoryRows },
       "/catalog/selection": { products: rows.filter(product => url.searchParams.getAll("ids").includes(product.id)) },
-      "/catalog/search": previewCatalogPage(rows, categories, url.searchParams, customer.customer),
+      "/catalog/search": previewCatalogPage(rows, categoryRows, url.searchParams, customer.customer),
       "/orders": [], "/account": { favorites: [] }, "/notifications/count": { unreadCount: 0 },
       "/account/preferences": { favorites: JSON.parse(route.request().postData() || "{}").favorites || [] },
     };
@@ -38,6 +38,26 @@ async function mockCards(page: Page, customer = buyer, rows = products) {
   });
   return { calls, check: () => expect(errors).toEqual([]) };
 }
+
+for (const width of [1440, 390]) test(`Wood hardware is omitted only from homepage product sections at ${width}px`, async ({ page }) => {
+  const wood: Category = { ...categories[0], slug: "phu-kien-noi-that", name: "Phụ kiện mộc nội thất", image: "", description: "", subcategories: [] };
+  const hinge: Category = { ...wood, slug: "qa-ban-le", name: "Bản lề", parentSlug: wood.slug };
+  const hardware: Product = { ...products[0], id: "qa-wood-hardware", slug: "qa-wood-hardware", code: "QA-WOOD-HARDWARE", name: "Bản lề kiểm thử", category: hinge.slug, subcategory: "", variantAttributes: [] };
+  const api = await mockCards(page, buyer, [hardware, ...products], [wood, hinge, ...categories]);
+  await page.setViewportSize({ width, height: 1000 });
+  await page.goto(base);
+  const sections = page.locator("[data-category-products]");
+  await expect(sections).toHaveCount(2);
+  await expect(sections.getByRole("heading", { name: wood.name, exact: true })).toHaveCount(0);
+  await expect(sections.getByRole("heading", { name: "Khóa", exact: true })).toHaveCount(1);
+  await expect(sections.getByRole("heading", { name: "Phụ kiện bếp", exact: true })).toHaveCount(1);
+  await page.goto(`${base}/categories`);
+  await expect(page.locator("main").getByRole("link", { name: wood.name, exact: true })).toHaveAttribute("href", `/category/${wood.slug}`);
+  await expect(page.locator("main").getByRole("link", { name: hinge.name, exact: true })).toHaveAttribute("href", `/category/${hinge.slug}`);
+  await page.goto(`${base}/catalog`);
+  await expect(page.locator("main").getByRole("link", { name: hardware.name, exact: true })).toHaveAttribute("href", `/products/${hardware.slug}`);
+  api.check();
+});
 
 for (const [width, columns] of [[1440, 5], [1024, 5], [768, 3], [390, 2], [320, 2]]) {
   test(`Reference product cards and banner-free category sections at ${width}px`, async ({ browser }) => {
@@ -85,26 +105,27 @@ for (const [width, columns] of [[1440, 5], [1024, 5], [768, 3], [390, 2], [320, 
       await expect(details).toHaveText("Xem chi tiết");
       await expect(details).toHaveAttribute("aria-label", `Xem chi tiết - ${products[0].name}`);
       await expect(details).toHaveAttribute("href", `/products/${products[0].slug}`);
-      await expect(details).toHaveCSS("font-weight", "400");
-      await expect(details).toHaveCSS("font-size", "15px");
-      await expect(details).toHaveCSS("border-radius", "6px");
-      await expect(details.locator("svg")).toHaveAttribute("width", "18");
+      await expect(details).toHaveCSS("font-weight", "500");
+      await expect(details).toHaveCSS("font-size", (await card.boundingBox())!.width <= 160 ? "12px" : "13px");
+      await expect(details).toHaveCSS("border-radius", "4px");
+      await expect(details.locator("svg")).toHaveAttribute("width", "16");
       await expect(details.locator("svg")).toHaveAttribute("stroke-width", "1.6");
       if (width >= 1024) {
         await media.hover();
         await expect(details).toHaveCSS("opacity", "1");
         const area = (await media.boundingBox())!;
         const button = (await details.boundingBox())!;
-        expect(Math.abs(button.x - area.x - 6)).toBeLessThan(1);
-        expect(Math.abs(area.width - button.width - 12)).toBeLessThan(1);
-        expect(Math.abs(area.y + area.height - button.y - button.height - 6)).toBeLessThan(1);
-        expect(button.height).toBe(44);
+        expect(Math.abs(button.x + button.width / 2 - area.x - area.width / 2)).toBeLessThan(1);
+        expect(button.width).toBeLessThan(area.width - 16);
+        expect(Math.abs(area.y + area.height - button.y - button.height - 10)).toBeLessThan(1);
+        expect(button.height).toBe(36);
+        expect(await details.locator("span").evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
         const favorite = (await card.locator(".bt-product-card-favorite").boundingBox())!;
         expect(favorite.y + favorite.height).toBeLessThanOrEqual(button.y - 4);
-        await expect(details).toHaveCSS("background-color", "rgb(255, 196, 0)");
-        await expect(details).toHaveCSS("color", "rgb(23, 23, 23)");
+        await expect(details).toHaveCSS("background-color", "rgb(23, 23, 23)");
+        await expect(details).toHaveCSS("color", "rgb(255, 255, 255)");
         await details.hover();
-        await expect(details).toHaveCSS("background-color", "rgb(229, 176, 0)");
+        await expect(details).toHaveCSS("border-top-color", "rgb(255, 196, 0)");
         const contentBefore = await card.locator(".bt-product-card-content").boundingBox();
         await page.mouse.move(0, 0);
         await expect(details).toHaveCSS("opacity", "0");
@@ -207,8 +228,9 @@ test("The same product card layout is used in catalog grid and list views", asyn
   await expect(details).toHaveCSS("opacity", "1");
   const area = (await media.boundingBox())!;
   const button = (await details.boundingBox())!;
-  expect(Math.abs(area.width - button.width - 12)).toBeLessThan(1);
-  expect(Math.abs(area.y + area.height - button.y - button.height - 6)).toBeLessThan(1);
+  expect(Math.abs(button.x + button.width / 2 - area.x - area.width / 2)).toBeLessThan(1);
+  expect(button.width).toBeLessThan(area.width - 16);
+  expect(Math.abs(area.y + area.height - button.y - button.height - 10)).toBeLessThan(1);
   expect(await details.locator("span").evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   expect(await card.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   api.check();

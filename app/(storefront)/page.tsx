@@ -30,8 +30,9 @@ export default async function HomePage() {
       <ProductShowcase />
       <HomeCategoryProducts />
       <BuyingGuides items={content?.filter(row => row.kind === "guide")} />
-      <OrderProcess />
-      <SupportSection />
+      <section className="bt-home-services" aria-label="Đặt hàng và hỗ trợ">
+        <div className="bt-container"><OrderProcess /><SupportSection /></div>
+      </section>
     </main>
   );
 }
@@ -176,7 +177,7 @@ function BuyingGuides({ items }: { items?: PublicContent[] }) {
 
 function OrderProcess() {
   return (
-    <section className="bt-container mt-6" data-order-process>
+    <section data-order-process>
       <SectionHeading title="Quy trình đặt hàng" subtitle="Đơn giản, rõ ràng, thống nhất cho cả B2B và B2C" />
       <ol className="bt-order-process" aria-label="Các bước đặt hàng">
         {processSteps.map((step, index) => <li key={step.title} className="bt-order-step">
@@ -190,9 +191,9 @@ function OrderProcess() {
 
 function SupportSection() {
   return (
-    <section className="bt-container mt-7 pb-5" data-home-support>
+    <section className="bt-home-support" data-home-support>
       <SectionHeading title="Hỗ trợ nhanh" />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="bt-home-support-grid">
         {supportCards.map((card) => {
           const Icon = card.icon;
           return (
@@ -201,14 +202,14 @@ function SupportSection() {
               href={card.href}
               className="bt-home-support-card"
             >
-              <span className="bt-home-support-icon" aria-hidden="true">{card.isZalo ? <ZaloIcon size={32} /> : <Icon size={28} strokeWidth={1.8} />}</span>
-              <span className="min-w-0">
-                <span className="block text-[13px] font-bold leading-[18px] text-primary">{card.title}</span>
-                {card.detail ? <span className="mt-1 block text-[13px] font-bold leading-[18px] text-primary">{card.detail}</span> : null}
-                <span className="mt-0.5 block text-xs leading-[18px] text-text-secondary">
+              <span className="bt-home-support-icon" aria-hidden="true">{card.isZalo ? <ZaloIcon size={28} /> : <Icon size={24} strokeWidth={1.8} />}</span>
+              <span className="bt-home-support-copy">
+                <strong>{card.title}</strong>
+                <span className="bt-home-support-meta">
+                  {card.detail && <b>{card.detail}</b>}
                   {card.description}
                 </span>
-                {card.linkLabel ? <span className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold text-primary">{card.linkLabel}<ArrowRight size={14} /></span> : null}
+                {card.linkLabel ? <span className="bt-home-support-link">{card.linkLabel}<ArrowRight size={13} /></span> : null}
               </span>
             </a>
           );

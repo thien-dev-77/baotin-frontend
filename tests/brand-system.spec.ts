@@ -41,7 +41,7 @@ function luminance(hex: string) {
 }
 
 test("Yellow CTAs and neutral body text meet normal-text contrast", () => {
-  for (const [foreground, background] of [[palette.primary, palette.brand], [palette.primary, palette.hover], [palette.body, palette.background], [palette.muted, palette.section], [palette.background, palette.primary]]) {
+  for (const [foreground, background] of [[palette.primary, palette.brand], [palette.primary, palette.hover], [palette.body, palette.background], [palette.muted, palette.section], [palette.background, palette.primary], [palette.background, "#0068FF"], [palette.background, "#0056D6"]]) {
     const values = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
     expect((values[0] + 0.05) / (values[1] + 0.05)).toBeGreaterThanOrEqual(4.5);
   }

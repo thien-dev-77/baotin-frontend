@@ -70,7 +70,7 @@ for (const width of [1440, 390]) {
       reducedMotion: width < 768 ? "reduce" : "no-preference",
     });
     const page = await context.newPage();
-    const path = width < 768 ? "/contact" : "/category/khoa";
+    const path = width < 768 ? "/contact" : "/catalog";
     const held = await holdNavigation(page, (url) => url.pathname === path);
     try {
       await page.goto(base);
@@ -83,7 +83,7 @@ for (const width of [1440, 390]) {
       else
         await page
           .locator(
-            'header nav[aria-label="Danh mục sản phẩm"] a[href="/category/khoa"]',
+            'header nav[aria-label="Điều hướng chính"] a[href="/catalog"]',
           )
           .click();
       await held.blocked;
@@ -242,16 +242,16 @@ test("Back and Forward settle without leaving a stuck progress bar", async ({
   await page.goto(base);
   await page
     .locator(
-      'header nav[aria-label="Danh mục sản phẩm"] a[href="/category/khoa"]',
+      'header nav[aria-label="Điều hướng chính"] a[href="/catalog"]',
     )
     .click();
-  await expect(page).toHaveURL(`${base}/category/khoa`);
+  await expect(page).toHaveURL(`${base}/catalog`);
   await expect(page.getByRole("progressbar")).toHaveCount(0);
   await page.goBack();
   await expect(page).toHaveURL(base + "/");
   await expect(page.getByRole("progressbar")).toHaveCount(0);
   await page.goForward();
-  await expect(page).toHaveURL(`${base}/category/khoa`);
+  await expect(page).toHaveURL(`${base}/catalog`);
   await expect(page.getByRole("progressbar")).toHaveCount(0);
 });
 
