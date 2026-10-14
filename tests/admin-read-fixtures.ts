@@ -2,6 +2,7 @@ import type { ApiAdminState } from "../lib/api-types";
 import type { CustomerDirectory } from "../lib/customer-management";
 import type { Product } from "../lib/types";
 import { normalize } from "../lib/catalog";
+import { categoryDescendants } from "../lib/category-tree";
 
 type Fixture = Omit<Partial<ApiAdminState>, "products"> & { products?: Product[] };
 export function adminReadFixture(url: URL, state: Fixture, directory?: CustomerDirectory) {
@@ -24,7 +25,10 @@ export function adminReadFixture(url: URL, state: Fixture, directory?: CustomerD
   const match = (text: string) => search.split(/\s+/).every(term => normalize(text).includes(term));
   const size = Number(query.get("pageSize") || 10);
   let rows: { id: string }[] = [];
-  if (resource === "products") rows = (state.products || []).filter(product => match(`${product.name} ${product.code} ${product.brand}`) && (!query.get("category") || product.category === query.get("category")) && (status === "all" || (status === "published" ? (product as ApiAdminState["products"][number]).published : !(product as ApiAdminState["products"][number]).published)));
+  if (resource === "products") {
+    const categorySlugs = query.get("category") ? categoryDescendants(state.categories || [], query.get("category")!) : [];
+    rows = (state.products || []).filter(product => match(`${product.name} ${product.code} ${product.alternateCode || ""} ${product.brand}`) && (!query.get("category") || categorySlugs.includes(product.category)) && (!query.get("subcategory") || product.subcategory === query.get("subcategory")) && (status === "all" || (status === "published" ? (product as ApiAdminState["products"][number]).published : !(product as ApiAdminState["products"][number]).published)));
+  }
   if (resource === "orders" || resource === "warehouse") rows = allOrders.filter(order => match(`${order.id} ${order.customerName}`) && (resource !== "warehouse" || ["Chờ soạn hàng", "Đang soạn", "Sẵn sàng giao"].includes(order.status)) && (status === "all" || (status === "issues" ? !!state.warehouse?.[order.id]?.issue && !state.warehouse[order.id].issue?.resolvedAt : order.status === status)) && (!query.get("from") || order.date >= query.get("from")!) && (!query.get("to") || order.date <= query.get("to")!));
   const customers = directory?.items || state.customers || [];
   if (resource === "customers") rows = customers.filter(customer => customer.branch === branch && match(`${customer.name} ${customer.id} ${customer.contact} ${customer.phone} ${customer.email}`) && (status === "all" || (status === "overdue" ? customer.overdue > 0 : status === "overlimit" ? customer.debt > customer.limit : customer.status === status)) && (!query.get("group") || customer.group === query.get("group")) && (!query.get("sales") || (query.get("sales") === "unassigned" ? !customer.assignedSalesId : customer.assignedSalesId === query.get("sales"))) && (!query.get("pilot") || !!customer.pilot === (query.get("pilot") === "pilot")));

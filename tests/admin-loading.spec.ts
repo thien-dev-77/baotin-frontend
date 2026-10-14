@@ -100,7 +100,7 @@ async function mockAdmin(page: Page) {
     },
     visit: async (path: string) => {
       await page.goto(`${base}${path}`);
-      if (["/admin/products", "/admin/orders", "/admin/customers", "/admin/credit", "/admin/warehouse"].includes(path.split("?")[0])) await expect(page.locator("#admin-content table tbody tr").first().locator("td").first()).toContainText(/\S/);
+      if (["/admin/products", "/admin/orders", "/admin/customers", "/admin/credit", "/admin/warehouse"].includes(path.split("?")[0])) await expect(page.locator("#admin-content table tbody tr").first()).toContainText(/\S/);
       await expect(page.getByRole("button", { name: "Làm mới dữ liệu", exact: true })).toBeEnabled();
     },
     check: () => { expect(unexpected).toEqual([]); expect(errors).toEqual([]); },
@@ -139,12 +139,12 @@ test("Admin loads only the screen's resources, reuses cache and does not refresh
   const api = await mockAdmin(page);
   await api.visit("/admin/products");
   await expect(page.locator("#admin-content table")).toBeVisible();
-  expect(api.resourceReads).toEqual([]);
+  expect(api.resourceReads).toEqual([{ branch: "Quy Nhơn", include: ["categories"] }]);
   expect(api.readPaths.filter(path => path.includes("/admin/browse?"))).toHaveLength(1);
   await page.evaluate(() => { for (let count = 0; count < 3; count++) window.dispatchEvent(new Event("focus")); });
   await page.locator('nav[aria-label="Quản trị nội bộ"] a[href="/admin/users"]').first().click();
   await expect(page.getByRole("heading", { name: "Tài khoản & phân quyền", exact: true })).toBeVisible();
-  expect(api.resourceReads).toHaveLength(0);
+  expect(api.resourceReads).toHaveLength(1);
   await page.locator('nav[aria-label="Quản trị nội bộ"] a[href="/admin/products"]').first().click();
   await expect(page.locator("#admin-content table")).toBeVisible();
   expect(api.readPaths.filter(path => path.includes("/admin/browse?"))).toHaveLength(1);
@@ -420,6 +420,7 @@ for (const passwordOnly of [false, true]) {
 test("product save and image upload each show their own pending state", async ({ page }) => {
   const api = await mockAdmin(page);
   await api.visit(`/admin/products/${catalog[0].id}/edit`);
+  await page.getByRole("tab", { name: "Hình ảnh", exact: true }).click();
   const upload = api.delay("/media/product-images", { message: "Không thể tải ảnh." }, 400);
   try {
     await page.getByLabel("Thêm ảnh sản phẩm", { exact: true }).setInputFiles({ name: "loading.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jOzgAAAAASUVORK5CYII=", "base64") });
@@ -430,6 +431,7 @@ test("product save and image upload each show their own pending state", async ({
     await expect(page.getByRole("button", { name: "Lưu sản phẩm", exact: true })).toBeDisabled();
   } finally { upload.release(); }
   await expect(page.getByRole("alert").filter({ hasText: "Không thể tải ảnh." })).toBeVisible();
+  await page.getByRole("tab", { name: "Thông tin cơ bản", exact: true }).click();
   const gate = api.delay(`/admin/products/${catalog[0].id}`, { message: "Không thể lưu sản phẩm." }, 400, "PATCH");
   const button = page.getByRole("button", { name: "Lưu sản phẩm", exact: true });
   try { await pending(page, button, gate); } finally { gate.release(); }

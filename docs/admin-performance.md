@@ -5,6 +5,24 @@
 This section supersedes the list/dashboard behavior in the historical resource
 contract below. Deploy the backend first, then the matching frontend.
 
+Product-list optimization (14 October 2026):
+
+- The list loads only category metadata through `/admin/resources`, alongside
+  its bounded browse page. Category filters remain available while products load.
+- Menu hover, keyboard focus or pointer intent prepares the first product page
+  in the existing private read cache. Navigating and returning reuse that request
+  and cached data for 60 seconds, scoped to the staff user and branch.
+- The visible filter panel combines keyword, hierarchical category (including
+  descendants), product group (`subcategory`) and publication status. Changes
+  reset pagination; changing category clears the group. Clear filters restores
+  the unfiltered URL. CSV and bulk selection use the same query.
+- Product pages omit long content and galleries; inventory reservations arrive
+  as SQL aggregates for the listed SKUs. Editing still loads full product data.
+- Row edit links defer prefetching and the editor loads CKEditor dynamically,
+  keeping editor assets out of product-list navigation.
+- Local QA: `tests/admin-products-performance-ui.spec.ts`, read-cache/resource
+  specs, selected admin-loading regressions and backend admin/operations tests.
+
 - Main product, order, customer, credit and warehouse screens now call
   `GET /api/admin/browse?resource=...&branch=...&page=1&pageSize=10`.
   Accepted page sizes: 10, 25, 50. Search and filters run in SQL. Responses include

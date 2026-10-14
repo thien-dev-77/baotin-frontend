@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { AdminResourceCache, emptyAdminState, resourcesChangedBy, resourcesForAdminPage } from "../lib/admin-resources";
 
 test("Admin page dependencies never default to the entire state", () => {
-  expect(resourcesForAdminPage("/admin/products")).toEqual([]);
+  expect(resourcesForAdminPage("/admin/products")).toEqual(["categories"]);
   expect(resourcesForAdminPage("/admin/products/new")).toEqual(["products", "categories"]);
   expect(resourcesForAdminPage("/admin/orders")).toEqual([]);
   for (const path of ["/admin/users", "/admin/settings", "/admin/notifications", "/admin/reports", "/admin/categories"]) expect(resourcesForAdminPage(path)).toEqual([]);
