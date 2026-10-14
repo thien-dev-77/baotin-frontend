@@ -5,8 +5,8 @@
 :root {
   --color-primary: #171717;
   --color-primary-dark: #171717;
-  --color-brand: #ffc400;
-  --color-brand-hover: #e5b000;
+  --color-brand: #e9c02a;
+  --color-brand-hover: #d4ad1f;
   --color-zalo: #0068ff;
   --color-zalo-hover: #0056d6;
   --color-background: #ffffff;
@@ -553,7 +553,7 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
     border-radius: var(--radius-control);
     background: var(--color-brand);
     padding-inline: 16px;
-    color: var(--color-primary);
+    color: #ffffff;
     font-size: 14px;
     font-weight: 600;
     transition: background-color 160ms ease, transform 160ms ease;

@@ -68,7 +68,7 @@ export function OrderDetailView({ id, standalone = false }: { id: string; standa
         <ol className="grid gap-4 sm:grid-cols-5">
           {["Tiếp nhận đơn", "Inside Sales xác nhận", "Kho soạn hàng", "Đang giao", "Đã giao"].map((step, i) => (
             <li key={step} className="relative flex items-center gap-3 sm:flex-col sm:text-center">
-              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${i <= index ? "bg-brand text-primary" : "bg-section text-text-muted"}`}>{i < index ? <Check size={15} /> : i + 1}</span>
+              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${i <= index ? "bg-brand text-white" : "bg-section text-text-muted"}`}>{i < index ? <Check size={15} /> : i + 1}</span>
               <span className={`text-xs ${i <= index ? "font-semibold text-primary" : "text-text-muted"}`}>{step}</span>
             </li>
           ))}

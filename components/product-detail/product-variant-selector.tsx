@@ -22,7 +22,7 @@ export function ProductVariantSelector({ product, variants }: { product: Product
             const chosen = variantKey(value) === variantKey(selected);
             const target = chooseVariant(variants, product, index, value);
             if (!target) return null;
-            return <Link key={value} href={`/products/${target.slug}`} prefetch={false} aria-current={chosen ? "page" : undefined} className={`inline-flex min-h-10 items-center justify-center rounded border px-3 text-sm text-primary transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${chosen ? "border-brand bg-brand font-semibold hover:border-brand-hover hover:bg-brand-hover" : "border-border bg-white hover:border-brand hover:bg-brand"}`}>{value}</Link>;
+            return <Link key={value} href={`/products/${target.slug}`} prefetch={false} aria-current={chosen ? "page" : undefined} className={`inline-flex min-h-10 items-center justify-center rounded border px-3 text-sm text-primary transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${chosen ? "border-brand bg-brand text-white font-semibold hover:border-brand-hover hover:bg-brand-hover" : "border-border bg-white hover:border-brand hover:bg-brand"}`}>{value}</Link>;
           })}</div>
         </fieldset>;
       })}

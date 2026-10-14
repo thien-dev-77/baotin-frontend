@@ -46,7 +46,7 @@ export function ProductShowcase() {
       <ProductCarousel key={tab} products={products} title="SẢN PHẨM NỔI BẬT / THƯỜNG MUA">
         <div className="flex flex-wrap items-center gap-1">
           {["Nổi bật", "Thường mua", "Khuyến mãi"].map(option => (
-            <button key={option} aria-pressed={tab === option} onClick={() => setTab(option)} className={`h-8 rounded-md px-3 text-xs font-medium ${tab === option ? "bg-brand text-primary" : "bg-section text-primary"}`}>{option === "Thường mua" && (!personalized || noHistory) ? "Gợi ý cho bạn" : option}</button>
+            <button key={option} aria-pressed={tab === option} onClick={() => setTab(option)} className={`h-8 rounded-md px-3 text-xs font-medium ${tab === option ? "bg-brand text-white" : "bg-section text-primary"}`}>{option === "Thường mua" && (!personalized || noHistory) ? "Gợi ý cho bạn" : option}</button>
           ))}
           <Link href="/search" className="ml-2 text-xs font-semibold text-primary">Xem tất cả →</Link>
         </div>

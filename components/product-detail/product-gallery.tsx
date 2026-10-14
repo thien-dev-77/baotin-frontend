@@ -40,7 +40,7 @@ export function ProductGallery({ product }: { product: Product }) {
             className="h-full w-full object-contain p-6 transition-opacity duration-300"
           />
           {product.featured && (
-            <span className="absolute left-3 top-3 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-primary shadow-sm">
+            <span className="absolute left-3 top-3 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white shadow-sm">
               Nổi bật
             </span>
           )}
