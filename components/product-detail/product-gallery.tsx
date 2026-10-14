@@ -5,6 +5,7 @@ import type { Product } from "@/lib/catalog";
 import { ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+// @ts-ignore - Type definitions issue with @splidejs/react-splide package.json exports
 import { Splide, SplideSlide, SplideTrack } from "@splidejs/react-splide";
 import "@splidejs/react-splide/css/core";
 
