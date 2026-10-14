@@ -210,7 +210,7 @@ for (const width of [1920, 1440, 1280, 1024, 768, 390, 320]) test(`Reference hea
   const quote = header.getByRole("link", { name: "Nhận báo giá", exact: true }).filter({ visible: true });
   await expect(quote).toHaveCount(1);
   await expect(quote).toHaveAttribute("href", "/contact#consultation");
-  await expect(quote).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(quote).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   await expect(quote).toHaveCSS("color", "rgb(23, 23, 23)");
   const search = header.getByRole("search").filter({ visible: true });
   await expect(search.getByRole("button", { name: "Tìm kiếm", exact: true }).locator("svg")).toHaveCount(1);

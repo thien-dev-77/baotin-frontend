@@ -44,11 +44,11 @@ function CartBadge({ count }: { count: number }) {
 function HeaderServiceLink({
   action,
   compact = false,
-  accent = false,
+  textLink = false,
 }: {
   action: HeaderService;
   compact?: boolean;
-  accent?: boolean;
+  textLink?: boolean;
 }) {
   const Icon = action.icon;
   return (
@@ -57,7 +57,7 @@ function HeaderServiceLink({
       prefetch={false}
       aria-label={action.title}
       title={`${action.title} - ${action.description}`}
-      className={`bt-header-service-link${compact ? " bt-header-service-link--compact" : ""}${accent ? " bt-header-service-link--accent" : ""}${action.isZalo ? " bt-header-service-link--zalo" : ""}`}
+      className={`bt-header-service-link${compact ? " bt-header-service-link--compact" : ""}${textLink ? " bt-header-service-link--text" : ""}${action.isZalo ? " bt-header-service-link--zalo" : ""}`}
     >
       {action.isZalo ? <ZaloIcon size={compact ? 20 : 24} /> : <Icon size={compact ? 16 : 20} strokeWidth={1.8} aria-hidden="true" />}
       <span className="bt-header-service-copy">
@@ -183,7 +183,7 @@ export function SiteHeader() {
               className="bt-header-mobile-services"
             >
               {quickServices.map((action) => (
-                <HeaderServiceLink key={action.href} action={action} compact accent={action === quoteAction} />
+                <HeaderServiceLink key={action.href} action={action} compact textLink={action === quoteAction} />
               ))}
             </nav>
           </div>
@@ -207,7 +207,7 @@ export function SiteHeader() {
                 </Link>
               ))}
             </nav>
-            <HeaderServiceLink action={quoteAction} accent />
+            <HeaderServiceLink action={quoteAction} textLink />
             <a href={storeContact.phoneHref} className="bt-header-hotline"><Phone size={15} strokeWidth={1.8} aria-hidden="true" /><span>Hotline: <strong>{storeContact.displayPhone}</strong></span></a>
           </div>
         </div>

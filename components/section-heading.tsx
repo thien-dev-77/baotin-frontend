@@ -5,13 +5,14 @@ type SectionHeadingProps = {
   subtitle?: string;
   link?: string;
   href?: string;
+  align?: "start" | "center";
 };
 
-export function SectionHeading({ title, subtitle, link, href = "/search" }: SectionHeadingProps) {
+export function SectionHeading({ title, subtitle, link, href = "/search", align = "start" }: SectionHeadingProps) {
   return (
-    <div className="mb-3 flex items-end justify-between gap-4">
+    <div className={`mb-3 flex gap-4 ${align === "center" ? "flex-col items-center text-center" : "items-end justify-between"}`}>
       <div className="min-w-0">
-        <div className="flex flex-wrap items-baseline gap-4">
+        <div className={`flex ${align === "center" ? "flex-col items-center gap-2" : "flex-wrap items-baseline gap-4"}`}>
           <h2 className="text-[17px] font-bold uppercase leading-tight text-primary md:text-[18px]">
             {title}
           </h2>

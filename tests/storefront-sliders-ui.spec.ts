@@ -154,7 +154,7 @@ for (const width of [1440, 390, 320]) test(`Phone and quote actions remain reada
   const quote = page.getByRole("link", { name: "Nhận báo giá", exact: true });
   await expect(quote).toBeVisible(); await expect(quote).toHaveAttribute("href", "/contact#consultation");
   await page.mouse.move(0, 0);
-  await expect(quote).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(quote).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   await expect(quote).toHaveCSS("color", "rgb(23, 23, 23)");
   await expect(quote.locator(".bt-header-service-description")).toHaveCSS("display", "none");
   expect(await quote.evaluate(element => {
