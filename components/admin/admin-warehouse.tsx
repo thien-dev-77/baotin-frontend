@@ -44,7 +44,7 @@ function WarehouseList({ browse, initialStatus, initialOrder }: { browse: AdminB
       {(apiMode ? rows : rows.slice((page - 1) * 10, page * 10)).map((order) => {
         const picked = order.items.filter((item) => isPicked(order, warehouse[order.id], item.productId)).length;
         return <tr key={order.id}>
-          <td><button type="button" onClick={() => setSelected(order.id)} className="font-semibold text-blue-brand hover:underline">{order.id}</button><span className="mt-1 block text-xs text-text-muted">{adminDate(order.date)}</span></td>
+          <td><button type="button" onClick={() => setSelected(order.id)} className="font-semibold text-primary hover:underline">{order.id}</button><span className="mt-1 block text-xs text-text-muted">{adminDate(order.date)}</span></td>
           <td><span className="font-medium text-primary">{order.customerName}</span><span className="mt-1 block text-xs text-text-muted">{order.items.length} mã · {order.items.reduce((sum, item) => sum + item.quantity, 0)} sản phẩm</span></td>
           <td><span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs tabular-nums"><PackageCheck size={16} className={picked === order.items.length ? "text-emerald-600" : "text-text-muted"} />{picked}/{order.items.length} mã</span></td>
           <td><AdminStatus value={order.status} /></td>

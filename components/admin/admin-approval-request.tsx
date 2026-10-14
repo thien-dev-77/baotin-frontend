@@ -51,7 +51,7 @@ function ApprovalRequestForm({ initialOrder, initialType }: { initialOrder: stri
         <section className="border-b border-border py-5" aria-labelledby="request-order-title">
           <h2 id="request-order-title" className="mb-4 text-base font-semibold text-primary">Đơn hàng</h2>
           <Field label="Đơn B2B chờ xác nhận" required><select required value={orderId} className="bt-input" onChange={(event) => { setOrderId(event.target.value); setPrices({}); setError(""); }}><option value="">Chọn đơn hàng</option>{choices.map((item) => <option key={item.id} value={item.id}>{item.id} · {item.customerName}</option>)}</select></Field>
-          {!choices.length && <div className="mt-3 text-sm text-text-secondary">Chưa có đơn B2B chờ xác nhận. <Link href="/admin/orders/new" className="font-medium text-blue-brand">Tạo đơn hộ khách <ArrowRight size={14} className="inline" /></Link></div>}
+          {!choices.length && <div className="mt-3 text-sm text-text-secondary">Chưa có đơn B2B chờ xác nhận. <Link href="/admin/orders/new" className="font-medium text-primary">Tạo đơn hộ khách <ArrowRight size={14} className="inline" /></Link></div>}
           {order && customer && <dl className="mt-4 grid gap-3 text-xs text-text-secondary sm:grid-cols-2"><div><dt>Khách hàng</dt><dd className="mt-1 text-sm font-medium text-primary">{customer.name}</dd></div><div><dt>Nguồn đơn</dt><dd className="mt-1 text-sm text-primary">{order.source}</dd></div></dl>}
         </section>
         <section className="py-5" aria-labelledby="request-detail-title">

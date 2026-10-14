@@ -75,7 +75,7 @@ function ProductDocuments({ code, usageGuide, specifications }: { code: string; 
     <div className="space-y-4">
       {usageGuide && <p className="whitespace-pre-line break-words text-sm leading-7 text-text-secondary">{usageGuide}</p>}
       <Button variant="secondary" onClick={downloadSpecifications}><Download size={17} />Tải bảng thông số</Button>
-      <Link href="/guides" className="block text-sm text-blue-brand">Xem hướng dẫn chọn và lắp phụ kiện →</Link>
+      <Link href="/guides" className="block text-sm text-primary">Xem hướng dẫn chọn và lắp phụ kiện →</Link>
       <p className="text-sm text-text-secondary">Liên hệ Bảo Tín để nhận tài liệu lắp đặt của nhà sản xuất theo đúng mã hàng.</p>
     </div>
   );

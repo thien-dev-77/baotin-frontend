@@ -23,9 +23,9 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
   return (
     <aside aria-label="Mua sản phẩm" tabIndex={0} className="bt-product-detail-purchase overflow-hidden rounded-lg border border-border bg-white">
       <div className="grid grid-cols-2 border-b border-border text-xs">
-        <span className={`py-3 text-center font-semibold ${isB2b ? "text-text-secondary" : "bg-section-blue text-primary"}`}>Giá bán lẻ</span>
+        <span className={`py-3 text-center font-semibold ${isB2b ? "text-text-secondary" : "bg-section text-primary"}`}>Giá bán lẻ</span>
         {isB2b ? (
-          <span className="bg-section-blue py-3 text-center font-semibold text-blue-brand">Giá B2B</span>
+          <span className="bg-section py-3 text-center font-semibold text-primary">Giá B2B</span>
         ) : (
           <Link href={loginHref} className="py-3 text-center text-text-secondary">Giá B2B (Đăng nhập)</Link>
         )}
@@ -36,7 +36,7 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
           <span className="text-sm text-text-secondary">/{product.unit}</span>
           {product.oldPrice && product.oldPrice > price && <del className="text-xs text-text-muted">{money(product.oldPrice)}</del>}
         </div>
-        {pricing.configured && <dl aria-label="Giá niêm yết và chiết khấu" className="mt-4 space-y-2 border-y border-border py-3 text-xs"><div className="flex flex-wrap justify-between gap-2"><dt className="text-text-secondary">Giá niêm yết</dt><dd className="tabular-nums">{money(pricing.listPrice)}</dd></div><div className="flex justify-between gap-2"><dt className="text-text-secondary">Chiết khấu B2C</dt><dd>{formatDiscount(pricing.b2cDiscount)}</dd></div><div className="flex flex-wrap justify-between gap-2"><dt className="text-text-secondary">Giá sau CK B2C</dt><dd className="font-semibold tabular-nums">{money(pricing.b2cPrice)}</dd></div>{isB2b ? <><div className="flex justify-between gap-2"><dt className="text-text-secondary">Chiết khấu B2B</dt><dd>{price > pricing.listPrice ? "Giá riêng" : formatDiscount(effectiveDiscount(pricing.listPrice, price))}</dd></div><div className="flex flex-wrap justify-between gap-2"><dt className="text-text-secondary">Giá sau CK B2B</dt><dd className="font-semibold tabular-nums text-blue-brand">{money(price)}</dd></div></> : <div className="flex flex-wrap justify-between gap-2"><dt className="text-text-secondary">Giá / CK B2B</dt><dd><Link href={loginHref} className="text-blue-brand">Đăng nhập B2B</Link></dd></div>}</dl>}
+        {pricing.configured && <dl aria-label="Giá niêm yết và chiết khấu" className="mt-4 space-y-2 border-y border-border py-3 text-xs"><div className="flex flex-wrap justify-between gap-2"><dt className="text-text-secondary">Giá niêm yết</dt><dd className="tabular-nums">{money(pricing.listPrice)}</dd></div><div className="flex justify-between gap-2"><dt className="text-text-secondary">Chiết khấu B2C</dt><dd>{formatDiscount(pricing.b2cDiscount)}</dd></div><div className="flex flex-wrap justify-between gap-2"><dt className="text-text-secondary">Giá sau CK B2C</dt><dd className="font-semibold tabular-nums">{money(pricing.b2cPrice)}</dd></div>{isB2b ? <><div className="flex justify-between gap-2"><dt className="text-text-secondary">Chiết khấu B2B</dt><dd>{price > pricing.listPrice ? "Giá riêng" : formatDiscount(effectiveDiscount(pricing.listPrice, price))}</dd></div><div className="flex flex-wrap justify-between gap-2"><dt className="text-text-secondary">Giá sau CK B2B</dt><dd className="font-semibold tabular-nums text-primary">{money(price)}</dd></div></> : <div className="flex flex-wrap justify-between gap-2"><dt className="text-text-secondary">Giá / CK B2B</dt><dd><Link href={loginHref} className="text-primary">Đăng nhập B2B</Link></dd></div>}</dl>}
         <p className={`mt-3 flex items-center gap-1.5 text-xs font-semibold ${product.stock > 0 ? "text-success" : "text-text-muted"}`}>
           <CheckCircle2 size={14} />
           {product.stock > 0 ? `Còn hàng (${product.stock} ${product.unit})` : "Tạm hết hàng"}
@@ -52,7 +52,7 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
           <Heart size={16} fill={liked ? "currentColor" : "none"} />{liked ? "Đã yêu thích" : "Yêu thích"}
         </Button>
         {!customer && (
-          <div className="mt-4 rounded-md bg-section-blue p-3">
+          <div className="mt-4 rounded-md bg-section p-3">
             <h2 className="text-sm font-bold text-primary">Mua số lượng lớn?</h2>
             <p className="mt-1 text-xs leading-5 text-text-secondary">Đăng nhập B2B để xem giá tốt hơn và chính sách công nợ.</p>
             <Link className="bt-button-secondary mt-3 w-full !text-xs" href={loginHref}>Đăng nhập B2B</Link>

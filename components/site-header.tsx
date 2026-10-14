@@ -111,7 +111,7 @@ export function SiteHeader() {
                   key={href}
                   href={href}
                   title={label}
-                  className="relative flex shrink-0 flex-col items-center gap-0.5 text-[11px] font-medium text-primary hover:text-blue-brand"
+                  className="relative flex shrink-0 flex-col items-center gap-0.5 text-[11px] font-medium text-primary hover:text-primary hover:underline decoration-brand underline-offset-4"
                 >
                   <Icon size={21} strokeWidth={1.8} aria-hidden="true" />
                   <span>{label}</span>
@@ -170,7 +170,7 @@ export function SiteHeader() {
                 <Link
                   key={category.slug}
                   href={`/category/${category.slug}`}
-                  className="shrink-0 whitespace-nowrap text-xs font-medium text-primary hover:text-blue-brand"
+                  className="shrink-0 whitespace-nowrap text-xs font-medium text-primary hover:text-primary hover:underline decoration-brand underline-offset-4"
                 >
                   {category.name}
                 </Link>
@@ -183,7 +183,7 @@ export function SiteHeader() {
               Thương hiệu
             </Link>
             <Link
-              className="shrink-0 text-xs font-semibold text-danger"
+              className="shrink-0 border-b-2 border-brand text-xs font-semibold text-primary"
               href="/promotions"
             >
               Khuyến mãi

@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { api } from "@/lib/api-client";
 import { useCommerce } from "@/components/commerce-provider";
 import { Button, Field } from "@/components/ui";
+import { Logo } from "@/components/logo";
 import { isWarehouseOrder } from "@/lib/admin-warehouse";
 import type { ApiAdminState } from "@/lib/api-types";
 import type { Branch, SessionUser } from "@/lib/types";
@@ -144,7 +145,7 @@ export function ApiAdminProvider({ children }: { children: React.ReactNode }) {
   };
   if (!sessionReady) return <div role="status" className="p-10 text-center text-sm">Đang kiểm tra phiên đăng nhập...</div>;
   if (!sessionUser) return <StaffLogin />;
-  if (!staff) return <div className="mx-auto max-w-md space-y-5 px-4 py-20"><LockKeyhole className="text-blue-brand" /><h1 className="text-xl font-bold text-primary">Tài khoản không có quyền quản trị</h1><Button loading={loggingOut} onClick={async () => { setLoggingOut(true); try { await logout(); } finally { setLoggingOut(false); } }}>Đổi tài khoản</Button><Link className="ml-4 text-sm text-blue-brand" href="/account">Tài khoản B2B</Link></div>;
+  if (!staff) return <div className="mx-auto max-w-md space-y-5 px-4 py-20"><LockKeyhole className="text-primary" /><h1 className="text-xl font-bold text-primary">Tài khoản không có quyền quản trị</h1><Button loading={loggingOut} onClick={async () => { setLoggingOut(true); try { await logout(); } finally { setLoggingOut(false); } }}>Đổi tài khoản</Button><Link className="ml-4 text-sm text-primary" href="/account">Tài khoản B2B</Link></div>;
   return <AdminContext.Provider value={value}>{error?.branch === branch && <div role="alert" className="flex items-center justify-center gap-3 bg-red-50 p-3 text-sm text-danger">{error.message}<Button variant="secondary" loading={refreshing} onClick={() => { void reload(); }}><RefreshCw size={16} />Thử lại</Button></div>}{children}</AdminContext.Provider>;
 }
 
@@ -152,11 +153,11 @@ function StaffLogin() {
   const { loginWithPassword } = useCommerce();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  return <main className="mx-auto max-w-md px-5 py-20"><h1 className="text-2xl font-bold text-primary">Bảo Tín · Quản trị</h1><form className="mt-8 space-y-5" onSubmit={async (event) => {
+  return <main className="mx-auto max-w-md px-5 py-20"><Link href="/" aria-label="Bảo Tín - Trang chủ" className="mb-8 inline-block"><Logo /></Link><h1 className="text-2xl font-bold text-primary">Bảo Tín · Quản trị</h1><form className="mt-8 space-y-5" onSubmit={async (event) => {
     event.preventDefault(); if (busy) return;
     const data = new FormData(event.currentTarget); setBusy(true); setError("");
     try { await loginWithPassword(String(data.get("identity")), String(data.get("password"))); }
     catch (error) { setError(error instanceof Error ? error.message : "Đăng nhập không thành công."); }
     finally { setBusy(false); }
-  }}><Field label="Email nhân viên" required><input className="bt-input" type="email" name="identity" autoComplete="username" required /></Field><PasswordInput name="password" label="Mật khẩu" current />{error && <p role="alert" className="text-sm text-danger">{error}</p>}<Button type="submit" loading={busy} className="w-full"><LogIn size={17} />Đăng nhập</Button></form><Link className="mt-4 block text-sm text-blue-brand" href="/forgot-password">Quên mật khẩu?</Link><Link className="mt-6 block text-sm text-blue-brand" href="/">Về website bán hàng</Link></main>;
+  }}><Field label="Email nhân viên" required><input className="bt-input" type="email" name="identity" autoComplete="username" required /></Field><PasswordInput name="password" label="Mật khẩu" current />{error && <p role="alert" className="text-sm text-danger">{error}</p>}<Button type="submit" loading={busy} className="w-full"><LogIn size={17} />Đăng nhập</Button></form><Link className="mt-4 block text-sm text-primary" href="/forgot-password">Quên mật khẩu?</Link><Link className="mt-6 block text-sm text-primary" href="/">Về website bán hàng</Link></main>;
 }

@@ -94,25 +94,26 @@ for (const width of [1440, 1024, 768, 390, 320]) {
     await expect(phone).toBeVisible();
     const addToCart = panel.getByRole("button", { name: "Thêm vào giỏ hàng", exact: true });
     await expect(addToCart).toBeEnabled();
-    await expect(addToCart).toHaveCSS("background-color", "rgb(22, 119, 210)");
-    await expect(panel.locator("strong").first()).toHaveCSS("color", "rgb(15, 49, 87)");
+    await expect(addToCart).toHaveCSS("background-color", "rgb(255, 196, 0)");
+    await expect(addToCart).toHaveCSS("color", "rgb(23, 23, 23)");
+    await expect(panel.locator("strong").first()).toHaveCSS("color", "rgb(23, 23, 23)");
     await page.mouse.move(0, 0);
     for (const contact of [zalo, phone]) {
       await expect(contact).toHaveCSS("background-color", "rgb(255, 255, 255)");
-      await expect(contact).toHaveCSS("color", "rgb(15, 49, 87)");
+      await expect(contact).toHaveCSS("color", "rgb(23, 23, 23)");
       await expect(contact).toHaveCSS("text-transform", "none");
       await contact.hover();
-      await expect(contact).toHaveCSS("background-color", "rgb(240, 246, 253)");
-      await expect(contact).toHaveCSS("border-top-color", "rgb(22, 119, 210)");
-      await expect(contact).toHaveCSS("color", "rgb(14, 101, 184)");
+      await expect(contact).toHaveCSS("background-color", "rgb(250, 250, 247)");
+      await expect(contact).toHaveCSS("border-top-color", "rgb(255, 196, 0)");
+      await expect(contact).toHaveCSS("color", "rgb(23, 23, 23)");
       await page.mouse.move(0, 0);
     }
-    await expect(phone.locator("svg")).toHaveCSS("color", "rgb(22, 119, 210)");
-    await expect(zalo.locator(".bt-product-contact-zalo")).toHaveCSS("color", "rgb(14, 101, 184)");
+    await expect(phone.locator("svg")).toHaveCSS("color", "rgb(255, 196, 0)");
+    await expect(zalo.locator(".bt-product-contact-zalo")).toHaveCSS("color", "rgb(23, 23, 23)");
     await zalo.focus();
     await zalo.press("Tab");
     await expect(phone).toBeFocused();
-    await expect(phone).toHaveCSS("outline-color", "rgb(22, 119, 210)");
+    await expect(phone).toHaveCSS("outline-color", "rgb(23, 23, 23)");
     await expect(phone).toHaveCSS("outline-width", "2px");
     const first = (await zalo.boundingBox())!;
     const second = (await phone.boundingBox())!;

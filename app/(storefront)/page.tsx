@@ -58,10 +58,10 @@ function B2BQuickActions() {
           return (
             <Link href={action.href}
               key={action.title}
-              className="group flex h-[60px] min-w-[190px] items-center justify-between rounded-lg border border-border bg-[#f8fafd] px-3 py-2 text-left shadow-card transition hover:-translate-y-0.5 hover:border-[#bbd5f0] hover:bg-section-blue hover:shadow-card-hover lg:min-w-0"
+              className="group flex h-[60px] min-w-[190px] items-center justify-between rounded-lg border border-border bg-section px-3 py-2 text-left shadow-card transition hover:-translate-y-0.5 hover:border-brand hover:bg-section hover:shadow-card-hover lg:min-w-0"
             >
               <span className="flex items-center gap-2.5">
-                <Icon className="text-blue-brand" size={22} strokeWidth={1.8} />
+                <Icon className="text-brand" size={22} strokeWidth={1.8} />
                 <span>
                   <span className="block text-xs font-bold text-primary">
                     {action.title}
@@ -73,7 +73,7 @@ function B2BQuickActions() {
               </span>
               <ArrowRight
                 size={17}
-                className="text-blue-brand transition group-hover:translate-x-1"
+                className="text-primary transition group-hover:translate-x-1"
               />
             </Link>
           );
@@ -98,9 +98,9 @@ function SolutionSection({ items }: { items?: PublicContent[] }) {
             <a
               href={solution.href || "/search"}
               key={solution.title}
-              className="group min-w-[220px] overflow-hidden rounded-lg border border-border bg-white shadow-card transition hover:-translate-y-0.5 hover:border-[#bbd5f0] hover:shadow-card-hover lg:min-w-0"
+              className="group min-w-[220px] overflow-hidden rounded-lg border border-border bg-white shadow-card transition hover:-translate-y-0.5 hover:border-brand hover:shadow-card-hover lg:min-w-0"
             >
-              <div className="aspect-[16/7] overflow-hidden bg-section-blue">
+              <div className="aspect-[16/7] overflow-hidden bg-section">
                 <Image
                   src={solution.image}
                   data-image-src={solution.image}
@@ -119,7 +119,7 @@ function SolutionSection({ items }: { items?: PublicContent[] }) {
                     {solution.description}
                   </p>
                 </div>
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-section-blue text-blue-brand transition group-hover:bg-blue-brand group-hover:text-white">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-section text-primary transition group-hover:bg-brand group-hover:text-primary">
                   <ArrowRight size={14} />
                 </span>
               </div>
@@ -144,7 +144,7 @@ function BuyingGuides({ items }: { items?: PublicContent[] }) {
           <a
             key={guide.title}
             href={`/guides/${guide.slug}`}
-            className="flex h-[82px] items-center gap-2.5 rounded-lg border border-border bg-[#f8fafd] p-2 shadow-card transition hover:-translate-y-0.5 hover:border-[#bbd5f0] hover:shadow-card-hover"
+            className="flex h-[82px] items-center gap-2.5 rounded-lg border border-border bg-section p-2 shadow-card transition hover:-translate-y-0.5 hover:border-brand hover:shadow-card-hover"
           >
             <Image
               src={guide.image}
@@ -161,7 +161,7 @@ function BuyingGuides({ items }: { items?: PublicContent[] }) {
               <p className="mt-1 line-clamp-2 text-[10px] text-text-secondary">
                 {guide.description}
               </p>
-              <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-blue-brand">
+              <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-primary">
                 Xem hướng dẫn
                 <ArrowRight size={13} />
               </span>
@@ -190,10 +190,10 @@ function OrderProcess() {
                     size={18}
                     strokeWidth={1.5}
                     aria-hidden="true"
-                    className="absolute -right-5 top-3 hidden text-[#d1dce8] lg:block"
+                    className="absolute -right-5 top-3 hidden text-text-muted lg:block"
                   />
                 ) : null}
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-brand text-base font-semibold text-white">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-base font-semibold text-primary">
                   {index + 1}
                 </div>
                 <div className="min-w-0 pt-0.5">
@@ -222,15 +222,15 @@ function SupportSection() {
             <a
               key={card.title}
               href={card.href}
-              className="flex min-h-[88px] items-center gap-3.5 rounded-lg border border-border bg-white px-3.5 py-3 transition hover:border-[#bbd5f0] hover:bg-section-blue"
+              className="flex min-h-[88px] items-center gap-3.5 rounded-lg border border-border bg-white px-3.5 py-3 transition hover:border-brand hover:bg-section"
             >
               {card.title === "Nhắn Zalo" ? (
-                <span aria-hidden="true" className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-brand">
+                <span aria-hidden="true" className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand">
                   <MessageCircle size={30} strokeWidth={1.5} className="fill-white text-white" />
-                  <span className="absolute top-2.5 text-[9px] font-bold leading-none text-blue-brand">Zalo</span>
+                  <span className="absolute top-2.5 text-[9px] font-bold leading-none text-primary">Zalo</span>
                 </span>
               ) : (
-                <Icon aria-hidden="true" className="shrink-0 text-blue-brand" size={32} strokeWidth={2.5} />
+                <Icon aria-hidden="true" className="shrink-0 text-brand" size={32} strokeWidth={2.5} />
               )}
               <span className="min-w-0">
                 <span className="block text-[13px] font-bold leading-[18px] text-primary">{card.title}</span>
@@ -238,7 +238,7 @@ function SupportSection() {
                 <span className="mt-0.5 block text-xs leading-[18px] text-text-secondary">
                   {card.description}
                 </span>
-                {card.linkLabel ? <span className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold text-blue-brand">{card.linkLabel}<ArrowRight size={14} /></span> : null}
+                {card.linkLabel ? <span className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold text-primary">{card.linkLabel}<ArrowRight size={14} /></span> : null}
               </span>
             </a>
           );

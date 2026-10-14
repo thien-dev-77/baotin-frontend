@@ -23,7 +23,7 @@ export function SectionHeading({ title, subtitle, link, href = "/search" }: Sect
       {link ? (
         <a
           href={href}
-          className="hidden shrink-0 items-center gap-1 text-[11px] font-semibold text-blue-brand transition hover:text-blue-hover sm:flex md:text-xs"
+          className="hidden shrink-0 items-center gap-1 text-[11px] font-semibold text-primary transition hover:text-primary hover:underline decoration-brand underline-offset-4 sm:flex md:text-xs"
         >
           {link}
           <ArrowRight size={15} />

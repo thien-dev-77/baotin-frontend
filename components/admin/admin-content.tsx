@@ -406,7 +406,7 @@ export function AdminContent() {
                 name="published"
                 defaultChecked={editing.published}
                 disabled={!!busy}
-                className="h-4 w-4 accent-blue-brand"
+                className="h-4 w-4 accent-brand"
               />
               Công khai
             </label>

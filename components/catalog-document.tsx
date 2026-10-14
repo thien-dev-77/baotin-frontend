@@ -72,7 +72,7 @@ export function CatalogDocument({ queryString, initialPage, initialError }: { qu
         <div className="overflow-auto rounded-lg border border-border"><table className="bt-table">
           <thead><tr><th>Mã hàng</th><th>Sản phẩm</th><th>Thương hiệu</th><th>Giá bán lẻ</th></tr></thead>
           <tbody>{rows.filter(product => product.category === category.slug).map(product => <tr key={product.id}>
-            <td className="whitespace-nowrap">{product.code}</td><td><Link href={`/products/${product.slug}`} className="text-primary hover:text-blue-brand">{product.name}</Link></td><td>{product.brand}</td><td className="whitespace-nowrap">{money(product.price)} /{product.unit}</td>
+            <td className="whitespace-nowrap">{product.code}</td><td><Link href={`/products/${product.slug}`} className="text-primary hover:text-primary hover:underline decoration-brand underline-offset-4">{product.name}</Link></td><td>{product.brand}</td><td className="whitespace-nowrap">{money(product.price)} /{product.unit}</td>
           </tr>)}</tbody>
         </table></div>
       </section>)}

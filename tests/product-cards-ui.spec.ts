@@ -69,11 +69,11 @@ for (const [width, columns] of [[1440, 5], [1024, 5], [768, 3], [390, 2], [320, 
       await expect(image).toHaveCSS("object-fit", "contain");
       await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
       await expect(card.locator(".bt-product-card-discount")).toHaveText("GIẢM-20%");
-      await expect(card.locator(".bt-product-card-discount")).toHaveCSS("background-color", "rgb(240, 246, 253)");
-      await expect(card.locator(".bt-product-card-discount")).toHaveCSS("color", "rgb(14, 101, 184)");
+      await expect(card.locator(".bt-product-card-discount")).toHaveCSS("background-color", "rgb(255, 196, 0)");
+      await expect(card.locator(".bt-product-card-discount")).toHaveCSS("color", "rgb(23, 23, 23)");
       await expect(card.locator("del")).toHaveText(money(16000000));
       await expect(card.locator(".bt-price-amount")).toHaveText(money(12800000));
-      await expect(card.locator(".bt-price-amount")).toHaveCSS("color", "rgb(15, 49, 87)");
+      await expect(card.locator(".bt-price-amount")).toHaveCSS("color", "rgb(23, 23, 23)");
       await expect(card.locator(".bt-product-card-reviews")).toContainText("2 đánh giá");
       await expect(card.locator(".bt-product-card-star").last().locator("span")).toHaveAttribute("style", "width: 50%;");
       await expect(card.getByRole("list", { name: "Thuộc tính sản phẩm" })).toContainText("Vân tay");
@@ -99,9 +99,10 @@ for (const [width, columns] of [[1440, 5], [1024, 5], [768, 3], [390, 2], [320, 
         expect(button.height).toBe(44);
         const favorite = (await card.locator(".bt-product-card-favorite").boundingBox())!;
         expect(favorite.y + favorite.height).toBeLessThanOrEqual(button.y - 4);
-        await expect(details).toHaveCSS("background-color", "rgb(22, 119, 210)");
+        await expect(details).toHaveCSS("background-color", "rgb(255, 196, 0)");
+        await expect(details).toHaveCSS("color", "rgb(23, 23, 23)");
         await details.hover();
-        await expect(details).toHaveCSS("background-color", "rgb(14, 101, 184)");
+        await expect(details).toHaveCSS("background-color", "rgb(229, 176, 0)");
         const contentBefore = await card.locator(".bt-product-card-content").boundingBox();
         await page.mouse.move(0, 0);
         await expect(details).toHaveCSS("opacity", "0");
@@ -116,7 +117,7 @@ for (const [width, columns] of [[1440, 5], [1024, 5], [768, 3], [390, 2], [320, 
       }
       await card.getByRole("button", { name: /^Yêu thích / }).click();
       await expect(card.getByRole("button", { name: /^Bỏ yêu thích / })).toHaveAttribute("aria-pressed", "true");
-      await expect(card.getByRole("button", { name: /^Bỏ yêu thích / })).toHaveCSS("color", "rgb(22, 119, 210)");
+      await expect(card.getByRole("button", { name: /^Bỏ yêu thích / })).toHaveCSS("color", "rgb(255, 196, 0)");
       expect(await section.locator(".bt-category-product-row").evaluate(element => getComputedStyle(element).gridTemplateColumns.split(" ").length)).toBe(columns);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
       expect(await cards.evaluateAll(elements => elements.every(element => element.scrollWidth <= element.clientWidth + 1))).toBe(true);

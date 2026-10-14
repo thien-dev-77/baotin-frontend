@@ -49,7 +49,7 @@ async function expectProgress(page: Page) {
   ).toEqual({
     position: "fixed",
     height: "3px",
-    color: "rgb(22, 119, 210)",
+    color: "rgb(255, 196, 0)",
     top: 0,
   });
   expect(

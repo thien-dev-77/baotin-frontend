@@ -312,7 +312,7 @@ function CustomersList({ credit, initialStatus, browse }: { credit: boolean; ini
               <button
                 type="button"
                 onClick={() => setSelected(item.id)}
-                className="text-left font-semibold text-primary hover:text-blue-brand"
+                className="text-left font-semibold text-primary hover:text-primary hover:underline decoration-brand underline-offset-4"
               >
                 {item.name}
               </button>
@@ -320,7 +320,7 @@ function CustomersList({ credit, initialStatus, browse }: { credit: boolean; ini
                 {item.id}
               </span>
               {!credit && item.pilot && (
-                <span className="mt-1 inline-block rounded bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-brand">
+                <span className="mt-1 inline-block rounded bg-section px-2 py-0.5 text-xs font-medium text-primary">
                   Thử nghiệm
                 </span>
               )}
@@ -499,7 +499,7 @@ function CustomersList({ credit, initialStatus, browse }: { credit: boolean; ini
                     href={`/admin/orders?order=${order.id}`}
                     className="flex items-center justify-between gap-2 py-3 text-xs"
                   >
-                    <span className="font-medium text-blue-brand">
+                    <span className="font-medium text-primary">
                       {order.id}
                     </span>
                     <span className="tabular-nums">{money(order.total)}</span>

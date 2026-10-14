@@ -55,7 +55,7 @@ export function GuideCard({ guide }: { guide: (typeof guideCatalog)[number] }) {
         </p>
         <Link
           href={`/guides/${guide.slug}`}
-          className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-blue-brand"
+          className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-primary"
         >
           Xem hướng dẫn
           <ArrowRight size={15} />
@@ -172,7 +172,7 @@ export function GuideDetail({ slug }: { slug: string }) {
             <p className="mt-3 text-sm leading-7 text-text-secondary">{text}</p>
           </section>
         ))}
-        <div className="border-l-2 border-blue-brand bg-section-blue p-4">
+        <div className="border-l-2 border-brand bg-section p-4">
           <h2 className="text-sm font-semibold text-primary">
             Cần đối chiếu mã hàng?
           </h2>
@@ -181,7 +181,7 @@ export function GuideDetail({ slug }: { slug: string }) {
           </p>
           <Link
             href="/contact"
-            className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-blue-brand"
+            className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-primary"
           >
             Nhận tư vấn
             <ArrowRight size={15} />
@@ -274,7 +274,7 @@ export function ContactView() {
             key={title}
             className="flex items-center gap-3 rounded-lg border border-border p-4"
           >
-            <Icon className="shrink-0 text-blue-brand" size={25} />
+            <Icon className="shrink-0 text-primary" size={25} />
             <span>
               <strong className="block text-sm text-primary">{title}</strong>
               <span className="mt-1 block break-words text-xs leading-5 text-text-secondary">
@@ -295,14 +295,14 @@ export function ContactView() {
                 key={s.name}
                 onClick={() => setStore(index)}
                 aria-pressed={store === index}
-                className={`rounded-md border px-2 py-3 text-xs font-semibold ${store === index ? "border-blue-brand bg-section-blue text-blue-brand" : "border-border"}`}
+                className={`rounded-md border px-2 py-3 text-xs font-semibold ${store === index ? "border-brand bg-section text-primary" : "border-border"}`}
               >
                 {s.name}
               </button>
             ))}
           </div>
           <div className="mb-3 flex items-center gap-2 text-sm text-text-secondary">
-            <MapPin size={17} className="text-blue-brand" />
+            <MapPin size={17} className="text-primary" />
             {stores[store].address}
           </div>
           <iframe
@@ -316,7 +316,7 @@ export function ContactView() {
             href={`https://www.google.com/maps/search/?api=1&query=${stores[store].map}`}
             target="_blank"
             rel="noreferrer"
-            className="mt-3 inline-flex items-center gap-1 text-sm text-blue-brand"
+            className="mt-3 inline-flex items-center gap-1 text-sm text-primary"
           >
             Mở bản đồ
             <ArrowRight size={14} />

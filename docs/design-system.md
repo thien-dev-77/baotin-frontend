@@ -39,45 +39,46 @@ Quy tac:
 - H1 desktop product: 20-22px, weight 700.
 - H1 mobile homepage: 26px; trang noi dung 24px.
 - H2 desktop: 17-18px, uppercase neu la homepage section title.
-- H3/card title: 14-16px, weight 600.
-- Product price: 18px, weight 700.
+- H3: 14-16px, weight 600. Ten san pham dung Regular 400 de de doc.
+- Product price: 20px, weight 700; purchase panel 26px.
 - Khong dung letter spacing am.
-- Khong dung text qua dam cho toan bo UI; chi dung 700/800 cho logo, H1, section title.
+- Heading dung weight 600-700, body 400-500. Khong dung text qua dam cho toan bo UI.
 
 ## 3. Mau sac
 
 Primary:
 
 ```txt
-Primary: #0F3157
-Primary dark: #08233F
-Blue: #1677D2
-Blue hover: #0E65B8
+Brand yellow: #FFC400
+Brand hover: #E5B000
+Secondary black / heading / navigation / footer: #171717
 ```
 
 Background:
 
 ```txt
 Page: #FFFFFF
-Section: #F5F8FC
-Section blue: #F0F6FD
+Section: #FAFAF7
+Dark: #171717
 ```
 
 Text:
 
 ```txt
-Strong: #102A43
-Secondary: #52667A
-Muted: #7B8A9A
+Heading: #171717
+Body: #525252
+Muted: #737373
+On dark: #FFFFFF
 ```
 
 Border/shadow:
 
 ```txt
-Border: #E2E8F0
-Card shadow: 0 2px 10px rgba(15, 49, 87, 0.06)
-Hover shadow: 0 8px 24px rgba(15, 49, 87, 0.10)
-Panel shadow: 0 18px 44px rgba(15, 49, 87, 0.18)
+Border: #E5E5E5
+Border hover: #FFC400
+Card shadow: 0 2px 10px rgba(23, 23, 23, 0.06)
+Hover shadow: 0 8px 24px rgba(23, 23, 23, 0.10)
+Panel shadow: 0 18px 44px rgba(23, 23, 23, 0.18)
 ```
 
 Status:
@@ -86,6 +87,20 @@ Status:
 Success: #168A5A
 Danger: #D92D20
 ```
+
+- Ty le muc tieu: 70% white/off-white, 20% black/gray, 10% yellow.
+- Vang chi cho CTA, icon, vien, nhan giam gia va diem nhan; khong phu vang hero hay section lon.
+- Nut vang dung chu den `#171717`, khong chu trang. Lien ket tren nen trang dung chu den va underline/vien vang khi hover, khong dung chu vang nho.
+- Green/red chi cho trang thai thanh cong, loi va thao tac nguy hiem; khong dung lam mau thuong hieu hay gia san pham.
+- Focus co outline den 2px; input/selection co vien vang. Khong chi dua vao mau de truyen dat active/loading/error.
+- Token mau nam trong `tailwind.config.ts` va `:root` cua `app/globals.css`; khi doi phai cap nhat ca hai va chay branding QA. Khong them mau xanh/navy hardcode o component.
+
+## 3.1. Logo va favicon
+
+- `components/logo.tsx` dung Next Image voi `public/logo-baotin.png`, ti le goc 919:271. Khong ve lai, doi mau, crop hay keo gian logo.
+- Header: rong 192px desktop, 152px mobile; admin dung `Logo compact` rong 176px. Chieu cao theo ti le anh.
+- Logo co chu den va nen trong suot: `Logo inverted` dat tren nen trang gon o footer den, khong dung filter lam bien doi artwork.
+- Favicon, shortcut va Apple touch icon dung `public/favicon-baotin.png` qua `metadata.icons` trong `app/layout.tsx`. Hai asset nay nam o FE, khong phu thuoc media backend.
 
 ## 4. Radius
 
@@ -102,7 +117,8 @@ Quy tac:
 - Button/input khong nen qua tron.
 - Card san pham dung radius 3px, vien xam 1px, nen trang, khong shadow; card category giu radius 8px.
 - Dropdown danh muc rong 320px, radius 8px; item chinh 44px, lien ket phu 36px, trigger 32px.
-- Homepage desktop: sidebar danh muc 256px ben trai hero, gap 16px, ca hai cao 408px. Tieu de va ten danh muc dung font 14px, line-height 20px. Dung chung `CategoryLinks` voi dropdown, nhung dropdown giu font 16px.
+- Homepage desktop: sidebar danh muc 256px ben trai hero, gap 16px, ca hai cao 408px. Tieu de va ten danh muc dung font 14px, line-height 20px. Duoi moi danh muc cha hien toi da 2 ten danh muc con, font 12px/16px mau Secondary, 1 dong ellipsis; tooltip giu day du ten. Lay tu cay danh muc trong API, fallback nhom subcategory cu neu chua co danh muc con. Link "Xem tat ca danh muc" co dinh o cuoi sidebar, danh sach cuon ben trong khi nhieu muc; khong tang chieu cao hero. Dung chung `CategoryLinks` voi dropdown, nhung dropdown/mobile khong hien preview va dropdown giu font 16px.
+- Sidebar hover: `CategoryLinks flyout` mo panel con sang phai, hover delay 80ms va close delay 180ms de di chuot qua khe giua cac cot. Portal vao body de khong bi cat boi vung cuon; toi da 3 panel cho cay 4 cap. Panel rong toi da 272px, tu giam rong tren desktop hep de cac cot khong chong nhau; gioi han chieu cao/vi tri theo viewport, nen trang, radius 6px, font 14px/20px Regular. Giu preview khi mo de sidebar khong doi chieu cao. Mui ten phai mo va focus muc dau; len/xuong, Home/End chuyen muc; trai/Escape dong mot cap va tra focus. Click nut mui ten ho tro thiet bi touch desktop. Click ben ngoai, roi focus, cuon sidebar/trang, resize hoac chuyen trang thi dong; cuon panel chi dong cap sau. Hover chi ap dung desktop co chuot; dropdown va menu mobile van mo cay inline bang nut bam. Khong phat sinh API request khi hover.
 - Hero chi co slide anh va control chuyen slide, khong text/caption, search hay overlay mau. Desktop cao 408px; tablet/mobile ti le 16:7.
 - Search, B2B, tu van, catalog va 3 cam ket dich vu chi nam trong header. Mobile co hang lien ket nhanh gon.
 - Tablet/mobile an sidebar va dung menu trong header; slide ho tro vuot, ban phim va click den danh muc.
@@ -110,8 +126,8 @@ Quy tac:
 - Section "Danh sach san pham" tren trang chu dang an; giu carousel va toi da 5 section danh muc co san pham cong khai, theo thu tu danh muc trong admin. ProductGrid dung chung tren cac trang: desktop >=1024px 5 cot, tablet 3 cot, mobile 2 cot. Carousel desktop hien 5 item.
 - Section danh muc khong co banner: tieu de uppercase ben trai, "Xem tat ca" ben phai, duong ke xam va lien ket subcategory nen xam o duoi. Khong goi API rieng cho moi section; du lieu lay tu catalog bootstrap.
 - Tieu de `ProductCard` dung Inter Regular 400, 16px/24px, toi da 2 dong; card hep dung 14px/22px. Khong dung Medium/SemiBold cho ten san pham va khong them letter spacing.
-- Anh `ProductCard` dung khung ti le 1:1.05, `object-fit: contain`, padding 8px de khong cat san pham. "Xem chi tiet" hien nut xanh thuong hieu cao 44px, cach mep trai/phai/duoi anh 6px, radius 6px, chu Inter Regular 400 15px/22px, icon Eye 18px net 1.6. Nut fade/slide 180ms khi hover/focus tren desktop >=1024px co chuot (`hover: hover`, `pointer: fine`). Tablet/mobile va thiet bi cam ung an hoan toan nut nay; bam anh hoac ten de vao chi tiet. Card khong co nut them vao gio; mua hang tai trang chi tiet. Nut nam absolute, khong day noi dung card khi xuat hien; reduced motion tat transition.
-- Gia ban mau navy `Primary` 20px, gia niem yet mau `Muted` gach ngang ben canh; card hep tu dong xuong 17px/14px theo container query. Gia goc chi hien khi cao hon gia ban thuc te cua khach. Nhan giam gia dung nen `Section blue`, chu `Blue hover`; yeu thich dung `Blue`. Khong dung mau `Danger` cho gia, nhan khuyen mai hay hanh dong mua hang.
+- Anh `ProductCard` dung khung ti le 1:1.05, `object-fit: contain`, padding 8px de khong cat san pham. "Xem chi tiet" hien nut vang `Brand` chu den cao 44px, cach mep trai/phai/duoi anh 6px, radius 6px, chu Inter Regular 400 15px/22px, icon Eye 18px net 1.6. Nut fade/slide 180ms khi hover/focus tren desktop >=1024px co chuot (`hover: hover`, `pointer: fine`). Tablet/mobile va thiet bi cam ung an hoan toan nut nay; bam anh hoac ten de vao chi tiet. Card khong co nut them vao gio; mua hang tai trang chi tiet. Nut nam absolute, khong day noi dung card khi xuat hien; reduced motion tat transition.
+- Gia ban mau den `Primary` 20px, gia niem yet mau `Muted` gach ngang ben canh; card hep tu dong xuong 17px/14px theo container query. Gia goc chi hien khi cao hon gia ban thuc te cua khach. Nhan giam gia dung nen `Brand`, chu den; yeu thich dung vang. Khong dung mau `Danger` cho gia, nhan khuyen mai hay hanh dong mua hang.
 - Khong long card trong card.
 
 ## 5. Container va spacing
@@ -144,8 +160,8 @@ Rule:
 
 Primary:
 
-- Nen `#1677D2`.
-- Chu trang.
+- Nen `#FFC400`, hover `#E5B000`.
+- Chu den `#171717`.
 - Height 40-44px.
 - Radius 8px.
 - Weight 600.
@@ -153,9 +169,9 @@ Primary:
 Secondary:
 
 - Nen trang.
-- Border `#CBD5E1`.
+- Border `#E5E5E5`.
 - Text primary.
-- Hover sang `#F0F6FD`.
+- Hover nen `#FAFAF7`, vien `#FFC400`; chu van den.
 
 Danger:
 
@@ -166,7 +182,7 @@ Danger:
 Default:
 
 - Background white.
-- Border `#E2E8F0`.
+- Border `#E5E5E5`, hover `#FFC400`.
 - Radius 8-10px.
 - Shadow nhe.
 - Hover translateY -2px.
@@ -175,7 +191,7 @@ Default:
 
 - Dropdown danh muc: width 320px, radius 8px, shadow nhe hai lop.
 - Hien/an bang opacity va translateY 4px trong 160-180ms, khong scale chu hay blur trang.
-- 8 danh muc chinh: item 44px, icon xanh 21px, font Inter 16px weight 500.
+- Danh muc chinh lay tu API: item 44px, icon vang 21px, font Inter 16px weight 500.
 - Tach lien ket phu bang divider: item 36px, icon 18px, font 14px weight 500.
 - Title 13px weight 600, khong uppercase; header co dinh khi list can cuon.
 - Viewport desktop cao tu 768px khong can scrollbar; man hinh thap dung scrollbar mong trong list, khong nam sat mep panel.
@@ -185,8 +201,8 @@ Default:
 ### Product card
 
 - Anh lon nen trang, `object-fit: contain`, khong cat hoac keo gian san pham.
-- Ten toi da 2 dong, Inter 16px weight 500; card hep dung 14px.
-- Gia ban do 20px bold, gia niem yet xam gach ngang. Badge "GIAM -x%" o goc phai tren anh.
+- Ten toi da 2 dong, Inter 16px weight 400; card hep dung 14px.
+- Gia ban den 20px bold, gia niem yet xam gach ngang. Badge vang chu den "GIAM -x%" o goc phai tren anh; chi hien khi co giam gia that.
 - Danh gia chi dung `reviewSummary` tu API catalog (chi tinh review da duyet). Backend cu chua tra summary thi an hang danh gia, khong gia lap so sao/count.
 - Tag thuoc tinh lay tu variantAttributes, kich thuoc, chat lieu va mau; toi da 4 tag, bo trung va placeholder. Khong tu them tinh nang san pham.
 - Ma san pham va don vi 11px muted o chan card.
@@ -199,7 +215,7 @@ Default:
 - H2 uppercase.
 - 17-18px desktop, 16-18px mobile.
 - Subtitle 11-12px.
-- Link phai 11-12px blue.
+- Link phai 11-12px den, hover underline vang.
 
 ## 7. Interaction
 
@@ -225,7 +241,7 @@ Product detail:
 - Khoi mua hang bam duoi header voi khoang cach 16px, dung lai khi het cot noi dung. Man hinh thap cho cuon noi dung khoi mua hang bang chuot/ban phim; tablet/mobile khong sticky va dat mua hang truoc bang thong so.
 - Ma hang va tinh trang hang hien ro.
 - Gia B2C/B2B khong bi lan.
-- Duoi nut them gio hang co hai lien ket "Chat Zalo" va "Goi cho toi", nen trang, vien `Border`, text `Primary`, icon xanh; hover nen `Section blue`, vien `Blue`, chu `Blue hover`. Chu viet thuong theo nhan, khong ep in hoa. Chieu cao toi thieu 56px. Link Zalo mo tab moi; nut goi dung `tel:`. Van hien khi san pham het hang. Nut them gio hang giu nen `Blue` de phan biet hanh dong chinh; gia mua dung `Primary`, khong dung `Danger`.
+- Duoi nut them gio hang co hai lien ket "Chat Zalo" va "Goi cho toi", nen trang, vien `Border`, text `Primary`, icon vang; hover nen `Section`, vien `Brand`, chu den. Chu viet thuong theo nhan, khong ep in hoa. Chieu cao toi thieu 56px. Link Zalo mo tab moi; nut goi dung `tel:`. Van hien khi san pham het hang. Nut them gio hang giu nen `Brand` chu den de phan biet hanh dong chinh; gia mua dung `Primary`, khong dung `Danger`.
 - So dien thoai va link Zalo dung chung tu `lib/store-contact.ts`, dong bo voi trang Lien he va ho tro trang chu.
 - Thong so ky thuat dang bang.
 - San pham lien quan nam cuoi trang duoi khoi mua kem, dung `ProductCard` theo hang ngang (4 item hien tai), cuon ngang tren tablet/mobile.
@@ -299,10 +315,9 @@ Tailwind tokens:
 
 - `primary`
 - `primary-dark`
-- `blue-brand`
-- `blue-hover`
+- `brand`
+- `brand-hover`
 - `section`
-- `section-blue`
 - `text-strong`
 - `text-secondary`
 - `text-muted`

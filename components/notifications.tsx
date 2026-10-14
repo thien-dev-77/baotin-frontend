@@ -216,9 +216,9 @@ export function NotificationsPage() {
             {resource.data.items.map((item) => (
               <article
                 key={item.id}
-                className={`flex items-start gap-3 p-4 ${item.readAt ? "bg-white" : "bg-section-blue"}`}
+                className={`flex items-start gap-3 p-4 ${item.readAt ? "bg-white" : "bg-section"}`}
               >
-                <Bell size={19} className="mt-1 shrink-0 text-blue-brand" />
+                <Bell size={19} className="mt-1 shrink-0 text-primary" />
                 <Link
                   href={item.href}
                   className="min-w-0 flex-1"

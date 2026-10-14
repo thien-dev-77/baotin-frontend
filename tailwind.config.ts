@@ -9,26 +9,25 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: "#0F3157",
-        "primary-dark": "#08233F",
-        blue: {
-          brand: "#1677D2",
-          hover: "#0E65B8"
+        primary: "#171717",
+        "primary-dark": "#171717",
+        brand: {
+          DEFAULT: "#FFC400",
+          hover: "#E5B000"
         },
-        section: "#F5F8FC",
-        "section-blue": "#F0F6FD",
+        section: "#FAFAF7",
         text: {
-          strong: "#102A43",
-          secondary: "#52667A",
-          muted: "#7B8A9A"
+          strong: "#171717",
+          secondary: "#525252",
+          muted: "#737373"
         },
-        border: "#E2E8F0",
+        border: "#E5E5E5",
         success: "#168A5A",
         danger: "#D92D20"
       },
       boxShadow: {
-        card: "0 2px 10px rgba(15, 49, 87, 0.06)",
-        "card-hover": "0 8px 24px rgba(15, 49, 87, 0.10)"
+        card: "0 2px 10px rgba(23, 23, 23, 0.06)",
+        "card-hover": "0 8px 24px rgba(23, 23, 23, 0.10)"
       },
       fontFamily: {
         sans: ["Inter Variable", "Inter", "ui-sans-serif", "system-ui", "sans-serif"]

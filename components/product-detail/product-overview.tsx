@@ -21,16 +21,16 @@ export function ProductOverview({ product, specifications, reviewCount, rating =
       <Link href={`/brand/${brandSlug}`} className="text-xs font-bold text-text-muted">{product.brand.toUpperCase()}</Link>
       <h1 className="mt-1 text-[22px] font-bold leading-tight text-primary">{product.name}</h1>
       <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
-        <span className="flex text-amber-500">
+        <span className="flex text-brand">
           {Array.from({ length: 5 }, (_, index) => <Star key={index} size={13} fill={index < Math.round(rating) ? "currentColor" : "none"} />)}
         </span>
-        <button onClick={onShowReviews} className="text-blue-brand">{reviewCount ? `${rating.toFixed(1)} (${reviewCount} đánh giá)` : "Chưa có đánh giá"}</button>
+        <button onClick={onShowReviews} className="text-primary">{reviewCount ? `${rating.toFixed(1)} (${reviewCount} đánh giá)` : "Chưa có đánh giá"}</button>
       </div>
       <p className="mt-4 whitespace-pre-line break-words text-sm leading-6 text-text-secondary">
         {product.shortDescription || `${product.name} chính hãng, bền bỉ và đồng bộ. Phù hợp cho xưởng nội thất, công trình và ngôi nhà Việt.`}
       </p>
       <div className="mt-3 flex flex-wrap gap-1.5">
-        {product.specification.split(" · ").map((tag) => <span key={tag} className="rounded-full bg-section-blue px-2 py-1 text-xs text-primary">{tag}</span>)}
+        {product.specification.split(" · ").map((tag) => <span key={tag} className="rounded-full bg-section px-2 py-1 text-xs text-primary">{tag}</span>)}
       </div>
       <dl className="mt-4 divide-y divide-border text-[13px]">
         {specifications.map(([label, value]) => (
@@ -40,7 +40,7 @@ export function ProductOverview({ product, specifications, reviewCount, rating =
           </div>
         ))}
       </dl>
-      <a href="#specifications" className="mt-2 inline-flex items-center gap-1 text-xs text-blue-brand">
+      <a href="#specifications" className="mt-2 inline-flex items-center gap-1 text-xs text-primary">
         Xem thông số kỹ thuật<ChevronRight size={14} />
       </a>
     </section>

@@ -29,7 +29,7 @@ export function ProductVariantFields({ attributes, onChange, groupId, siblings, 
     </div>)}
     {groupId && <div className="mt-4 border-t border-border pt-4">
       <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="text-sm font-semibold text-primary">Các SKU trong nhóm</h3><Link className="bt-button-secondary" href={`/admin/products/new?variantOf=${encodeURIComponent(groupId)}&returnTo=${encodeURIComponent(returnTo)}`}><Plus size={16} />Tạo biến thể</Link></div>
-      <ul className="mt-3 flex flex-wrap gap-2">{siblings.map(item => <li key={item.id}><Link href={`/admin/products/${encodeURIComponent(item.id)}/edit?returnTo=${encodeURIComponent(returnTo)}`} aria-current={item.id === currentId ? "page" : undefined} className={`inline-flex min-h-9 items-center rounded border px-3 text-sm ${item.id === currentId ? "border-blue-brand bg-section-blue font-semibold text-primary" : "border-border text-text-secondary hover:border-blue-brand"}`}>{item.variantAttributes?.map(part => part.value).join(" / ") || item.code}</Link></li>)}</ul>
+      <ul className="mt-3 flex flex-wrap gap-2">{siblings.map(item => <li key={item.id}><Link href={`/admin/products/${encodeURIComponent(item.id)}/edit?returnTo=${encodeURIComponent(returnTo)}`} aria-current={item.id === currentId ? "page" : undefined} className={`inline-flex min-h-9 items-center rounded border px-3 text-sm ${item.id === currentId ? "border-brand bg-section font-semibold text-primary" : "border-border text-text-secondary hover:border-brand"}`}>{item.variantAttributes?.map(part => part.value).join(" / ") || item.code}</Link></li>)}</ul>
     </div>}
   </section>;
 }

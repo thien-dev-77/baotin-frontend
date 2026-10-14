@@ -149,7 +149,7 @@ export function AccountPriceRequests() {
                 <article key={item.id} className="py-4">
                   <div className="flex flex-wrap justify-between gap-2">
                     <Link
-                      className="text-sm font-semibold text-blue-brand"
+                      className="text-sm font-semibold text-primary"
                       href={`/account/orders/${item.orderId}`}
                     >
                       {item.orderId} · {item.type}

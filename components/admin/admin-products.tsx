@@ -97,7 +97,7 @@ function ProductsList({ browse }: { browse: AdminBrowseState }) {
         {canEdit && apiMode && <td className="!w-12"><ProductSelectionCheckbox aria-label={`Chọn sản phẩm ${item.code}`} checked={selectedIds.has(item.id)} disabled={selectionBusy || !item.revision || !selectedIds.has(item.id) && selected.length >= MAX_BULK_PRODUCTS} onChange={() => toggle(item)} /></td>}
         <td><div className="flex min-w-[240px] items-center gap-3">
           {item.image ? <Image src={item.image} alt={item.name} width={44} height={44} className="h-11 w-11 shrink-0 rounded border border-border object-cover" loading="lazy" quality={85} sizes="44px" data-image-src={item.image} /> : <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded border border-border bg-section text-text-muted"><ImageIcon size={18} /></span>}
-          <div>{canEdit ? <Link href={`/admin/products/${encodeURIComponent(item.id)}/edit?returnTo=${returnTo}`} className="font-medium text-primary hover:text-blue-brand">{item.name}</Link> : <span className="font-medium text-primary">{item.name}</span>}<span className="mt-1 block text-xs text-text-muted">{item.code} · {item.brand}</span></div>
+          <div>{canEdit ? <Link href={`/admin/products/${encodeURIComponent(item.id)}/edit?returnTo=${returnTo}`} className="font-medium text-primary hover:text-primary hover:underline decoration-brand underline-offset-4">{item.name}</Link> : <span className="font-medium text-primary">{item.name}</span>}<span className="mt-1 block text-xs text-text-muted">{item.code} · {item.brand}</span></div>
         </div></td>
         <td>{categories.find(category => category.slug === item.category)?.name}</td>
         {showPrices && <>

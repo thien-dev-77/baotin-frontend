@@ -19,7 +19,7 @@ function CategoryTile({
   return (
     <Link
       href={`/category/${category.slug}`}
-      className={`group block overflow-hidden rounded-lg border border-border bg-white shadow-card transition hover:border-blue-brand hover:shadow-card-hover ${compact ? "w-[126px] shrink-0 md:w-auto" : "min-w-0"}`}
+      className={`group block overflow-hidden rounded-lg border border-border bg-white shadow-card transition hover:border-brand hover:shadow-card-hover ${compact ? "w-[126px] shrink-0 md:w-auto" : "min-w-0"}`}
     >
       <div className="relative aspect-[1.35/1] overflow-hidden bg-section">
         {category.image ? (
@@ -100,7 +100,7 @@ function CategoryChildren({ categories, parent, depth }: { categories: Category[
   const children = depth < MAX_CATEGORY_DEPTH - 1 ? categories.filter(category => category.parentSlug === parent) : [];
   if (!children.length) return null;
   return <ul className="mt-2 space-y-1 border-l border-border pl-3">{children.map(category => <li key={category.slug}>
-    <Link href={`/category/${category.slug}`} className="inline-flex min-h-9 items-center break-words text-sm text-blue-brand hover:underline">{category.name}</Link>
+    <Link href={`/category/${category.slug}`} className="inline-flex min-h-9 items-center break-words text-sm text-primary hover:underline">{category.name}</Link>
     <CategoryChildren categories={categories} parent={category.slug} depth={depth + 1} />
   </li>)}</ul>;
 }

@@ -27,7 +27,7 @@ export function AdminSalesProducts({ open, onClose, products, customer, selected
     <ul className="divide-y divide-border">
       {rows.slice((current - 1) * 10, current * 10).map((product) => <li key={product.id} className="flex items-center gap-3 py-3">
         <Image src={product.image} alt={product.name} width={48} height={48} className="h-12 w-12 shrink-0 rounded object-contain" quality={85} sizes="48px" data-image-src={product.image} />
-        <div className="min-w-0 flex-1"><p className="text-sm font-medium leading-5 text-primary">{product.name}</p><p className="mt-1 text-xs text-text-muted">{product.code} · Tồn {product.stock} {product.unit}</p><p className="mt-1 text-xs font-semibold text-blue-brand">{money(salesUnitPrice(product, customer))}/{product.unit}</p></div>
+        <div className="min-w-0 flex-1"><p className="text-sm font-medium leading-5 text-primary">{product.name}</p><p className="mt-1 text-xs text-text-muted">{product.code} · Tồn {product.stock} {product.unit}</p><p className="mt-1 text-xs font-semibold text-primary">{money(salesUnitPrice(product, customer))}/{product.unit}</p></div>
         <button type="button" className="bt-icon-button shrink-0 !border !border-border" aria-label={`Thêm ${product.code}`} title={selected.includes(product.id) ? "Đã thêm" : `Thêm ${product.code}`} disabled={selected.includes(product.id)} onClick={() => onAdd(product.id)}>{selected.includes(product.id) ? <Check size={18} /> : <Plus size={18} />}</button>
       </li>)}
     </ul>

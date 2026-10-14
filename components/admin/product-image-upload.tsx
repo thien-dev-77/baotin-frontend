@@ -45,7 +45,7 @@ export function ProductImageUpload({ images, onChange, busy, uploading, onBusyCh
     {images.length ? <ol className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
       {images.map((src, index) => <li key={src} className="overflow-hidden rounded-md border border-border bg-white">
         <div className="relative aspect-square bg-section"><Image src={src} alt={`Ảnh sản phẩm ${index + 1}`} fill sizes="(min-width: 1280px) 200px, (min-width: 640px) 30vw, 45vw" className="object-contain p-2" quality={85} />
-          {index === 0 && <span className="absolute left-2 top-2 rounded bg-blue-brand px-2 py-1 text-xs font-medium text-white">Ảnh đại diện</span>}
+          {index === 0 && <span className="absolute left-2 top-2 rounded bg-brand px-2 py-1 text-xs font-medium text-primary">Ảnh đại diện</span>}
         </div>
         <div className="flex items-center justify-between border-t border-border px-1 py-1.5">
           <button type="button" className="bt-icon-button" aria-label={`Chọn ảnh ${index + 1} làm đại diện`} title="Đặt làm ảnh đại diện" disabled={busy || index === 0} onClick={() => onChange([src, ...images.filter(image => image !== src)])}><Star size={16} fill={index === 0 ? "currentColor" : "none"} /></button>

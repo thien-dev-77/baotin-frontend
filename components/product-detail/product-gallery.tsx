@@ -21,13 +21,13 @@ export function ProductGallery({ product }: { product: Product }) {
               aria-label={`Xem ảnh ${index + 1}`}
               aria-pressed={photo === index}
               onClick={() => setPhoto(index)}
-              className={`h-16 w-16 shrink-0 overflow-hidden rounded-md border bg-section p-1 ${photo === index ? "border-blue-brand ring-1 ring-blue-brand" : "border-border"}`}
+              className={`h-16 w-16 shrink-0 overflow-hidden rounded-md border bg-section p-1 ${photo === index ? "border-brand ring-1 ring-brand" : "border-border"}`}
             >
               <Image alt="" src={image} data-image-src={image} width={56} height={56} sizes="56px" quality={85} className="h-full w-full object-contain" />
             </button>
           ))}
         </div>
-        <div className="relative order-1 aspect-square overflow-hidden rounded-lg bg-[#f8fafc] sm:order-2">
+        <div className="relative order-1 aspect-square overflow-hidden rounded-lg bg-section sm:order-2">
           <Image
             src={product.gallery[photo]}
             data-image-src={product.gallery[photo]}
@@ -39,7 +39,7 @@ export function ProductGallery({ product }: { product: Product }) {
             fetchPriority="high"
             className="h-full w-full object-contain p-4"
           />
-          {product.featured && <span className="absolute left-3 top-3 rounded bg-section-blue px-2 py-1 text-xs font-semibold text-primary">Nổi bật</span>}
+          {product.featured && <span className="absolute left-3 top-3 rounded bg-section px-2 py-1 text-xs font-semibold text-primary">Nổi bật</span>}
           <button
             className="absolute bottom-3 right-3 bt-icon-button rounded-full bg-white shadow-card"
             aria-label="Phóng to ảnh"

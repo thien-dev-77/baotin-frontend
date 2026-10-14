@@ -169,6 +169,37 @@ async function mockCategories(page: Page, role = "admin", count = categoryCatalo
 }
 const dialog = (page: Page) => page.getByRole("dialog");
 
+for (const width of [1440, 390, 320]) test(`Admin uses brand logo and accessible yellow actions at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 1000 });
+  const qa = await mockCategories(page);
+  await expect(page.locator(".bt-admin")).toHaveCSS("background-color", "rgb(250, 250, 247)");
+  await expect(page.getByRole("heading", { name: "Danh mục sản phẩm", exact: true })).toHaveCSS("color", "rgb(23, 23, 23)");
+  if (width >= 1024) {
+    const logo = page.locator(".bt-admin-sidebar").getByRole("img", { name: "Bảo Tín", exact: true });
+    await expect(logo).toHaveAttribute("src", /logo-baotin\.png/);
+    await expect.poll(() => logo.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
+    const active = page.getByRole("navigation", { name: "Quản trị nội bộ" }).getByRole("link", { name: "Danh mục", exact: true });
+    await expect(active).toHaveCSS("border-left-color", "rgb(255, 196, 0)");
+    await expect(active).toHaveCSS("color", "rgb(23, 23, 23)");
+  }
+  const create = page.getByRole("button", { name: "Thêm danh mục", exact: true });
+  await expect(create).toHaveCSS("background-color", "rgb(255, 196, 0)");
+  await expect(create).toHaveCSS("color", "rgb(23, 23, 23)");
+  await create.hover();
+  await expect(create).toHaveCSS("background-color", "rgb(229, 176, 0)");
+  await create.click();
+  const name = dialog(page).getByLabel(/^Tên danh mục/);
+  await name.focus();
+  await expect(name).toHaveCSS("border-top-color", "rgb(255, 196, 0)");
+  await expect(name).toHaveCSS("outline-color", "rgb(23, 23, 23)");
+  await dialog(page).getByRole("button", { name: "Hủy", exact: true }).click();
+  expect(await page.getByRole("searchbox").evaluate(element => getComputedStyle(element, "::placeholder").color)).toBe("rgb(115, 115, 115)");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await mkdir("/private/tmp/baotin-branding", { recursive: true });
+  await page.screenshot({ path: `/private/tmp/baotin-branding/admin-${width}.png`, animations: "disabled" });
+  expect(qa.errors).toEqual([]);
+});
+
 test("Parent selector preserves hierarchy and prevents moving a branch inside its descendants", async ({ page }) => {
   const qa = await mockCategories(page, "admin", categoryCatalog.length, true);
   await page.getByRole("button", { name: "Sửa danh mục Phụ kiện bếp", exact: true }).click();
@@ -195,10 +226,11 @@ for (const width of [1440, 768, 390, 320]) test(`Hierarchy expands without dupli
     const sidebar = page.getByRole("navigation", { name: "Danh mục bên cạnh banner" });
     await expect(sidebar.getByRole("link", { name: "LED tủ/kệ", exact: true })).toHaveCount(0);
     await sidebar.getByRole("button", { name: "Mở danh mục con Phụ kiện bếp", exact: true }).click();
-    await expect(sidebar.getByRole("link", { name: "LED tủ/kệ", exact: true })).toBeVisible();
-    await sidebar.getByRole("button", { name: "Mở danh mục con LED tủ/kệ", exact: true }).click();
-    await sidebar.getByRole("button", { name: "Mở danh mục con Ray trượt", exact: true }).click();
-    await expect(sidebar.getByRole("link", { name: "Bản lề", exact: true })).toBeVisible();
+    const first = page.getByRole("navigation", { name: "Danh mục con Phụ kiện bếp", exact: true });
+    await expect(first.getByRole("link", { name: "LED tủ/kệ", exact: true })).toBeVisible();
+    await first.getByRole("button", { name: "Mở danh mục con LED tủ/kệ", exact: true }).click();
+    await page.getByRole("navigation", { name: "Danh mục con LED tủ/kệ", exact: true }).getByRole("button", { name: "Mở danh mục con Ray trượt", exact: true }).click();
+    await expect(page.getByRole("navigation", { name: "Danh mục con Ray trượt", exact: true }).getByRole("link", { name: "Bản lề", exact: true })).toBeVisible();
   }
   const section = page.locator("[data-category-products]").filter({ has: page.getByRole("heading", { name: "Phụ kiện bếp", exact: true }) });
   await expect(section).toBeVisible();

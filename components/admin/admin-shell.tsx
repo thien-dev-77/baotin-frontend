@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { useContext, useState } from "react";
 import {
   LogOut,
-  Box,
   Building2,
   ClipboardCheck,
   ExternalLink,
@@ -26,6 +25,7 @@ import {
   FolderTree,
 } from "lucide-react";
 import { Button, Modal } from "@/components/ui";
+import { Logo } from "@/components/logo";
 import { useAdmin } from "@/components/admin/admin-provider";
 import { type Branch } from "@/lib/admin-preview";
 import { apiMode } from "@/lib/api-client";
@@ -149,12 +149,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               href={href}
               aria-current={active(href) ? "page" : undefined}
               onClick={() => setMenu(false)}
-              className={`flex min-h-11 items-center gap-3 rounded-md px-3 text-sm ${active(href) ? "bg-section-blue font-semibold text-blue-brand" : "text-text-secondary hover:bg-section"}`}
+              className={`flex min-h-11 items-center gap-3 rounded-md border-l-2 px-3 text-sm ${active(href) ? "border-brand bg-section font-semibold text-primary" : "border-transparent text-text-secondary hover:bg-section"}`}
             >
-              <Icon size={18} aria-hidden="true" />
+              <Icon size={18} aria-hidden="true" className={active(href) ? "text-brand" : ""} />
               <span className="flex-1">{label}</span>
               {count > 0 && (
-                <span className="min-w-5 rounded bg-white px-1.5 text-center text-xs text-blue-brand">
+                <span className="min-w-5 rounded bg-white px-1.5 text-center text-xs text-primary">
                   {count}
                 </span>
               )}
@@ -175,15 +175,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <Link
           href="/admin"
           aria-label="Bảo Tín quản trị"
-          className="flex items-center gap-2.5 px-2 py-1"
+          className="block px-2 py-1"
         >
-          <span className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-white">
-            <Box size={23} />
-          </span>
-          <span>
-            <strong className="block text-xl text-primary">BẢO TÍN</strong>
-            <span className="text-xs text-text-secondary">Quản trị nội bộ</span>
-          </span>
+          <Logo compact />
+          <span className="mt-2 block text-xs text-text-secondary">Quản trị nội bộ</span>
         </Link>
         <p className="mb-2 mt-8 px-3 text-xs font-medium text-text-muted">
           VẬN HÀNH
@@ -224,7 +219,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <div className="flex shrink-0 items-center gap-3">
             <NotificationBell />
             <span
-              className={`rounded border px-2 py-1 text-[11px] font-medium ${apiMode ? "border-border bg-section-blue text-blue-brand" : "border-amber-200 bg-amber-50 text-amber-800"}`}
+              className={`rounded border px-2 py-1 text-[11px] font-medium ${apiMode ? "border-border bg-section text-primary" : "border-amber-200 bg-amber-50 text-amber-800"}`}
             >
               {apiMode ? "API" : "Dữ liệu mẫu"}
             </span>
@@ -297,7 +292,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           {canIntegrate && (
             <Link
               href="/admin/integrations"
-              className="ml-auto hidden text-xs text-blue-brand md:block"
+              className="ml-auto hidden text-xs text-primary md:block"
             >
               Tích hợp KiotViet
             </Link>
@@ -357,7 +352,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <Link
           href="/"
           onClick={() => setMenu(false)}
-          className="mt-4 flex items-center gap-2 border-t border-border py-4 text-sm text-blue-brand"
+          className="mt-4 flex items-center gap-2 border-t border-border py-4 text-sm text-primary"
         >
           <ExternalLink size={16} />
           Website bán hàng

@@ -20,12 +20,12 @@ export function useCustomerOrders() {
   return customer ? [...orders.filter((order) => order.customerId === customer.id), ...(customer.status === "active" ? mockOrders(customer.id) : [])] : orders.filter((order) => !order.customerId);
 }
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {
-  const color = status === "Đã giao" ? "bg-green-50 text-success" : status === "Đã hủy" ? "bg-red-50 text-danger" : status === "Chờ xác nhận" ? "bg-amber-50 text-amber-700" : "bg-section-blue text-blue-brand";
+  const color = status === "Đã giao" ? "bg-green-50 text-success" : status === "Đã hủy" ? "bg-red-50 text-danger" : status === "Chờ xác nhận" ? "bg-amber-50 text-amber-700" : "bg-section text-primary";
   return <span className={`inline-flex whitespace-nowrap rounded px-2 py-1 text-xs font-medium ${color}`}>{status}</span>;
 }
 const dateLabel = (date: string) => new Intl.DateTimeFormat("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(date));
 export function OrdersTable({ orders }: { orders: Order[] }) {
-  return <><div className="hidden overflow-x-auto rounded-lg border border-border md:block"><table className="bt-table"><thead><tr><th>Mã đơn</th><th>Ngày</th><th>Tổng tiền</th><th>Trạng thái</th><th /></tr></thead><tbody>{orders.map((order) => <tr key={order.id}><td className="font-semibold text-primary">{order.id}</td><td className="whitespace-nowrap">{dateLabel(order.date)}</td><td className="whitespace-nowrap font-semibold">{money(order.total)}</td><td><OrderStatusBadge status={order.status} /></td><td><Link href={`/account/orders/${order.id}`} className="text-blue-brand">Xem</Link></td></tr>)}</tbody></table></div><div className="space-y-3 md:hidden">{orders.map((order) => <Link href={`/account/orders/${order.id}`} key={order.id} className="block rounded-lg border border-border p-4"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-sm text-primary">{order.id}</strong><OrderStatusBadge status={order.status} /></div><div className="mt-3 flex items-center justify-between text-sm"><span className="text-text-secondary">{dateLabel(order.date)}</span><strong>{money(order.total)}</strong></div><p className="mt-2 text-xs text-blue-brand">Xem chi tiết →</p></Link>)}</div></>;
+  return <><div className="hidden overflow-x-auto rounded-lg border border-border md:block"><table className="bt-table"><thead><tr><th>Mã đơn</th><th>Ngày</th><th>Tổng tiền</th><th>Trạng thái</th><th /></tr></thead><tbody>{orders.map((order) => <tr key={order.id}><td className="font-semibold text-primary">{order.id}</td><td className="whitespace-nowrap">{dateLabel(order.date)}</td><td className="whitespace-nowrap font-semibold">{money(order.total)}</td><td><OrderStatusBadge status={order.status} /></td><td><Link href={`/account/orders/${order.id}`} className="text-primary">Xem</Link></td></tr>)}</tbody></table></div><div className="space-y-3 md:hidden">{orders.map((order) => <Link href={`/account/orders/${order.id}`} key={order.id} className="block rounded-lg border border-border p-4"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-sm text-primary">{order.id}</strong><OrderStatusBadge status={order.status} /></div><div className="mt-3 flex items-center justify-between text-sm"><span className="text-text-secondary">{dateLabel(order.date)}</span><strong>{money(order.total)}</strong></div><p className="mt-2 text-xs text-primary">Xem chi tiết →</p></Link>)}</div></>;
 }
 export function OrderHistory() {
   const orders = useCustomerOrders(); const [tab, setTab] = useState("Tất cả"); const [query, setQuery] = useState("");
@@ -68,13 +68,13 @@ export function OrderDetailView({ id, standalone = false }: { id: string; standa
         <ol className="grid gap-4 sm:grid-cols-5">
           {["Tiếp nhận đơn", "Inside Sales xác nhận", "Kho soạn hàng", "Đang giao", "Đã giao"].map((step, i) => (
             <li key={step} className="relative flex items-center gap-3 sm:flex-col sm:text-center">
-              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${i <= index ? "bg-blue-brand text-white" : "bg-section text-text-muted"}`}>{i < index ? <Check size={15} /> : i + 1}</span>
+              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${i <= index ? "bg-brand text-primary" : "bg-section text-text-muted"}`}>{i < index ? <Check size={15} /> : i + 1}</span>
               <span className={`text-xs ${i <= index ? "font-semibold text-primary" : "text-text-muted"}`}>{step}</span>
             </li>
           ))}
         </ol>
       </div>
-      {order.b2b && <p className="mb-5 rounded-md bg-section-blue p-3 text-sm text-primary">{order.status === "Chờ xác nhận" ? "Đang chờ Inside Sales xác nhận giá, tồn kho và công nợ trước khi kho soạn hàng." : order.status === "Đã hủy" ? "Đơn hàng đã hủy." : "Inside Sales đã xác nhận đơn hàng."}</p>}
+      {order.b2b && <p className="mb-5 rounded-md bg-section p-3 text-sm text-primary">{order.status === "Chờ xác nhận" ? "Đang chờ Inside Sales xác nhận giá, tồn kho và công nợ trước khi kho soạn hàng." : order.status === "Đã hủy" ? "Đơn hàng đã hủy." : "Inside Sales đã xác nhận đơn hàng."}</p>}
       <div className="mb-6 grid gap-5 sm:grid-cols-2">
         <section>
           <h2 className="text-base font-semibold text-primary">Thông tin người nhận</h2>

@@ -158,7 +158,7 @@ export function PasswordForm({
             : "Đổi mật khẩu"}
       </Button>
       {mode !== "change" && (
-        <Link href="/login" className="block text-sm text-blue-brand">
+        <Link href="/login" className="block text-sm text-primary">
           Về đăng nhập
         </Link>
       )}

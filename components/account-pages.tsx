@@ -74,7 +74,7 @@ export function AccountDashboard() {
           >
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs text-text-secondary">{title}</p>
-              <Icon size={18} className="text-blue-brand" />
+              <Icon size={18} className="text-primary" />
             </div>
             <strong className="mt-3 block text-lg text-primary">{value}</strong>
           </Link>
@@ -84,7 +84,7 @@ export function AccountDashboard() {
         <h2 className="text-lg font-bold text-primary">Đơn hàng gần đây</h2>
         <Link
           href="/account/orders"
-          className="text-xs font-semibold text-blue-brand"
+          className="text-xs font-semibold text-primary"
         >
           Xem tất cả →
         </Link>
@@ -94,7 +94,7 @@ export function AccountDashboard() {
         <h2 className="text-lg font-bold text-primary">Sản phẩm thường mua</h2>
         <Link
           href="/account/products"
-          className="text-xs font-semibold text-blue-brand"
+          className="text-xs font-semibold text-primary"
         >
           Xem tất cả →
         </Link>
@@ -444,7 +444,7 @@ export function CreditView() {
       )}
       <Link
         href="/contact"
-        className="mt-5 inline-flex items-center gap-2 text-sm text-blue-brand"
+        className="mt-5 inline-flex items-center gap-2 text-sm text-primary"
       >
         Liên hệ đối chiếu công nợ
         <ArrowRight size={15} />
@@ -517,7 +517,7 @@ export function AddressesView() {
                     setEditing(address);
                     setOpen(true);
                   }}
-                  className="text-xs text-blue-brand"
+                  className="text-xs text-primary"
                 >
                   Chỉnh sửa
                 </button>
@@ -665,7 +665,7 @@ export function SettingsView() {
             <span>{label}</span>
             <input
               type="checkbox"
-              className="h-4 w-4 accent-blue-brand"
+              className="h-4 w-4 accent-brand"
               checked={settings[index]}
               onChange={(e) =>
                 setSettings(

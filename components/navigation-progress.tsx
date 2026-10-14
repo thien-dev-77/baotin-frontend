@@ -95,7 +95,7 @@ export function NavigationProgress({
   return (
     <ProgressProvider
       height="3px"
-      color="var(--color-blue)"
+      color="var(--color-brand)"
       options={options}
       delay={delay}
       stopDelay={0}

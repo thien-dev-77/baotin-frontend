@@ -31,7 +31,7 @@ export function ProductBundle({ products: initialProducts }: { products: Product
           <label key={product.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
             <input
               type="checkbox"
-              className="accent-blue-brand"
+              className="accent-brand"
               checked={selected.includes(product.id)}
               onChange={() => toggleSelection(product.id)}
             />

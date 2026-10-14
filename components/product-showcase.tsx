@@ -17,7 +17,7 @@ export function ProductCarousel({ products, title, children }: { products: Produ
     <section className="mt-6">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-bold text-primary">{title}</h2>
-        {children || <Link href="/search" className="inline-flex items-center gap-1 text-xs font-semibold text-blue-brand">Xem tất cả<ArrowRight size={14} /></Link>}
+        {children || <Link href="/search" className="inline-flex items-center gap-1 text-xs font-semibold text-primary">Xem tất cả<ArrowRight size={14} /></Link>}
       </div>
       <div className="relative">
         {products.length > 1 && <button aria-label="Sản phẩm trước" title="Sản phẩm trước" className="absolute -left-3 top-[90px] z-10 hidden h-8 w-8 items-center justify-center rounded-full border border-border bg-white text-primary shadow-card lg:flex" onClick={() => move(-1)}><ChevronLeft size={18} /></button>}
@@ -46,9 +46,9 @@ export function ProductShowcase() {
       <ProductCarousel key={tab} products={products} title="SẢN PHẨM NỔI BẬT / THƯỜNG MUA">
         <div className="flex flex-wrap items-center gap-1">
           {["Nổi bật", "Thường mua", "Khuyến mãi"].map(option => (
-            <button key={option} aria-pressed={tab === option} onClick={() => setTab(option)} className={`h-8 rounded-md px-3 text-xs font-medium ${tab === option ? "bg-blue-brand text-white" : "bg-section text-primary"}`}>{option === "Thường mua" && (!personalized || noHistory) ? "Gợi ý cho bạn" : option}</button>
+            <button key={option} aria-pressed={tab === option} onClick={() => setTab(option)} className={`h-8 rounded-md px-3 text-xs font-medium ${tab === option ? "bg-brand text-primary" : "bg-section text-primary"}`}>{option === "Thường mua" && (!personalized || noHistory) ? "Gợi ý cho bạn" : option}</button>
           ))}
-          <Link href="/search" className="ml-2 text-xs font-semibold text-blue-brand">Xem tất cả →</Link>
+          <Link href="/search" className="ml-2 text-xs font-semibold text-primary">Xem tất cả →</Link>
         </div>
       </ProductCarousel>
       {showHistory && <ResourceStatus {...frequent} />}

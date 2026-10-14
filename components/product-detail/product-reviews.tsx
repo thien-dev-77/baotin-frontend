@@ -88,7 +88,7 @@ export function ProductReviews({
       {reviews.map((review, index) => (
         <div key={index} className="border-t border-border py-4">
           <strong className="text-sm">{review.name}</strong>
-          <span className="ml-3 text-amber-500">
+          <span className="ml-3 text-brand">
             {"★".repeat(review.stars)}
           </span>
           <p className="mt-2 text-sm text-text-secondary">{review.text}</p>

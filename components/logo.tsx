@@ -1,27 +1,17 @@
-import { Box } from "lucide-react";
+import Image from "next/image";
 
-export function Logo({ inverted = false }: { inverted?: boolean }) {
+export function Logo({ inverted = false, compact = false }: { inverted?: boolean; compact?: boolean }) {
   return (
-    <div className="flex items-center gap-3">
-      <div
-        className={`flex h-11 w-11 items-center justify-center rounded-lg ${
-          inverted ? "bg-white text-primary" : "bg-primary text-white"
-        }`}
-      >
-        <Box size={25} strokeWidth={2.1} />
-      </div>
-      <div className={inverted ? "text-white" : "text-primary"}>
-        <div className="text-[25px] font-extrabold leading-6 tracking-[0]">
-          BẢO TÍN
-        </div>
-        <div
-          className={`mt-1 text-[10px] font-bold uppercase tracking-[0.08em] ${
-            inverted ? "text-blue-100" : "text-text-secondary"
-          }`}
-        >
-          Phụ kiện nội thất
-        </div>
-      </div>
+    <div className={`bt-logo${inverted ? " bt-logo--on-dark" : ""}${compact ? " bt-logo--compact" : ""}`}>
+      <Image
+        src="/logo-baotin.png"
+        alt="Bảo Tín"
+        width={919}
+        height={271}
+        sizes={compact ? "176px" : "(max-width: 639px) 152px, 192px"}
+        loading={inverted ? "lazy" : "eager"}
+        className="aspect-[919/271] h-auto w-full object-contain"
+      />
     </div>
   );
 }

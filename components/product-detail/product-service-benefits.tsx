@@ -12,7 +12,7 @@ export function ProductServiceBenefits() {
     <div className="mt-4 space-y-3 border-t border-border pt-4">
       {benefits.map(({ icon: Icon, title, description }) => (
         <div key={title} className="flex gap-3">
-          <Icon size={22} className="shrink-0 text-blue-brand" />
+          <Icon size={22} className="shrink-0 text-primary" />
           <div>
             <strong className="text-xs text-primary">{title}</strong>
             <p className="mt-0.5 text-xs leading-4 text-text-secondary">{description}</p>

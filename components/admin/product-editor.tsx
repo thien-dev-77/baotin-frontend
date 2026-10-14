@@ -101,7 +101,7 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
     finally { setBusy(false); }
   };
   return <>
-    <Link href={listUrl} className="mb-4 inline-flex items-center gap-2 text-sm text-text-secondary hover:text-blue-brand"><ArrowLeft size={16} />Sản phẩm</Link>
+    <Link href={listUrl} className="mb-4 inline-flex items-center gap-2 text-sm text-text-secondary hover:text-primary hover:underline decoration-brand underline-offset-4"><ArrowLeft size={16} />Sản phẩm</Link>
     <AdminHeading title={product ? "Sửa sản phẩm" : template ? "Thêm biến thể" : "Thêm sản phẩm"} subtitle={product?.code || template?.code} />
     <form ref={formRef} onSubmit={save} data-unsaved={dirty || undefined} className="min-w-0">
       {error && <p role="alert" className="mb-5 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-danger">{error}</p>}
@@ -143,11 +143,11 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
           <section className="border-b border-border pb-5">
             <h2 className="mb-4 text-base font-semibold text-primary">Hiển thị</h2>
             <fieldset className="space-y-2"><legend className="sr-only">Chế độ hiển thị</legend>
-              {[{ value: false, label: "Riêng tư", Icon: LockKeyhole }, { value: true, label: "Công khai", Icon: Globe }].map(({ value, label, Icon }) => <label key={label} className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-md border px-3 text-sm ${published === value ? "border-blue-brand bg-section-blue text-primary" : "border-border text-text-secondary"}`}><input type="radio" name="visibility" checked={published === value} onChange={() => setPublished(value)} className="accent-blue-brand" /><Icon size={17} /><span>{label}</span></label>)}
+              {[{ value: false, label: "Riêng tư", Icon: LockKeyhole }, { value: true, label: "Công khai", Icon: Globe }].map(({ value, label, Icon }) => <label key={label} className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-md border px-3 text-sm ${published === value ? "border-brand bg-section text-primary" : "border-border text-text-secondary"}`}><input type="radio" name="visibility" checked={published === value} onChange={() => setPublished(value)} className="accent-brand" /><Icon size={17} /><span>{label}</span></label>)}
             </fieldset>
-            <label className="mt-5 flex items-center gap-2 text-sm text-primary"><input type="checkbox" name="featured" defaultChecked={product?.featured} className="h-4 w-4 accent-blue-brand" />Sản phẩm nổi bật</label>
+            <label className="mt-5 flex items-center gap-2 text-sm text-primary"><input type="checkbox" name="featured" defaultChecked={product?.featured} className="h-4 w-4 accent-brand" />Sản phẩm nổi bật</label>
           </section>
-          {product && <section className="border-b border-border pb-5"><h2 className="mb-2 text-base font-semibold text-primary">Tồn khả dụng</h2><p className="text-sm text-text-secondary">{currentProduct?.stock || 0} {product.unit}</p><Link href="/admin/ledger" className="mt-3 inline-flex text-sm font-medium text-blue-brand">Sổ tồn kho</Link></section>}
+          {product && <section className="border-b border-border pb-5"><h2 className="mb-2 text-base font-semibold text-primary">Tồn khả dụng</h2><p className="text-sm text-text-secondary">{currentProduct?.stock || 0} {product.unit}</p><Link href="/admin/ledger" className="mt-3 inline-flex text-sm font-medium text-primary">Sổ tồn kho</Link></section>}
           {product?.published && <Link href={`/products/${product.slug}`} target="_blank" rel="noopener noreferrer" className="bt-button-secondary w-full"><ExternalLink size={16} />Xem sản phẩm</Link>}
         </aside>
       </fieldset>
