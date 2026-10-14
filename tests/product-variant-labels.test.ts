@@ -26,10 +26,11 @@ test("Storefront labels point to each SKU even when custom labels are identical"
   assert.equal(html.match(/aria-current="page"/g)?.length, 1);
 });
 
-test("Custom SKU picker retains multi-attribute selection", () => {
+test("Multi-attribute selection renders independent dimensions without a combined SKU picker", () => {
   const product = { ...variants[0], variantLabel: "<Phải>" };
   const html = renderToStaticMarkup(createElement(ProductVariantSelector, { product, variants: [product, ...variants.slice(1)] }));
-  assert.ok(html.includes('&lt;Phải&gt;'));
+  assert.ok(!html.includes('&lt;Phải&gt;'));
+  assert.equal(html.match(/<fieldset>/g)?.length, 2);
   assert.ok(html.includes('>800mm</a>'));
   assert.ok(html.includes('>Đen</a>'));
 });

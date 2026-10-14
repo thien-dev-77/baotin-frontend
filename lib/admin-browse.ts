@@ -6,10 +6,10 @@ import { apiMode } from "./api-client";
 import { useAdmin } from "@/components/admin/admin-provider";
 import { useAdminResource } from "@/components/admin/admin-resource";
 import type { AdminBrowsePage, AdminBrowseResource } from "./api-types";
+import { ADMIN_PAGE_SIZES, adminBrowsePath } from "./admin-browse-query";
 
-export const ADMIN_PAGE_SIZES = [10, 25, 50] as const;
+export { ADMIN_PAGE_SIZES } from "./admin-browse-query";
 const SEARCH_DELAY_MS = 300;
-const fields = ["status", "category", "group", "sales", "pilot", "from", "to"] as const;
 
 export function readAdminBrowse(value: unknown): AdminBrowsePage {
   if (!value || typeof value !== "object" || !("pagination" in value)) throw new Error("Danh sách quản trị không hợp lệ.");
@@ -39,17 +39,18 @@ export function useAdminBrowse(resource: AdminBrowseResource) {
     const timer = setTimeout(() => updateAdminQuery({ q: query.trim(), page: 1 }), SEARCH_DELAY_MS);
     return () => clearTimeout(timer);
   }, [query, currentQuery]);
-  const params = new URLSearchParams({ branch, resource, page: String(Math.max(1, Number.parseInt(search.get("page") || "1", 10) || 1)), pageSize: String(ADMIN_PAGE_SIZES.find(size => size === Number(search.get("pageSize"))) || 10) });
-  if (currentQuery) params.set("q", currentQuery);
-  for (const field of fields) if (search.get(field)) params.set(field, search.get(field)!);
-  const response = useAdminResource<AdminBrowsePage>(`/admin/browse?${params}`, apiMode, readAdminBrowse, `${branch}:${resource}`);
+  const path = adminBrowsePath(resource, branch, search);
+  const params = new URLSearchParams(path.split("?")[1]);
+  const response = useAdminResource<AdminBrowsePage>(path, apiMode, readAdminBrowse, `${branch}:${resource}`);
+  const set = (values: Record<string, string | number | undefined>) => updateAdminQuery({ q: query.trim(), ...values, page: 1 });
   return {
     ...response, query, setQuery, page: Number(params.get("page")), pageSize: Number(params.get("pageSize")),
     filter: search.get("status") || "all", category: search.get("category") || "all",
+    subcategory: search.get("subcategory") || "all",
     group: search.get("group") || "", sales: search.get("sales") || "", pilot: search.get("pilot") || "", from: search.get("from") || "", to: search.get("to") || "",
     setPage: (page: number) => updateAdminQuery({ page }, true),
-    setFilter: (status: string) => updateAdminQuery({ status, page: 1 }),
-    set: (values: Record<string, string | number | undefined>) => updateAdminQuery({ ...values, page: 1 }),
+    setFilter: (status: string) => set({ status }),
+    set,
   };
 }
 export type AdminBrowseState = ReturnType<typeof useAdminBrowse>;

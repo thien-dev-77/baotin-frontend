@@ -82,10 +82,10 @@ try {
   await page.getByLabel("Mô tả sản phẩm", { exact: true }).fill("Mô tả mới được cập nhật.");
   await page.getByRole("button", { name: "Thêm thuộc tính", exact: true }).click();
   await page.getByLabel("Tên thuộc tính 1", { exact: true }).fill("Kích thước khoang tủ (T)");
-  await page.getByLabel("Giá trị 1", { exact: true }).fill("600mm");
+  await page.getByLabel("Giá trị Kích thước khoang tủ (T)", { exact: true }).fill("600mm");
   await page.getByRole("button", { name: "Thêm thuộc tính", exact: true }).click();
   await page.getByLabel("Tên thuộc tính 2", { exact: true }).fill("Màu sắc");
-  await page.getByLabel("Giá trị 2", { exact: true }).fill("Bạc");
+  await page.getByLabel("Giá trị Màu sắc", { exact: true }).fill("Bạc");
   await page.getByRole("radio", { name: "Công khai", exact: true }).check();
   const editResponse = page.waitForResponse(response => response.url().endsWith(`/admin/products/${created}`) && response.request().method() === "PATCH");
   await page.getByRole("button", { name: "Lưu sản phẩm", exact: true }).click();
@@ -102,8 +102,8 @@ try {
   await page.getByRole("heading", { name: "Thêm biến thể", exact: true }).waitFor();
   await page.getByLabel("Mã hàng", { exact: false }).fill(`${code}-800`);
   await page.getByLabel("Đường dẫn", { exact: false }).fill(`${code.toLowerCase()}-800`);
-  await page.getByLabel("Giá trị 1", { exact: true }).fill("800mm");
-  await page.getByLabel("Giá trị 2", { exact: true }).fill("Đen");
+  await page.getByLabel("Giá trị Kích thước khoang tủ (T)", { exact: true }).fill("800mm");
+  await page.getByLabel("Giá trị Màu sắc", { exact: true }).fill("Đen");
   await page.getByLabel("Giá niêm yết (VNĐ)", { exact: false }).fill("150000");
   await page.getByRole("radio", { name: "Công khai", exact: true }).check();
   const variantSave = page.waitForResponse(response => response.url().endsWith("/admin/products") && response.request().method() === "POST");

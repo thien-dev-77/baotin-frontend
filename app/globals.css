@@ -648,3 +648,110 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
 .splide__track {
   overflow: visible !important;
 }
+
+/* Splide customization */
+.splide__arrow {
+  background: white;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  opacity: 1;
+  width: 32px;
+  height: 32px;
+}
+
+.splide__arrow:hover:not(:disabled) {
+  background: white;
+  border-color: var(--color-brand);
+}
+
+.splide__arrow:disabled {
+  opacity: 0.3;
+}
+
+.splide__arrow svg {
+  fill: var(--color-primary);
+  width: 18px;
+  height: 18px;
+}
+
+.splide__pagination {
+  bottom: 12px;
+  padding: 0;
+}
+
+.splide__pagination__page {
+  background: white;
+  opacity: 0.7;
+  width: 8px;
+  height: 8px;
+  margin: 0 4px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.splide__pagination__page.is-active {
+  background: var(--color-brand);
+  opacity: 1;
+  transform: scale(1.3);
+}
+
+/* Hero banner Splide */
+.bt-home-hero-banner .splide__arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.95);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.bt-home-hero-banner .splide__arrow--prev {
+  left: 12px;
+}
+
+.bt-home-hero-banner .splide__arrow--next {
+  right: 12px;
+}
+
+.bt-home-hero-banner .splide__arrow:hover {
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.bt-home-hero-banner .splide__arrow svg {
+  width: 20px;
+  height: 20px;
+}
+
+.bt-home-hero-banner .splide__pagination {
+  bottom: 16px;
+}
+
+/* Product carousel Splide */
+.product-carousel .splide__arrow {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.product-carousel .splide__arrow--prev {
+  left: -12px;
+}
+
+.product-carousel .splide__arrow--next {
+  right: -12px;
+}
+
+@media (max-width: 1023px) {
+  .product-carousel .splide__arrows {
+    display: none;
+  }
+}
+
+/* Product gallery Splide */
+.splide__slide img {
+  width: 100%;
+  height: 100%;
+}

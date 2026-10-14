@@ -9,22 +9,56 @@ import { useFrequentlyBought } from "./frequently-bought";
 import { EmptyState } from "./ui";
 import { ResourceStatus } from "./admin/admin-resource";
 import { homeShowcaseProducts, HOME_SHOWCASE_LIMIT } from "@/lib/home-showcase";
+// @ts-ignore - Type definitions issue with @splidejs/react-splide package.json exports
+import { Splide, SplideSlide } from "@splidejs/react-splide";
+import "@splidejs/react-splide/css/core";
 
 export function ProductCarousel({ products, title, children }: { products: Product[]; title: string; children?: React.ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const move = (direction: number) => ref.current?.scrollBy({ left: direction * ref.current.clientWidth * 0.8, behavior: "smooth" });
+  const splideRef = useRef<any>(null);
+
   return (
     <section className="mt-6">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-bold text-primary">{title}</h2>
         {children || <Link href="/search" className="inline-flex items-center gap-1 text-xs font-semibold text-primary">Xem tất cả<ArrowRight size={14} /></Link>}
       </div>
-      <div className="relative">
-        {products.length > 1 && <button aria-label="Sản phẩm trước" title="Sản phẩm trước" className="absolute -left-3 top-[90px] z-10 hidden h-8 w-8 items-center justify-center rounded-full border border-border bg-white text-primary shadow-card lg:flex" onClick={() => move(-1)}><ChevronLeft size={18} /></button>}
-        <div ref={ref} className="scrollbar-hide grid auto-cols-[170px] grid-flow-col gap-3 overflow-x-auto scroll-smooth pb-1 lg:auto-cols-[calc((100%_-_48px)_/_5)]">
-          {products.map(product => <ProductCard key={product.id} product={product} />)}
-        </div>
-        {products.length > 1 && <button aria-label="Sản phẩm tiếp theo" title="Sản phẩm tiếp theo" className="absolute -right-3 top-[90px] z-10 hidden h-8 w-8 items-center justify-center rounded-full border border-border bg-white text-primary shadow-card lg:flex" onClick={() => move(1)}><ChevronRight size={18} /></button>}
+      <div className="relative product-carousel">
+        <Splide
+          ref={splideRef}
+          options={{
+            type: "slide",
+            rewind: false,
+            perPage: 5,
+            perMove: 1,
+            gap: "0.75rem",
+            padding: 0,
+            pagination: false,
+            arrows: products.length > 5,
+            drag: true,
+            keyboard: "global",
+            breakpoints: {
+              1024: {
+                perPage: 4,
+                arrows: products.length > 4,
+              },
+              768: {
+                perPage: 3,
+                arrows: products.length > 3,
+              },
+              640: {
+                perPage: 2,
+                arrows: false,
+              },
+            },
+          }}
+          aria-label={title}
+        >
+          {products.map(product => (
+            <SplideSlide key={product.id}>
+              <ProductCard product={product} />
+            </SplideSlide>
+          ))}
+        </Splide>
       </div>
     </section>
   );

@@ -11,7 +11,7 @@ const fields: Record<AdminResource, readonly (keyof ApiAdminState)[]> = {
 export const emptyAdminState = (): ApiAdminState => ({ products: [], categories: [], customers: [], orders: [], approvals: [], warehouse: {}, receipts: [], paymentDueDates: {}, today: "" });
 
 export function resourcesForAdminPage(path: string): readonly AdminResource[] {
-  if (path === "/admin/products") return [];
+  if (path === "/admin/products") return ["categories"];
   if (path.startsWith("/admin/products")) return ["products", "categories"];
   if (path.startsWith("/admin/orders/")) return ["orders", "customers", "approvals", "products", "categories"];
   if (path === "/admin/orders" || path === "/admin/warehouse") return [];

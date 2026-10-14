@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState } from "react";
 import { ArrowLeft, ExternalLink, Globe, LockKeyhole, RefreshCw, Save } from "lucide-react";
@@ -18,7 +19,10 @@ import { discountedPrice, productPrices, MAX_PRODUCT_PRICE, MAX_PRODUCT_DISCOUNT
 import { ProductPricingFields, type ProductPricingDraft } from "./product-pricing-fields";
 import { ProductVariantFields } from "./product-variant-fields";
 import { variantDimension } from "@/lib/product-variants";
-import { RichTextEditor } from "./rich-text-editor";
+const RichTextEditor = dynamic(() => import("./rich-text-editor").then(module => module.RichTextEditor), {
+  ssr: false,
+  loading: () => <p role="status" className="py-3 text-sm text-text-secondary">Đang tải trình soạn thảo...</p>,
+});
 
 type AdminProduct = ApiAdminState["products"][number];
 

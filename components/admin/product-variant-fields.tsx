@@ -36,6 +36,7 @@ export function ProductVariantFields({ attributes, onChange, label, onLabelChang
     {(attributes.length > 0 || groupId) && <div className="mt-4">
       <Field label="Nhãn hiển thị biến thể" htmlFor="product-variant-label"><input id="product-variant-label" name="variantLabel" className="bt-input" maxLength={MAX_VARIANT_LABEL_LENGTH} value={label} onChange={event => onLabelChange(event.target.value)} placeholder="Ví dụ: Phải" aria-describedby="product-variant-label-hint" /></Field>
       <p id="product-variant-label-hint" className="mt-1 text-xs text-text-secondary">Để trống để hiển thị mã SKU. Nhãn chỉ áp dụng cho biến thể đang sửa.</p>
+      {attributes.length > 1 && <p className="mt-1 text-xs text-text-secondary">Khách chọn riêng từng loại theo giá trị bên trên. Nhãn này dùng trong danh sách SKU quản trị.</p>}
     </div>}
     {groupId && <div className="mt-4 border-t border-border pt-4">
       <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="text-sm font-semibold text-primary">Các SKU trong nhóm</h3><Link className="bt-button-secondary" href={`/admin/products/new?variantOf=${encodeURIComponent(groupId)}&returnTo=${encodeURIComponent(returnTo)}`}><Plus size={16} />Tạo biến thể</Link></div>

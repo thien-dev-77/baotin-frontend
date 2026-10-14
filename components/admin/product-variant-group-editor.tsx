@@ -24,15 +24,16 @@ export function ProductVariantGroupPage({ id }: { id: string }) {
   const selected = products.find(product => product.id === id);
   const root = products.find(product => product.id === (selected?.variantGroupId || id));
   if (apiMode && !["admin", "boss", "sales"].includes(sessionUser?.role || "")) return <p role="alert">Tài khoản không có quyền quản lý sản phẩm.</p>;
-  if (!loadedResources?.includes("products") && !root) return <p role="status">Đang tải nhóm biến thể...</p>;
+  if (apiMode && !loadedResources?.includes("products")) return <p role="status">Đang tải nhóm biến thể...</p>;
   if (!root) return <EmptyState title="Không tìm thấy sản phẩm gốc" href="/admin/products" action="Về danh sách" />;
   const siblings = products.filter(product => product.id === root.id || product.variantGroupId === root.id);
   return <VariantGroupEditor key={`${root.id}-${version}`} root={root} siblings={siblings} editId={id} onReload={async () => { await reload(); setVersion(value => value + 1); }} />;
 }
 
-function VariantGroupEditor({ root, siblings, editId, onReload }: { root: AdminProduct; siblings: AdminProduct[]; editId: string; onReload: () => Promise<void> }) {
+function VariantGroupEditor({ root, siblings: currentSiblings, editId, onReload }: { root: AdminProduct; siblings: AdminProduct[]; editId: string; onReload: () => Promise<void> }) {
   const router = useRouter();
   const { notice, reloadCatalog } = useCommerce();
+  const [siblings] = useState(currentSiblings);
   const [names, setNames] = useState(() => root.variantAttributes?.map(attribute => attribute.name) || []);
   const [values, setValues] = useState(() => siblings.map(product => names.map((_, index) => product.variantAttributes?.[index]?.value || "")));
   const [busy, setBusy] = useState(false);

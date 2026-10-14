@@ -7,7 +7,7 @@ export const variantKey = (value: string) => value.trim().replace(/\s+/g, " ").t
 
 export function variantOptionLabel(product: Product, index: number) {
   const value = product.variantAttributes?.[index]?.value || "";
-  return product.variantAttributes?.length === 1 && variantKey(value) === variantKey(product.code) ? variantLabel(product) : value;
+  return product.variantAttributes?.length === 1 && (product.variantLabel?.trim() || variantKey(value) === variantKey(product.code)) ? variantLabel(product) : value;
 }
 
 export function variantDimension(attributes: Attribute[], kind: "size" | "color") {

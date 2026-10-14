@@ -28,7 +28,9 @@ import { Button, Modal } from "@/components/ui";
 import { Logo } from "@/components/logo";
 import { useAdmin } from "@/components/admin/admin-provider";
 import { type Branch } from "@/lib/admin-preview";
-import { apiMode } from "@/lib/api-client";
+import { api, apiMode } from "@/lib/api-client";
+import { adminBrowsePath } from "@/lib/admin-browse-query";
+import { readAdminBrowse } from "@/lib/admin-browse";
 import { useCommerce } from "@/components/commerce-provider";
 import { Bell, FileText, MessageSquare, Star, BarChart3 } from "lucide-react";
 import { NotificationBell } from "../notifications";
@@ -90,11 +92,17 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     allowedBranches,
     pendingAction,
     refreshing,
+    readCache,
   } = useAdmin();
   const { sessionUser, logout } = useCommerce();
   const [menu, setMenu] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const prepareProducts = (href: string) => {
+    if (!apiMode || href !== "/admin/products" || path === href || !readCache) return;
+    const target = adminBrowsePath("products", branch);
+    void readCache.load(target, async () => readAdminBrowse(await api(target))).catch(() => undefined);
+  };
   const active = (href: string) =>
     path === href || (href !== "/admin" && path.startsWith(`${href}/`));
   const page = links.find((item) => active(item.href))?.label || "Quản trị";
@@ -147,8 +155,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <Link
               key={href}
               href={href}
+              prefetch={href === "/admin/products" ? true : undefined}
               aria-current={active(href) ? "page" : undefined}
-              onClick={() => setMenu(false)}
+              onMouseEnter={() => prepareProducts(href)}
+              onFocus={() => prepareProducts(href)}
+              onPointerDown={() => prepareProducts(href)}
+              onClick={() => { prepareProducts(href); setMenu(false); }}
               className={`flex min-h-11 items-center gap-3 rounded-md border-l-2 px-3 text-sm ${active(href) ? "border-brand bg-section font-semibold text-primary" : "border-transparent text-text-secondary hover:bg-section"}`}
             >
               <Icon size={18} aria-hidden="true" className={active(href) ? "text-brand" : ""} />

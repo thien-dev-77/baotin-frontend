@@ -4,8 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Download, FolderTree, ImageIcon, Pencil, Plus } from "lucide-react";
-import { Button } from "@/components/ui";
+import { Download, FolderTree, ImageIcon, Pencil, Plus, X } from "lucide-react";
+import { Button, Field } from "@/components/ui";
 import { useCommerce } from "@/components/commerce-provider";
 import { useAdmin } from "./admin-provider";
 import { AdminHeading, AdminPagination, AdminSearch, AdminStatus, AdminTable, useAdminFilters } from "./admin-ui";
@@ -36,17 +36,27 @@ function ProductsList({ browse }: { browse: AdminBrowseState }) {
   const categories = apiCategories || categoryCatalog;
   const previewFilters = useAdminFilters();
   const [previewCategory, setPreviewCategory] = useState("all");
+  const [previewSubcategory, setPreviewSubcategory] = useState("all");
   const [bulkBusy, setBulkBusy] = useState(false);
   const selectionBusy = bulkBusy || browse.loading || browse.query.trim() !== (new URLSearchParams(search).get("q") || "");
-  const selectionScope = JSON.stringify([sessionUser?.id, branch, browse.query, browse.category, browse.filter]);
+  const selectionScope = JSON.stringify([sessionUser?.id, branch, browse.query, browse.category, browse.subcategory, browse.filter]);
   const [selection, setSelection] = useState<{ scope: string; items: SelectedProduct[] }>({ scope: selectionScope, items: [] });
   const selected = selection.scope === selectionScope ? selection.items : [];
   const select = (items: SelectedProduct[]) => setSelection({ scope: selectionScope, items });
   const filters = apiMode ? browse : previewFilters;
   const category = apiMode ? browse.category : previewCategory;
-  const setCategory = (value: string) => apiMode ? browse.set({ category: value }) : setPreviewCategory(value);
+  const subcategory = apiMode ? browse.subcategory : previewSubcategory;
+  const setCategory = (value: string) => {
+    if (apiMode) { browse.set({ category: value, subcategory: undefined }); return; }
+    setPreviewCategory(value); setPreviewSubcategory("all"); previewFilters.setPage(1);
+  };
   const categoryScope = new Set(categoryDescendants(categories, category));
-  const rows = apiMode ? products : products.filter(item => normalize(`${item.name} ${item.code} ${item.brand}`).includes(normalize(filters.query)) && (category === "all" || categoryScope.has(item.category)) && (filters.filter === "all" || (filters.filter === "published" ? item.published : !item.published)));
+  const subcategories = Array.from(new Set(categories.filter(item => category === "all" || categoryScope.has(item.slug)).flatMap(item => item.subcategories))).sort((left, right) => left.localeCompare(right, "vi"));
+  const rows = apiMode ? products : products.filter(item => normalize(`${item.name} ${item.code} ${item.alternateCode || ""} ${item.brand}`).includes(normalize(filters.query)) && (category === "all" || categoryScope.has(item.category)) && (subcategory === "all" || item.subcategory === subcategory) && (filters.filter === "all" || (filters.filter === "published" ? item.published : !item.published)));
+  const clearFilters = () => {
+    if (apiMode) { browse.setQuery(""); browse.set({ q: undefined, category: undefined, subcategory: undefined, status: undefined }); return; }
+    previewFilters.setQuery(""); previewFilters.setFilter("all"); previewFilters.setPage(1); setPreviewCategory("all"); setPreviewSubcategory("all");
+  };
   const count = apiMode ? browse.data?.pagination.total || 0 : rows.length;
   const page = apiMode ? browse.data?.pagination.page || browse.page : Math.min(filters.page, Math.max(1, Math.ceil(rows.length / 10)));
   const visibleRows = apiMode ? rows : rows.slice((page - 1) * 10, page * 10);
@@ -76,10 +86,13 @@ function ProductsList({ browse }: { browse: AdminBrowseState }) {
     <AdminHeading title="Sản phẩm" subtitle={`Danh mục website · ${count} sản phẩm`}>
       <div className="flex flex-wrap gap-2"><Link href="/admin/categories" className="bt-button-secondary"><FolderTree size={16} />Danh mục</Link><CatalogTemplateDownload /><Button variant="secondary" loading={exporting.loading} onClick={() => apiMode ? void exporting.run(pages => exportRows(pages.flatMap(page => page.products || []))) : exportRows()} disabled={!rows.length}><Download size={16} />Xuất CSV</Button>{canEdit && <Link href={`/admin/products/new?returnTo=${returnTo}`} className="bt-button-primary"><Plus size={17} />Thêm sản phẩm</Link>}</div>
     </AdminHeading>
-    <fieldset disabled={bulkBusy} className="mb-4 flex min-w-0 flex-wrap gap-3">
+    <fieldset disabled={bulkBusy} className="mb-4 flex min-w-0 flex-wrap items-end gap-3 rounded-md border border-border bg-white p-4">
+      <legend className="px-2 text-sm font-semibold text-primary">Tìm kiếm & lọc sản phẩm</legend>
       <AdminSearch value={filters.query} onChange={filters.setQuery} placeholder="Tìm sản phẩm, mã hàng, thương hiệu..." />
-      <select aria-label="Danh mục sản phẩm" value={category} onChange={event => { setCategory(event.target.value); if (!apiMode) filters.setPage(1); }} className="bt-input !w-auto max-w-full"><option value="all">Tất cả danh mục</option>{categories.map(item => <option key={item.slug} value={item.slug}>{categoryLabel(categories, item.slug) || item.name}</option>)}</select>
-      <select aria-label="Trạng thái sản phẩm" value={filters.filter} onChange={event => filters.setFilter(event.target.value)} className="bt-input !w-auto max-w-full"><option value="all">Tất cả trạng thái</option><option value="published">Công khai</option><option value="hidden">Riêng tư</option></select>
+      <Field label="Danh mục" htmlFor="admin-products-category"><select id="admin-products-category" aria-label="Danh mục sản phẩm" value={category} onChange={event => setCategory(event.target.value)} className="bt-input !w-auto max-w-full"><option value="all">Tất cả danh mục</option>{categories.map(item => <option key={item.slug} value={item.slug}>{categoryLabel(categories, item.slug) || item.name}</option>)}</select></Field>
+      <Field label="Nhóm sản phẩm" htmlFor="admin-products-subcategory"><select id="admin-products-subcategory" aria-label="Nhóm sản phẩm" value={subcategory} onChange={event => { if (apiMode) browse.set({ subcategory: event.target.value }); else { setPreviewSubcategory(event.target.value); previewFilters.setPage(1); } }} className="bt-input !w-auto max-w-full"><option value="all">Tất cả nhóm</option>{subcategories.map(name => <option key={name} value={name}>{name}</option>)}</select></Field>
+      <Field label="Hiển thị" htmlFor="admin-products-status"><select id="admin-products-status" aria-label="Trạng thái sản phẩm" value={filters.filter} onChange={event => filters.setFilter(event.target.value)} className="bt-input !w-auto max-w-full"><option value="all">Tất cả trạng thái</option><option value="published">Công khai</option><option value="hidden">Riêng tư</option></select></Field>
+      {(filters.query || category !== "all" || subcategory !== "all" || filters.filter !== "all") && <Button variant="secondary" type="button" onClick={clearFilters}><X size={16} />Xóa bộ lọc</Button>}
     </fieldset>
     {apiMode && <ResourceStatus {...browse} />}
     {canEdit && apiMode && <ProductBulkActions selected={selected} total={count} busy={selectionBusy} setBusy={setBulkBusy} clear={() => select([])} selectAll={selectAll} onUpdated={async result => {
@@ -97,7 +110,7 @@ function ProductsList({ browse }: { browse: AdminBrowseState }) {
         {canEdit && apiMode && <td className="!w-12"><ProductSelectionCheckbox aria-label={`Chọn sản phẩm ${item.code}`} checked={selectedIds.has(item.id)} disabled={selectionBusy || !item.revision || !selectedIds.has(item.id) && selected.length >= MAX_BULK_PRODUCTS} onChange={() => toggle(item)} /></td>}
         <td><div className="flex min-w-[240px] items-center gap-3">
           {item.image ? <Image src={item.image} alt={item.name} width={44} height={44} className="h-11 w-11 shrink-0 rounded border border-border object-cover" loading="lazy" quality={85} sizes="44px" data-image-src={item.image} /> : <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded border border-border bg-section text-text-muted"><ImageIcon size={18} /></span>}
-          <div>{canEdit ? <Link href={`/admin/products/${encodeURIComponent(item.id)}/edit?returnTo=${returnTo}`} className="font-medium text-primary hover:text-primary hover:underline decoration-brand underline-offset-4">{item.name}</Link> : <span className="font-medium text-primary">{item.name}</span>}<span className="mt-1 block text-xs text-text-muted">{item.code} · {item.brand}</span></div>
+          <div>{canEdit ? <Link href={`/admin/products/${encodeURIComponent(item.id)}/edit?returnTo=${returnTo}`} prefetch={false} className="font-medium text-primary hover:text-primary hover:underline decoration-brand underline-offset-4">{item.name}</Link> : <span className="font-medium text-primary">{item.name}</span>}<span className="mt-1 block text-xs text-text-muted">{item.code} · {item.brand}</span></div>
         </div></td>
         <td>{categories.find(category => category.slug === item.category)?.name}</td>
         {showPrices && <>
@@ -109,7 +122,7 @@ function ProductsList({ browse }: { browse: AdminBrowseState }) {
         </>}
         <td><span className={item.stock === 0 ? "font-semibold text-danger" : "tabular-nums"}>{item.stock}</span></td>
         <td><AdminStatus value={item.published ? "Công khai" : "Riêng tư"} /></td>
-        <td>{canEdit && <Link href={`/admin/products/${encodeURIComponent(item.id)}/edit?returnTo=${returnTo}`} title="Sửa sản phẩm" aria-label={`Sửa sản phẩm ${item.code}`} className="bt-icon-button"><Pencil size={16} /></Link>}</td>
+        <td>{canEdit && <Link href={`/admin/products/${encodeURIComponent(item.id)}/edit?returnTo=${returnTo}`} prefetch={false} title="Sửa sản phẩm" aria-label={`Sửa sản phẩm ${item.code}`} className="bt-icon-button"><Pencil size={16} /></Link>}</td>
       </tr>;
       })}
     </AdminTable>

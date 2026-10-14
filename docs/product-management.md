@@ -37,9 +37,18 @@ combination, SKU and slug, adjust its own pricing/photos, then save. Repeat for
 other combinations. Each SKU's stock is managed separately in the ledger.
 Set **Nhãn hiển thị biến thể** on each SKU to customize its option label (for
 example, `FCL303-R` can display `Phải`). Leave it blank to display the SKU code.
-The label is used in the admin group's links and the storefront SKU picker;
+The label is used in the admin group's links and single-attribute choices;
 new variants start with a blank label rather than copying the root's label.
-Groups with several attributes also retain their attribute selectors.
+Groups with several attributes display one selector per attribute, using its
+values (for example, `Hướng: Trái / Phải`), without a combined SKU picker.
+
+Use **Thiết lập loại biến thể** in the product editor to open
+`/admin/products/:id/variants`. Add **Màu sắc**, **Hướng**, **Kích thước**, or
+a custom type (up to six), rename/remove existing types, and fill each SKU's
+values in separate columns. Save applies the full configuration to every SKU,
+including private SKUs. This also works for products without a variant group;
+after saving, use **Tạo SKU biến thể** to add another combination. Duplicate
+combinations or stale SKU revisions prevent the whole configuration from saving.
 The customer detail page renders the options above the purchase panel, and
 switching options navigates to the matching SKU with its own image, price and
 inventory. Multi-attribute selection picks an existing compatible SKU.
