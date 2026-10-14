@@ -222,10 +222,13 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
 .bt-product-detail-intro { grid-area: intro; min-width: 0; }
 .bt-product-detail-purchase { grid-area: purchase; min-width: 0; }
 .bt-product-contact-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
-.bt-product-contact-actions a { display: flex; min-width: 0; min-height: 48px; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-background); padding: 10px 8px; color: var(--color-primary); font-size: 13px; font-weight: 500; line-height: 20px; text-align: center; transition: background-color 160ms ease, border-color 160ms ease; }
-.bt-product-contact-actions a:hover { border-color: var(--color-brand); background: var(--color-section); color: var(--color-primary); }
+.bt-product-contact-actions a { display: flex; min-width: 0; min-height: 48px; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-background); padding: 10px 8px; color: white; font-size: 13px; font-weight: 500; line-height: 20px; text-align: center; transition: background-color 160ms ease, border-color 160ms ease; }
+.bt-product-contact-actions a:first-child { background: var(--color-zalo); border-color: var(--color-zalo); }
+.bt-product-contact-actions a:first-child:hover { background: #0083d4; border-color: #0083d4; }
+.bt-product-contact-actions a:last-child { background: var(--color-success); border-color: var(--color-success); }
+.bt-product-contact-actions a:last-child:hover { background: #16a349; border-color: #16a349; }
 .bt-product-contact-icon { display: flex; width: 24px; height: 24px; flex-shrink: 0; align-items: center; justify-content: center; }
-.bt-product-contact-icon svg { color: var(--color-primary); }
+.bt-product-contact-icon svg { color: white; }
 .bt-product-contact-actions a > span:last-child { min-width: 0; overflow-wrap: anywhere; }
 .bt-product-detail-information { grid-area: information; min-width: 0; }
 .bt-product-detail #specifications, .bt-product-detail #product-tabs { scroll-margin-top: var(--product-detail-sticky-top); }
@@ -307,11 +310,11 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
   flex-direction: column;
   visibility: hidden;
   overflow: hidden;
-  border: 1px solid var(--color-border);
+  border: 1px solid #333;
   border-radius: 8px;
-  background: white;
+  background: #1a1a1a;
   padding: 8px;
-  box-shadow: 0 4px 12px rgba(23, 23, 23, 0.05), 0 16px 32px rgba(23, 23, 23, 0.12);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 16px 32px rgba(0, 0, 0, 0.5);
   opacity: 0;
   pointer-events: none;
   transform: translateY(-4px);
@@ -551,7 +554,7 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
   .bt-button-primary {
     height: 40px;
     border-radius: var(--radius-control);
-    background: var(--color-brand);
+    background: #1a1a1a;
     padding-inline: 16px;
     color: #ffffff;
     font-size: 14px;
@@ -560,7 +563,7 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
   }
 
   .bt-button-primary:hover {
-    background: var(--color-brand-hover);
+    background: #2d2d2d;
   }
 
   .bt-button-secondary {

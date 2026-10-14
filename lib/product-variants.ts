@@ -5,6 +5,11 @@ export const MAX_VARIANT_LABEL_LENGTH = 100;
 export const variantLabel = (product: Pick<Product, "variantLabel" | "code">) => product.variantLabel?.trim() || product.code;
 export const variantKey = (value: string) => value.trim().replace(/\s+/g, " ").toLocaleLowerCase("vi");
 
+export function variantOptionLabel(product: Product, index: number) {
+  const value = product.variantAttributes?.[index]?.value || "";
+  return product.variantAttributes?.length === 1 && variantKey(value) === variantKey(product.code) ? variantLabel(product) : value;
+}
+
 export function variantDimension(attributes: Attribute[], kind: "size" | "color") {
   return attributes.find(attribute => {
     const name = variantKey(attribute.name).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d");
