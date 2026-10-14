@@ -143,8 +143,8 @@ for (const width of [1440, 1024, 768, 390, 320]) test(`Order process alignment a
   await expect(steps.getByRole("listitem")).toHaveCount(5);
   const numbers = steps.locator(".bt-order-step-number");
   await expect(numbers).toHaveText(["1", "2", "3", "4", "5"]);
-  const markers = await numbers.evaluateAll(elements => elements.map(element => { const rect = element.getBoundingClientRect(); return { x: rect.x, y: rect.y, width: rect.width, height: rect.height }; }));
-  expect(markers.every(marker => marker.width === 28 && marker.height === 28)).toBe(true);
+  const markers = await steps.locator(".bt-order-step-marker").evaluateAll(elements => elements.map(element => { const rect = element.getBoundingClientRect(); return { x: rect.x, y: rect.y, width: rect.width, height: rect.height }; }));
+  expect(markers.every(marker => marker.width === 48 && marker.height === 48)).toBe(true);
   if (width >= 1024) {
     expect(Math.max(...markers.map(marker => marker.y)) - Math.min(...markers.map(marker => marker.y))).toBeLessThan(1);
     const gaps = markers.slice(1).map((marker, index) => marker.x - markers[index].x);
@@ -153,7 +153,7 @@ for (const width of [1440, 1024, 768, 390, 320]) test(`Order process alignment a
     expect(Math.max(...descriptions) - Math.min(...descriptions)).toBeLessThan(1);
   } else {
     expect(Math.max(...markers.map(marker => marker.x)) - Math.min(...markers.map(marker => marker.x))).toBeLessThan(1);
-    expect(markers.every((marker, index) => !index || marker.y >= markers[index - 1].y + 28)).toBe(true);
+    expect(markers.every((marker, index) => !index || marker.y >= markers[index - 1].y + 48)).toBe(true);
   }
   expect(await steps.evaluate(element => Array.from(element.querySelectorAll("li, h3, p")).every(child => child.scrollWidth <= child.clientWidth + 1))).toBe(true);
   expect(await page.locator("[data-order-process]").evaluate(element => {
@@ -210,7 +210,7 @@ for (const width of [1920, 1440, 1280, 1024, 768, 390, 320]) test(`Reference hea
   const quote = header.getByRole("link", { name: "Nhận báo giá", exact: true }).filter({ visible: true });
   await expect(quote).toHaveCount(1);
   await expect(quote).toHaveAttribute("href", "/contact#consultation");
-  await expect(quote).toHaveCSS("background-color", "rgb(255, 196, 0)");
+  await expect(quote).toHaveCSS("background-color", "rgb(255, 255, 255)");
   await expect(quote).toHaveCSS("color", "rgb(23, 23, 23)");
   const search = header.getByRole("search").filter({ visible: true });
   await expect(search.getByRole("button", { name: "Tìm kiếm", exact: true }).locator("svg")).toHaveCount(1);

@@ -9,7 +9,7 @@ import { heroSlides } from "../lib/home-data";
 import { storeContact } from "../lib/store-contact";
 
 const frontend = "http://127.0.0.1:3053";
-const images = ["/images/catalog/hinge-detail.png", "/images/catalog/handle-brass-hd.jpg", "/images/catalog/hardware.png"];
+const images = ["/images/catalog/led-strip.png", "/images/catalog/handle-brass-hd.jpg", "/images/catalog/hardware.png"];
 const product = { ...catalog[0], id: "qa-gallery", slug: "qa-gallery", name: "Sản phẩm kiểm tra gallery", image: images[0], gallery: images, featured: false };
 const fallbackProduct = { ...product, id: "qa-single-photo", slug: "qa-single-photo", gallery: [] };
 const showcaseProducts = [product, fallbackProduct, ...Array.from({ length: 8 }, (_, index) => ({ ...product, id: `qa-showcase-${index}`, slug: `qa-showcase-${index}`, code: `QA-${index}` }))];
@@ -93,11 +93,25 @@ for (const width of [1440, 390, 320]) test(`Readable menu, visible banner and us
   const gallery = page.getByRole("region", { name: "Hình ảnh sản phẩm", exact: true });
   await expect(gallery.locator(".bt-product-gallery-main")).toHaveClass(/is-initialized/);
   const activeImage = gallery.locator(".bt-product-gallery-main .splide__slide.is-active img");
+  const expectFittedImage = async () => {
+    await expect.poll(() => activeImage.evaluate((image: HTMLImageElement) => {
+      if (!image.complete || !image.naturalWidth) return Infinity;
+      const frame = image.parentElement!.getBoundingClientRect();
+      return Math.abs(frame.height - frame.width * image.naturalHeight / image.naturalWidth);
+    })).toBeLessThan(2);
+  };
   await expect.poll(() => activeImage.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0 && image.clientWidth > 100 && image.clientHeight > 100)).toBe(true);
+  await expectFittedImage();
+  expect(await gallery.locator(".bt-product-gallery-thumbs").evaluate(element => {
+    const track = element.querySelector(".splide__track")!.getBoundingClientRect();
+    const thumbnail = element.querySelector(".splide__slide")!.getBoundingClientRect();
+    return Math.abs(track.left - thumbnail.left);
+  })).toBeLessThan(2);
   await gallery.getByRole("button", { name: "Xem ảnh 2", exact: true }).click();
   await expect(gallery.getByRole("button", { name: "Xem ảnh 2", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(activeImage).toHaveAttribute("alt", `${product.name} - Ảnh 2`);
   await expect.poll(() => activeImage.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+  await expectFittedImage();
   await gallery.getByRole("button", { name: "Phóng to ảnh", exact: true }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible(); await expect.poll(() => dialog.locator("img").evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
@@ -105,6 +119,11 @@ for (const width of [1440, 390, 320]) test(`Readable menu, visible banner and us
   await gallery.getByRole("button", { name: "Ảnh tiếp", exact: true }).click();
   await expect(activeImage).toHaveAttribute("alt", `${product.name} - Ảnh 3`);
   await expect.poll(() => activeImage.evaluate(image => getComputedStyle(image.closest(".splide__slide")!).opacity)).toBe("1");
+  await expectFittedImage();
+  await gallery.locator(".bt-product-gallery-main .splide__arrow--next").click();
+  await expect(activeImage).toHaveAttribute("alt", `${product.name} - Ảnh 1`);
+  await expectFittedImage();
+  await expect(activeImage.locator("..").locator("..")).toHaveCSS("opacity", "1");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await gallery.screenshot({ path: `/private/tmp/baotin-storefront-sliders/gallery-${width}.png` });
   expect(errors).toEqual([]);
@@ -135,8 +154,8 @@ for (const width of [1440, 390, 320]) test(`Phone and quote actions remain reada
   const quote = page.getByRole("link", { name: "Nhận báo giá", exact: true });
   await expect(quote).toBeVisible(); await expect(quote).toHaveAttribute("href", "/contact#consultation");
   await page.mouse.move(0, 0);
-  await expect(quote).toHaveCSS("background-color", "rgb(23, 23, 23)");
-  await expect(quote).toHaveCSS("color", "rgb(255, 255, 255)");
+  await expect(quote).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(quote).toHaveCSS("color", "rgb(23, 23, 23)");
   await expect(quote.locator(".bt-header-service-description")).toHaveCSS("display", "none");
   expect(await quote.evaluate(element => {
     const range = document.createRange(); range.selectNodeContents(element.querySelector(".bt-header-service-title")!);

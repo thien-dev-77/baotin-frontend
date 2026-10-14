@@ -177,13 +177,19 @@ function BuyingGuides({ items }: { items?: PublicContent[] }) {
 
 function OrderProcess() {
   return (
-    <section data-order-process>
+    <section className="bt-order-panel" data-order-process>
       <SectionHeading title="Quy trình đặt hàng" subtitle="Đơn giản, rõ ràng, thống nhất cho cả B2B và B2C" />
       <ol className="bt-order-process" aria-label="Các bước đặt hàng">
-        {processSteps.map((step, index) => <li key={step.title} className="bt-order-step">
-          <span className="bt-order-step-number" aria-hidden="true">{index + 1}</span>
-          <div className="bt-order-step-copy"><h3>{step.title}</h3><p>{step.description}</p></div>
-        </li>)}
+        {processSteps.map((step, index) => {
+          const Icon = step.icon;
+          return <li key={step.title} className="bt-order-step">
+            <span className="bt-order-step-marker" aria-hidden="true">
+              <Icon size={22} strokeWidth={1.6} />
+              <span className="bt-order-step-number">{index + 1}</span>
+            </span>
+            <div className="bt-order-step-copy"><h3>{step.title}</h3><p>{step.description}</p></div>
+          </li>;
+        })}
       </ol>
     </section>
   );
@@ -192,7 +198,7 @@ function OrderProcess() {
 function SupportSection() {
   return (
     <section className="bt-home-support" data-home-support>
-      <SectionHeading title="Hỗ trợ nhanh" />
+      <SectionHeading title="Hỗ trợ nhanh" subtitle="Chọn kênh thuận tiện để được tư vấn và hỗ trợ" />
       <div className="bt-home-support-grid">
         {supportCards.map((card) => {
           const Icon = card.icon;
@@ -209,8 +215,9 @@ function SupportSection() {
                   {card.detail && <b>{card.detail}</b>}
                   {card.description}
                 </span>
-                {card.linkLabel ? <span className="bt-home-support-link">{card.linkLabel}<ArrowRight size={13} /></span> : null}
+                {card.linkLabel ? <span className="bt-home-support-link">{card.linkLabel}</span> : null}
               </span>
+              <ArrowRight className="bt-home-support-arrow" size={16} aria-hidden="true" />
             </a>
           );
         })}

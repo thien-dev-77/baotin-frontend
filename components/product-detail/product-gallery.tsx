@@ -18,6 +18,8 @@ export function ProductGallery({ product }: { product: Product }) {
 function Gallery({ product, images }: { product: Product; images: string[] }) {
   const [photo, setPhoto] = useState(0);
   const [zoom, setZoom] = useState(false);
+  const [imageRatios, setImageRatios] = useState<Record<string, number>>({});
+  const activeRatio = imageRatios[images[photo]] ?? 1;
   const mainSplideRef = useRef<InstanceType<typeof Splide>>(null);
   const thumbsSplideRef = useRef<InstanceType<typeof Splide>>(null);
 
@@ -60,7 +62,10 @@ function Gallery({ product, images }: { product: Product; images: string[] }) {
             <SplideTrack>
               {images.map((image, index) => (
                 <SplideSlide key={image}>
-                  <div className="bt-product-gallery-frame relative w-full aspect-square overflow-hidden rounded-xl bg-section shadow-sm">
+                  <div
+                    className="bt-product-gallery-frame relative w-full overflow-hidden rounded-xl bg-section shadow-sm"
+                    style={{ aspectRatio: activeRatio }}
+                  >
                     <Image
                       src={image}
                       alt={`${product.name} - Ảnh ${index + 1}`}
@@ -68,7 +73,12 @@ function Gallery({ product, images }: { product: Product; images: string[] }) {
                       sizes="(min-width: 1280px) 500px, (min-width: 1024px) 40vw, (min-width: 640px) 60vw, 100vw"
                       quality={90}
                       priority={index === 0}
-                      className="h-full w-full object-contain p-6"
+                      className="h-full w-full object-contain"
+                      onLoad={({ currentTarget }) => {
+                        if (!currentTarget.naturalWidth || !currentTarget.naturalHeight) return;
+                        const ratio = currentTarget.naturalWidth / currentTarget.naturalHeight;
+                        setImageRatios(current => current[image] === ratio ? current : { ...current, [image]: ratio });
+                      }}
                     />
                   </div>
                 </SplideSlide>
@@ -118,9 +128,9 @@ function Gallery({ product, images }: { product: Product; images: string[] }) {
                 fixedWidth: 80,
                 fixedHeight: 80,
                 isNavigation: true,
-                focus: "center",
+                focus: 0,
                 updateOnMove: true,
-                trimSpace: false,
+                trimSpace: true,
                 breakpoints: {
                   640: {
                     fixedWidth: 70,

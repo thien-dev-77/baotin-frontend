@@ -125,7 +125,7 @@ for (const [width, columns] of [[1440, 5], [1024, 5], [768, 3], [390, 2], [320, 
         await expect(details).toHaveCSS("background-color", "rgb(23, 23, 23)");
         await expect(details).toHaveCSS("color", "rgb(255, 255, 255)");
         await details.hover();
-        await expect(details).toHaveCSS("border-top-color", "rgb(255, 196, 0)");
+        await expect(details).toHaveCSS("border-top-color", "rgb(23, 23, 23)");
         const contentBefore = await card.locator(".bt-product-card-content").boundingBox();
         await page.mouse.move(0, 0);
         await expect(details).toHaveCSS("opacity", "0");

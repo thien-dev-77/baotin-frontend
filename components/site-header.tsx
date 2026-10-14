@@ -5,7 +5,7 @@ import { SearchBox } from "@/components/search-box";
 import { Modal } from "@/components/ui";
 import { useCommerce } from "@/components/commerce-provider";
 import { heroActions } from "@/lib/home-data";
-import { BadgeCheck, BadgeDollarSign, FileText, Headset, Heart, Menu, Phone, ShieldCheck, ShoppingCart, UserRound } from "lucide-react";
+import { BadgeCheck, FileText, Headset, Heart, Menu, Phone, ShieldCheck, ShoppingCart, UserRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -28,7 +28,7 @@ const quoteAction: HeaderService = {
   title: "Nhận báo giá",
   description: "B2B & B2C",
   href: "/contact#consultation",
-  icon: BadgeDollarSign,
+  icon: FileText,
 };
 
 const utilityLinks = [
