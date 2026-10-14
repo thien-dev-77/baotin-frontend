@@ -155,7 +155,6 @@ export function SiteHeader() {
                 </Link>
               ))}
               <NotificationBell withLabel />
-              <HeaderServiceLink action={quoteAction} accent />
             </nav>
             <div className="ml-auto flex items-center gap-3 lg:hidden">
               <NotificationBell />
@@ -208,6 +207,7 @@ export function SiteHeader() {
                 </Link>
               ))}
             </nav>
+            <HeaderServiceLink action={quoteAction} accent />
             <a href={storeContact.phoneHref} className="bt-header-hotline"><Phone size={15} strokeWidth={1.8} aria-hidden="true" /><span>Hotline: <strong>{storeContact.displayPhone}</strong></span></a>
           </div>
         </div>
