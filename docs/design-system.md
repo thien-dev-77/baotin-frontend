@@ -99,7 +99,7 @@ Danger: #D92D20
 
 - `components/logo.tsx` dung Next Image voi `public/logo-baotin.png`, ti le goc 919:271. Khong ve lai, doi mau, crop hay keo gian logo.
 - Header: rong 192px desktop, 152px mobile; admin dung `Logo compact` rong 176px. Chieu cao theo ti le anh.
-- Logo co chu den va nen trong suot: `Logo inverted` dat tren nen trang gon o footer den, khong dung filter lam bien doi artwork.
+- `Logo inverted` dung `public/logo-baotin-white.png` o footer den, cung ti le 919:271. Nen trong suot, khong co khung trang/padding va khong dung filter lam bien doi artwork. Logo footer lazy-load; logo header/admin eager.
 - Favicon, shortcut va Apple touch icon dung `public/favicon-baotin.png` qua `metadata.icons` trong `app/layout.tsx`. Hai asset nay nam o FE, khong phu thuoc media backend.
 
 ## 4. Radius
@@ -123,10 +123,10 @@ Quy tac:
 - Search, B2B, tu van, catalog va 3 cam ket dich vu chi nam trong header. Mobile co hang lien ket nhanh gon.
 - Tablet/mobile an sidebar va dung menu trong header; slide ho tro vuot, ban phim va click den danh muc.
 - Trang category khong co banner: breadcrumb, tieu de/mo ta, danh muc con, bo loc va danh sach san pham.
-- Section "Danh sach san pham" tren trang chu dang an; giu carousel va toi da 5 section danh muc co san pham cong khai, theo thu tu danh muc trong admin. ProductGrid dung chung tren cac trang: desktop >=1024px 5 cot, tablet 3 cot, mobile 2 cot. Carousel desktop hien 5 item.
+- Section "Danh sach san pham" tren trang chu dang an; giu carousel va toi da 5 section danh muc co san pham cong khai, theo thu tu danh muc trong admin. Listing danh muc/tim kiem/thuong hieu/khuyen mai dung `ProductGrid desktopColumns={4}`: desktop >=1024px 4 cot, tablet 3 cot, mobile 2 cot. Cac grid khac mac dinh 5 cot desktop; section danh muc va carousel homepage van hien 5 item.
 - Section danh muc khong co banner: tieu de uppercase ben trai, "Xem tat ca" ben phai, duong ke xam va lien ket subcategory nen xam o duoi. Khong goi API rieng cho moi section; du lieu lay tu catalog bootstrap.
-- Tieu de `ProductCard` dung Inter Regular 400, 16px/24px, toi da 2 dong; card hep dung 14px/22px. Khong dung Medium/SemiBold cho ten san pham va khong them letter spacing.
-- Anh `ProductCard` dung khung ti le 1:1.05, `object-fit: contain`, padding 8px de khong cat san pham. "Xem chi tiet" hien nut vang `Brand` chu den cao 44px, cach mep trai/phai/duoi anh 6px, radius 6px, chu Inter Regular 400 15px/22px, icon Eye 18px net 1.6. Nut fade/slide 180ms khi hover/focus tren desktop >=1024px co chuot (`hover: hover`, `pointer: fine`). Tablet/mobile va thiet bi cam ung an hoan toan nut nay; bam anh hoac ten de vao chi tiet. Card khong co nut them vao gio; mua hang tai trang chi tiet. Nut nam absolute, khong day noi dung card khi xuat hien; reduced motion tat transition.
+- Tieu de `ProductCard` dung Inter Regular 400, 15px/22px, toi da 2 dong; card hep dung 14px/22px. Khong dung Medium/SemiBold cho ten san pham, khong them letter spacing va khong gach chan khi hover title.
+- Anh `ProductCard` dung khung ti le 4:3, `object-fit: contain`, padding 6px de giam khoang trang nhung khong cat san pham. Noi dung padding 10px (8px tren card rat hep); spacing gia 6px, danh gia/tag 8px. Tag cao theo noi dung, khong dat min-height 64px hay de trong hai hang; ma hang/don vi cach noi dung toi thieu 10px va can cuoi row. "Xem chi tiet" hien nut vang `Brand` chu den cao 44px, cach mep trai/phai/duoi anh 6px, radius 6px, chu Inter Regular 400 15px/22px, icon Eye 18px net 1.6. Nut fade/slide 180ms khi hover/focus tren desktop >=1024px co chuot (`hover: hover`, `pointer: fine`). Tablet/mobile va thiet bi cam ung an hoan toan nut nay; bam anh hoac ten de vao chi tiet. Card khong co nut them vao gio; mua hang tai trang chi tiet. Nut nam absolute, khong day noi dung card khi xuat hien; reduced motion tat transition.
 - Gia ban mau den `Primary` 20px, gia niem yet mau `Muted` gach ngang ben canh; card hep tu dong xuong 17px/14px theo container query. Gia goc chi hien khi cao hon gia ban thuc te cua khach. Nhan giam gia dung nen `Brand`, chu den; yeu thich dung vang. Khong dung mau `Danger` cho gia, nhan khuyen mai hay hanh dong mua hang.
 - Khong long card trong card.
 
@@ -201,7 +201,7 @@ Default:
 ### Product card
 
 - Anh lon nen trang, `object-fit: contain`, khong cat hoac keo gian san pham.
-- Ten toi da 2 dong, Inter 16px weight 400; card hep dung 14px.
+- Ten toi da 2 dong, Inter 15px/22px weight 400; card hep dung 14px. Hover khong gach chan title.
 - Gia ban den 20px bold, gia niem yet xam gach ngang. Badge vang chu den "GIAM -x%" o goc phai tren anh; chi hien khi co giam gia that.
 - Danh gia chi dung `reviewSummary` tu API catalog (chi tinh review da duyet). Backend cu chua tra summary thi an hang danh gia, khong gia lap so sao/count.
 - Tag thuoc tinh lay tu variantAttributes, kich thuoc, chat lieu va mau; toi da 4 tag, bo trung va placeholder. Khong tu them tinh nang san pham.

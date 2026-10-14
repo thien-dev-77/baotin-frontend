@@ -59,7 +59,6 @@ a {
 
 .bt-logo { width: 192px; max-width: 100%; flex-shrink: 0; }
 .bt-logo--compact { width: 176px; }
-.bt-logo--on-dark { border-radius: 4px; background: var(--color-background); padding: 8px; }
 @media (max-width: 639px) { .bt-logo:not(.bt-logo--compact) { width: 152px; } }
 
 .bt-container {
@@ -97,26 +96,26 @@ form[role="search"] input:focus-visible { outline: none; }
 textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
 .bt-product-card { container: product-card / inline-size; display: flex; min-width: 0; flex-direction: column; overflow: hidden; border: 1px solid var(--color-border); border-radius: 3px; background: var(--color-background); transition: border-color 160ms ease; }
 .bt-product-card:hover { border-color: var(--color-brand); }
-.bt-product-card-media { position: relative; flex-shrink: 0; aspect-ratio: 1 / 1.05; overflow: hidden; background: white; }
+.bt-product-card-media { position: relative; flex-shrink: 0; aspect-ratio: 4 / 3; overflow: hidden; background: white; }
 .bt-product-card-image-link { position: absolute; inset: 0; }
-.bt-product-card-image-link img { padding: 8px; }
+.bt-product-card-image-link img { padding: 6px; }
 .bt-product-card-image-link:focus-visible { outline-offset: -3px; }
-.bt-product-card-content { display: flex; min-width: 0; flex: 1; flex-direction: column; padding: 12px; }
-.bt-product-card-title { min-height: 48px; color: var(--color-text); font-size: 16px; font-weight: 400; line-height: 24px; letter-spacing: 0; overflow-wrap: anywhere; }
-.bt-product-card-title:hover { color: var(--color-primary); text-decoration: underline; text-decoration-color: var(--color-brand); text-underline-offset: 3px; }
+.bt-product-card-content { display: flex; min-width: 0; flex: 1; flex-direction: column; padding: 10px; }
+.bt-product-card-title { min-height: 44px; color: var(--color-text); font-size: 15px; font-weight: 400; line-height: 22px; letter-spacing: 0; overflow-wrap: anywhere; }
+.bt-product-card-title:hover { color: var(--color-primary); text-decoration: none; }
 .bt-product-card-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; line-height: 26px; }
 .bt-product-card-price .bt-price-amount { color: var(--color-primary); font-size: 20px; font-weight: 700; white-space: nowrap; }
 .bt-product-card-price del { color: var(--color-text-muted); font-size: 13px; font-weight: 400; white-space: nowrap; }
 .bt-product-card-price--compact .bt-price-amount { font-size: 16px; }
 .bt-product-card-account { margin-top: 2px; color: var(--color-text-secondary); font-size: 11px; line-height: 16px; }
-.bt-product-card-reviews { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 12px; color: var(--color-text-secondary); font-size: 12px; line-height: 18px; }
+.bt-product-card-reviews { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; color: var(--color-text-secondary); font-size: 12px; line-height: 18px; }
 .bt-product-card-reviews:hover { color: var(--color-primary); text-decoration: underline; text-decoration-color: var(--color-brand); text-underline-offset: 3px; }
 .bt-product-card-star { position: relative; display: inline-flex; width: 15px; height: 15px; }
 .bt-product-card-star > span { position: absolute; inset: 0 auto 0 0; overflow: hidden; }
 .bt-product-card-star svg { min-width: 15px; }
-.bt-product-card-tags { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 6px; min-height: 64px; margin-top: 14px; }
+.bt-product-card-tags { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 4px; margin-top: 8px; }
 .bt-product-card-tags li { max-width: 100%; border: 1px solid var(--color-border); border-radius: 3px; padding: 3px 6px; color: var(--color-text-secondary); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
-.bt-product-card-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: auto; padding-top: 12px; color: var(--color-text-muted); font-size: 11px; line-height: 16px; }
+.bt-product-card-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: auto; padding-top: 10px; color: var(--color-text-muted); font-size: 11px; line-height: 16px; }
 .bt-product-card-meta span:first-child { min-width: 0; overflow-wrap: anywhere; }
 .bt-product-card-meta span:last-child { flex-shrink: 0; }
 .bt-product-card-favorite { position: absolute; right: 4px; bottom: 4px; display: flex; width: 40px; height: 40px; align-items: center; justify-content: center; border-radius: 50%; background: rgba(255, 255, 255, .94); transition: transform 160ms ease, color 160ms ease; }

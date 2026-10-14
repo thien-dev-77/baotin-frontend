@@ -95,7 +95,7 @@ for (const width of [1440, 1024, 768, 390, 320]) test(`Brand logo, favicon and y
   expect(Math.abs(rect.width / rect.height - 919 / 271)).toBeLessThan(0.02);
   expect(rect.width).toBe(width < 640 ? 152 : 192);
   await expect(page.locator('head link[rel="icon"]')).toHaveAttribute("href", "/favicon-baotin.png");
-  for (const asset of ["/logo-baotin.png", "/favicon-baotin.png"]) {
+  for (const asset of ["/logo-baotin.png", "/logo-baotin-white.png", "/favicon-baotin.png"]) {
     const response = await request.get(`${frontend}${asset}`);
     expect(response.ok()).toBe(true);
     expect(response.headers()["content-type"]).toContain("image/png");
@@ -113,7 +113,9 @@ for (const width of [1440, 1024, 768, 390, 320]) test(`Brand logo, favicon and y
   await expect(footer).toHaveCSS("background-color", "rgb(23, 23, 23)");
   await expect(footer).toHaveCSS("color", "rgb(255, 255, 255)");
   await footer.scrollIntoViewIfNeeded();
-  await expect(footer.locator(".bt-logo")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(footer.locator(".bt-logo")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(footer.getByRole("img", { name: "Bảo Tín", exact: true })).toHaveAttribute("src", /logo-baotin-white\.png/);
+  await expect(footer.getByRole("img", { name: "Bảo Tín", exact: true })).toHaveAttribute("loading", "lazy");
   await expect.poll(() => footer.getByRole("img", { name: "Bảo Tín", exact: true }).evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
   expect(await footer.locator(".bt-logo").evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);

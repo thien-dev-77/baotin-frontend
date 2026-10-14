@@ -4,7 +4,7 @@ export function Logo({ inverted = false, compact = false }: { inverted?: boolean
   return (
     <div className={`bt-logo${inverted ? " bt-logo--on-dark" : ""}${compact ? " bt-logo--compact" : ""}`}>
       <Image
-        src="/logo-baotin.png"
+        src={inverted ? "/logo-baotin-white.png" : "/logo-baotin.png"}
         alt="Bảo Tín"
         width={919}
         height={271}

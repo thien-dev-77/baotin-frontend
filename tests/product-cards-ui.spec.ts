@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 import { catalog, categoryCatalog, money } from "../lib/catalog";
 import { previewCatalogPage } from "../lib/catalog-query";
-import type { Product, SessionUser } from "../lib/types";
+import type { Category, Product, SessionUser } from "../lib/types";
 
 const base = process.env.QA_BASE_URL || "http://127.0.0.1:3010";
 if (!["localhost", "127.0.0.1"].includes(new URL(base).hostname)) throw new Error("Card QA requires a local frontend.");
@@ -18,7 +18,7 @@ const products: Product[] = [
   ...catalog.filter(item => item.category === "phu-kien-bep").slice(0, 5).map(product => ({ ...product, reviewSummary: { rating: 0, count: 0 } })),
 ];
 
-async function mockCards(page: Page, customer = buyer) {
+async function mockCards(page: Page, customer = buyer, rows = products) {
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
   const calls: string[] = [];
@@ -27,9 +27,9 @@ async function mockCards(page: Page, customer = buyer) {
     const path = url.pathname.slice("/api/backend".length);
     calls.push(path);
     const responses: Record<string, unknown> = {
-      "/auth/session": { user: customer }, "/catalog/bootstrap": { products, categories },
-      "/catalog/selection": { products: products.filter(product => url.searchParams.getAll("ids").includes(product.id)) },
-      "/catalog/search": previewCatalogPage(products, categories, url.searchParams, customer.customer),
+      "/auth/session": { user: customer }, "/catalog/bootstrap": { products: rows, categories },
+      "/catalog/selection": { products: rows.filter(product => url.searchParams.getAll("ids").includes(product.id)) },
+      "/catalog/search": previewCatalogPage(rows, categories, url.searchParams, customer.customer),
       "/orders": [], "/account": { favorites: [] }, "/notifications/count": { unreadCount: 0 },
       "/account/preferences": { favorites: JSON.parse(route.request().postData() || "{}").favorites || [] },
     };
@@ -60,6 +60,8 @@ for (const [width, columns] of [[1440, 5], [1024, 5], [768, 3], [390, 2], [320, 
       const media = card.locator(".bt-product-card-media");
       const title = card.locator(".bt-product-card-title");
       await expect(title).toHaveCSS("font-weight", "400");
+      await title.hover();
+      await expect(title).toHaveCSS("text-decoration-line", "none");
       expect(await title.evaluate(element => { const spacing = getComputedStyle(element).letterSpacing; return spacing === "normal" || Number.parseFloat(spacing) === 0; })).toBe(true);
       await expect(title).toHaveCSS("-webkit-line-clamp", "2");
       await expect(title).toHaveAttribute("title", products[0].name);
@@ -128,6 +130,68 @@ for (const [width, columns] of [[1440, 5], [1024, 5], [768, 3], [390, 2], [320, 
     } finally { await context.close(); }
   });
 }
+
+for (const [width, columns] of [[1440, 4], [1024, 4], [768, 3], [390, 2], [320, 2]]) test(`Catalog grid has at most four desktop columns at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 1000 });
+  const api = await mockCards(page);
+  await page.goto(`${base}/search`);
+  const grid = page.locator("[data-product-grid]");
+  await expect(grid.locator(".bt-product-card")).toHaveCount(products.length);
+  await expect(grid).toHaveAttribute("data-desktop-columns", "4");
+  expect(await grid.evaluate(element => getComputedStyle(element).gridTemplateColumns.split(" ").length)).toBe(columns);
+  const first = (await grid.locator(".bt-product-card").first().boundingBox())!;
+  const lastInRow = (await grid.locator(".bt-product-card").nth(columns - 1).boundingBox())!;
+  const next = (await grid.locator(".bt-product-card").nth(columns).boundingBox())!;
+  expect(Math.abs(first.y - lastInRow.y)).toBeLessThan(1);
+  expect(next.y).toBeGreaterThan(first.y + first.height);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  api.check();
+});
+
+for (const width of [1440, 390, 320]) test(`A single-tag card stays compact without blank attribute space at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 1000 });
+  const sparse: Product = { ...products[5], name: "Vòi rửa inox SUS304 cao cấp", listPrice: 2940000, price: 2940000, customerPrice: 2940000, oldPrice: undefined, b2cDiscount: 0, size: "", color: "", material: "", variantAttributes: [{ name: "Trọng lượng", value: "1.1 kg" }], reviewSummary: { rating: 0, count: 0 } };
+  const api = await mockCards(page, buyer, [sparse]);
+  await page.goto(`${base}/search`);
+  const card = page.locator("[data-product-grid] .bt-product-card");
+  await expect(card).toHaveCount(1);
+  await card.scrollIntoViewIfNeeded();
+  const media = (await card.locator(".bt-product-card-media").boundingBox())!;
+  expect(Math.abs(media.width / media.height - 4 / 3)).toBeLessThan(0.01);
+  const tags = card.getByRole("list", { name: "Thuộc tính sản phẩm" });
+  await expect(tags).toHaveText("1.1 kg");
+  const tagRect = (await tags.boundingBox())!;
+  expect(tagRect.height).toBeLessThanOrEqual(26);
+  const meta = (await card.locator(".bt-product-card-meta").boundingBox())!;
+  expect(meta.y - tagRect.y - tagRect.height).toBeLessThanOrEqual(12);
+  await card.locator(".bt-product-card-title").hover();
+  await expect(card.locator(".bt-product-card-title")).toHaveCSS("text-decoration-line", "none");
+  await expect.poll(() => card.locator("img").evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
+  expect((await card.boundingBox())!.height - media.height).toBeLessThan(220);
+  await mkdir("/private/tmp/baotin-compact-cards", { recursive: true });
+  await card.screenshot({ path: `/private/tmp/baotin-compact-cards/single-tag-${width}.png`, animations: "disabled", style: "header { visibility: hidden; }" });
+  api.check();
+});
+
+for (const [width, columns] of [[1440, 4], [390, 2]]) test(`Real API category uses the compact four-column listing at ${width}px`, async ({ page, request }) => {
+  const response = await request.get(`${base}/api/backend/catalog/bootstrap`);
+  expect(response.ok()).toBe(true);
+  const result = await response.json() as { products: Product[]; categories: Category[] };
+  const product = result.products.find(item => item.code === "F66") || result.products[0];
+  const category = result.categories.find(item => item.slug === product.category)!;
+  expect(category).toBeTruthy();
+  await page.setViewportSize({ width, height: 1000 });
+  await page.goto(`${base}/category/${category.slug}`);
+  await expect(page.getByRole("heading", { name: category.name, exact: true })).toBeVisible();
+  const grid = page.locator("[data-product-grid]");
+  await expect(grid.locator(".bt-product-card").first()).toBeVisible();
+  expect(await grid.evaluate(element => getComputedStyle(element).gridTemplateColumns.split(" ").length)).toBe(columns);
+  const image = grid.locator(".bt-product-card img").first();
+  await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await mkdir("/private/tmp/baotin-compact-cards", { recursive: true });
+  await page.screenshot({ path: `/private/tmp/baotin-compact-cards/category-${width}.png`, animations: "disabled" });
+});
 
 test("The same product card layout is used in catalog grid and list views", async ({ page }) => {
   const api = await mockCards(page);
