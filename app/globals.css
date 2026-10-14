@@ -275,14 +275,14 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
   border-radius: 6px;
   background: var(--color-brand);
   padding: 0 16px;
-  color: var(--color-primary);
+  color: white;
   font-size: 13px;
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
   transition: background-color 160ms ease;
 }
-.bt-category-trigger:hover, .bt-category-menu[data-state="open"] .bt-category-trigger { background: var(--color-brand-hover); color: var(--color-primary); }
+.bt-category-trigger:hover, .bt-category-menu[data-state="open"] .bt-category-trigger { background: var(--color-brand-hover); color: white; }
 .bt-category-trigger-chevron { margin-left: auto; transition: transform 180ms ease; }
 .bt-category-menu[data-state="open"] .bt-category-trigger-chevron { transform: rotate(180deg); }
 .bt-category-backdrop {
@@ -383,10 +383,10 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
 .bt-header-service-copy { min-width: 0; }
 .bt-header-service-title { display: block; font-size: 12px; font-weight: 600; line-height: 16px; }
 .bt-header-service-description { display: block; color: var(--color-text-secondary); font-size: 11px; line-height: 16px; }
-.bt-header-service-link--accent { background: var(--color-brand); padding: 4px 10px; color: var(--color-primary); }
-.bt-header-service-link--accent svg { color: var(--color-primary); }
-.bt-header-service-link--accent .bt-header-service-description { color: var(--color-text-secondary); }
-.bt-header-service-link--accent:hover { background: var(--color-brand-hover); color: var(--color-primary); }
+.bt-header-service-link--accent { background: var(--color-brand); padding: 4px 10px; color: white; }
+.bt-header-service-link--accent svg { color: white; }
+.bt-header-service-link--accent .bt-header-service-description { color: rgba(255, 255, 255, 0.9); }
+.bt-header-service-link--accent:hover { background: var(--color-brand-hover); color: white; }
 .bt-header-service-link--zalo { background: var(--color-zalo); padding-inline: 10px; color: var(--color-background); }
 .bt-header-service-link--zalo .bt-header-service-description { color: var(--color-background); }
 .bt-header-service-link--zalo:hover { background: var(--color-zalo-hover); color: var(--color-background); }
