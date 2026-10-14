@@ -102,11 +102,20 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
     }
     setBusy(true); setError("");
     try {
-      await api(product ? `/admin/products/${encodeURIComponent(product.id)}` : "/admin/products", { method: product ? "PATCH" : "POST", body: JSON.stringify(payload) });
+      const response = await api<{ id: string; product: any }>(product ? `/admin/products/${encodeURIComponent(product.id)}` : "/admin/products", { method: product ? "PATCH" : "POST", body: JSON.stringify(payload) });
       await reload();
       await reloadCatalog().catch(cause => notice(cause instanceof Error ? cause.message : "Không thể tải catalog."));
       notice(product ? "Đã lưu sản phẩm." : "Đã thêm sản phẩm.");
-      markSaved(); router.push(listUrl); router.refresh();
+      markSaved();
+      
+      // Nếu đang edit, ở lại trang và reload data
+      if (product) {
+        await onReload();
+      } else {
+        // Nếu tạo mới, chuyển sang trang edit của sản phẩm vừa tạo
+        router.push(`/admin/products/${encodeURIComponent(response.id)}/edit?returnTo=${encodeURIComponent(listUrl)}`);
+      }
+      router.refresh();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Không thể lưu sản phẩm."); await reload(); }
     finally { setBusy(false); }
   };
