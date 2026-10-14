@@ -7,12 +7,18 @@ import { resolve } from "node:path";
 import { catalog, categoryCatalog } from "../lib/catalog";
 import { heroSlides } from "../lib/home-data";
 import { storeContact } from "../lib/store-contact";
+import { previewCatalogPage } from "../lib/catalog-query";
 
 const frontend = "http://127.0.0.1:3053";
 const images = ["/images/catalog/led-strip.png", "/images/catalog/handle-brass-hd.jpg", "/images/catalog/hardware.png"];
 const product = { ...catalog[0], id: "qa-gallery", slug: "qa-gallery", name: "Sản phẩm kiểm tra gallery", image: images[0], gallery: images, featured: false };
 const fallbackProduct = { ...product, id: "qa-single-photo", slug: "qa-single-photo", gallery: [] };
 const showcaseProducts = [product, fallbackProduct, ...Array.from({ length: 8 }, (_, index) => ({ ...product, id: `qa-showcase-${index}`, slug: `qa-showcase-${index}`, code: `QA-${index}` }))];
+const kitchen = categoryCatalog[0];
+const upperKitchen = { ...kitchen, slug: "qa-upper-kitchen", name: "Phụ kiện tủ bếp trên", parentSlug: kitchen.slug, subcategories: [] };
+const basket = { ...upperKitchen, slug: "qa-basket", name: "Giá bát cố định", parentSlug: upperKitchen.slug };
+const basketSize = { ...basket, slug: "qa-basket-600", name: "Khoang tủ 600mm", parentSlug: basket.slug };
+const categories = [...categoryCatalog, { ...upperKitchen, slug: "qa-kitchen-corner", name: "Phụ kiện góc" }, upperKitchen, basket, basketSize];
 let server: Server;
 let child: ChildProcess;
 let logs = "";
@@ -31,7 +37,9 @@ test.beforeAll(async () => {
     let body: unknown = {};
     if (url.pathname === "/api/health") body = { ready: true };
     else if (url.pathname === "/api/auth/session") body = { user: null };
-    else if (url.pathname === "/api/catalog/bootstrap" || url.pathname === "/api/catalog/selection") body = { products: showcaseProducts, categories: categoryCatalog };
+    else if (url.pathname === "/api/catalog/bootstrap" || url.pathname === "/api/catalog/selection") body = { products: showcaseProducts, categories };
+    else if (url.pathname === "/api/catalog/search") body = previewCatalogPage(showcaseProducts, categories, url.searchParams);
+    else if (url.pathname.startsWith("/api/categories/")) body = categories.find(category => category.slug === decodeURIComponent(url.pathname.split("/").at(-1)!));
     else if (url.pathname.startsWith("/api/catalog/product/")) body = url.pathname.endsWith(fallbackProduct.slug) ? fallbackProduct : product;
     else if (url.pathname === "/api/content") body = { items: heroSlides.map((slide, index) => ({ ...slide, id: `qa-banner-${index}`, slug: `qa-banner-${index}`, title: slide.alt, kind: "banner", position: index })) };
     else if (url.pathname.startsWith("/api/reviews/")) body = { items: [], summary: { rating: 0, count: 0 } };
@@ -188,4 +196,131 @@ test("The product slider's left arrow points left and returns to the preceding i
   await previous.click(); await expect(previous).toBeDisabled();
   await expect.poll(() => list.evaluate((element, start) => Math.abs(element.getBoundingClientRect().left - start), initial)).toBeLessThan(2);
   await slider.screenshot({ path: "/private/tmp/baotin-storefront-sliders/product-arrows.png" });
+});
+
+for (const [width, height] of [[1440, 900], [1024, 800], [1024, 600]]) test(`Header category hover keeps all submenu levels visible at ${width}x${height}`, async ({ page }) => {
+  await page.setViewportSize({ width, height });
+  await page.goto(`${frontend}/products/${product.slug}`);
+  await expect(page.locator("header")).toHaveAttribute("aria-busy", "false");
+  await page.getByRole("button", { name: "Danh mục sản phẩm", exact: true }).click();
+  const menu = page.getByRole("menu", { name: "Danh mục sản phẩm", exact: true });
+  const root = menu.getByRole("menuitem", { name: kitchen.name, exact: true });
+  await expect(root.locator("span")).toHaveCSS("font-size", "14px");
+  await root.hover();
+  const first = page.getByRole("menu", { name: `Danh mục con ${kitchen.name}`, exact: true });
+  await expect(first).toBeVisible();
+  await page.evaluate(() => window.scrollBy({ top: 100, behavior: "instant" }));
+  await expect(first).toBeVisible();
+  await first.getByRole("menuitem", { name: upperKitchen.name, exact: true }).hover();
+  const second = page.getByRole("menu", { name: `Danh mục con ${upperKitchen.name}`, exact: true });
+  await expect(second).toBeVisible();
+  await second.getByRole("menuitem", { name: basket.name, exact: true }).hover();
+  const third = page.getByRole("menu", { name: `Danh mục con ${basket.name}`, exact: true });
+  await expect(third).toBeVisible(); await expect(first).toBeVisible(); await expect(second).toBeVisible(); await expect(menu).toBeVisible();
+  let previousRight = (await page.locator(".bt-category-panel").boundingBox())!.x + (await page.locator(".bt-category-panel").boundingBox())!.width;
+  for (const panel of [first, second, third]) {
+    const bounds = (await panel.boundingBox())!;
+    expect(bounds.x).toBeGreaterThanOrEqual(previousRight);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(width - 11);
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(height - 11);
+    previousRight = bounds.x + bounds.width;
+  }
+  const leaf = third.getByRole("menuitem", { name: basketSize.name, exact: true });
+  await expect(leaf.locator("span")).toHaveCSS("font-size", "13px");
+  await expect(leaf).toHaveAttribute("href", `/category/${basketSize.slug}`);
+  await expect.poll(() => third.evaluate(element => element.getAnimations().every(animation => animation.playState === "finished"))).toBe(true);
+  await mkdir("/private/tmp/baotin-header-category-hover", { recursive: true });
+  await page.screenshot({ path: `/private/tmp/baotin-header-category-hover/menu-${width}x${height}.png` });
+  await leaf.click();
+  await expect(page).toHaveURL(`${frontend}/category/${basketSize.slug}`);
+  await expect(page.locator("main h1")).toHaveText(basketSize.name);
+  await expect(menu).toBeHidden(); await expect(page.locator("[data-category-flyout]")).toHaveCount(0);
+});
+
+test("Header category keyboard moves within submenus and restores parent focus", async ({ page }) => {
+  await page.goto(`${frontend}/products/${product.slug}`);
+  await expect(page.locator("header")).toHaveAttribute("aria-busy", "false");
+  const trigger = page.getByRole("button", { name: "Danh mục sản phẩm", exact: true });
+  await trigger.press("ArrowDown");
+  const menu = page.getByRole("menu", { name: "Danh mục sản phẩm", exact: true });
+  const root = menu.getByRole("menuitem", { name: kitchen.name, exact: true });
+  await expect(root).toBeFocused(); await root.press("ArrowRight");
+  const first = page.getByRole("menu", { name: `Danh mục con ${kitchen.name}`, exact: true });
+  await expect(first.locator("a").first()).toBeFocused(); await page.keyboard.press("End");
+  const upper = first.getByRole("menuitem", { name: upperKitchen.name, exact: true });
+  await expect(upper).toBeFocused(); await upper.press("ArrowRight");
+  const child = page.getByRole("menu", { name: `Danh mục con ${upperKitchen.name}`, exact: true }).getByRole("menuitem", { name: basket.name, exact: true });
+  await expect(child).toBeFocused(); await child.press("Escape");
+  await expect(upper).toBeFocused(); await upper.press("ArrowLeft"); await expect(root).toBeFocused();
+  await expect(page.locator("[data-category-flyout]")).toHaveCount(0);
+  await root.press("End"); await expect(menu.getByRole("menuitem", { name: "Tin công nghệ", exact: true })).toBeFocused();
+  await page.keyboard.press("Escape"); await expect(menu).toBeHidden(); await expect(trigger).toBeFocused();
+});
+
+test("Header category hover retains legacy subcategory filter links", async ({ page }) => {
+  await page.goto(`${frontend}/products/${product.slug}`);
+  await expect(page.locator("header")).toHaveAttribute("aria-busy", "false");
+  await page.getByRole("button", { name: "Danh mục sản phẩm", exact: true }).click();
+  const legacy = categoryCatalog[1];
+  await page.getByRole("menu", { name: "Danh mục sản phẩm", exact: true }).getByRole("menuitem", { name: legacy.name, exact: true }).hover();
+  const link = page.getByRole("menu", { name: `Danh mục con ${legacy.name}`, exact: true }).getByRole("menuitem", { name: legacy.subcategories[0], exact: true });
+  await expect(link).toHaveAttribute("href", `/category/${legacy.slug}?subcategory=${encodeURIComponent(legacy.subcategories[0])}`);
+  await link.click(); await expect(page).toHaveURL(new RegExp(`/category/${legacy.slug}\\?subcategory=`));
+  await expect(page.locator("main h1")).toHaveText(legacy.name);
+});
+
+test("Header category dismisses submenus when closed, scrolled or clicked outside", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 600 }); await page.goto(`${frontend}/products/${product.slug}`);
+  await expect(page.locator("header")).toHaveAttribute("aria-busy", "false");
+  const trigger = page.getByRole("button", { name: "Danh mục sản phẩm", exact: true });
+  const menu = page.getByRole("menu", { name: "Danh mục sản phẩm", exact: true });
+  for (const action of ["close", "scroll", "outside"] as const) {
+    if (await trigger.getAttribute("aria-expanded") !== "true") await trigger.click();
+    await menu.getByRole("menuitem", { name: kitchen.name, exact: true }).hover();
+    await expect(page.locator(".bt-category-flyout-panel--menu")).toHaveCount(1);
+    if (action === "close") await page.getByRole("button", { name: "Đóng danh mục", exact: true }).click();
+    if (action === "scroll") await menu.evaluate(element => element.dispatchEvent(new Event("scroll")));
+    if (action === "outside") {
+      const viewport = page.viewportSize()!;
+      await page.mouse.click(viewport.width - 12, viewport.height - 12);
+    }
+    await expect(page.locator(".bt-category-flyout-panel--menu")).toHaveCount(0);
+    await page.mouse.move(0, 0);
+  }
+  await expect(menu).toBeHidden();
+});
+
+test("Header category on a touch desktop opens submenus with a tap", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1024, height: 800 }, hasTouch: true, isMobile: true });
+  try {
+    const page = await context.newPage(); await page.goto(`${frontend}/products/${product.slug}`);
+    await expect(page.locator("header")).toHaveAttribute("aria-busy", "false");
+    await page.getByRole("button", { name: "Danh mục sản phẩm", exact: true }).tap();
+    const menu = page.getByRole("menu", { name: "Danh mục sản phẩm", exact: true });
+    await menu.getByRole("menuitem", { name: kitchen.name, exact: true }).hover();
+    await expect(page.locator(".bt-category-flyout-panel--menu")).toHaveCount(0);
+    await menu.getByRole("menuitem", { name: `Mở danh mục con ${kitchen.name}`, exact: true }).tap();
+    await expect(page.getByRole("menu", { name: `Danh mục con ${kitchen.name}`, exact: true })).toBeVisible();
+  } finally { await context.close(); }
+});
+
+test("Mobile category navigation still expands with a tap", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 800 }, hasTouch: true, isMobile: true });
+  try {
+    const page = await context.newPage(); await page.goto(`${frontend}/products/${product.slug}`);
+    await expect(page.locator("header")).toHaveAttribute("aria-busy", "false");
+    await page.getByRole("button", { name: "Mở menu", exact: true }).tap();
+    const drawer = page.getByRole("dialog", { name: "Danh mục & tài khoản", exact: true });
+    await drawer.getByRole("button", { name: `Mở danh mục con ${kitchen.name}`, exact: true }).tap();
+    await expect(drawer.getByRole("link", { name: upperKitchen.name, exact: true })).toBeVisible();
+  } finally { await context.close(); }
+});
+
+test("The homepage category sidebar keeps its hover navigation", async ({ page }) => {
+  await page.goto(frontend);
+  await expect(page.locator("header")).toHaveAttribute("aria-busy", "false");
+  await page.locator(".bt-home-category-sidebar").getByRole("link", { name: kitchen.name, exact: true }).hover();
+  const panel = page.getByRole("navigation", { name: `Danh mục con ${kitchen.name}`, exact: true });
+  await expect(panel.getByRole("link", { name: upperKitchen.name, exact: true })).toBeVisible();
+  await expect(page.locator(".bt-category-flyout-panel--menu")).toHaveCount(0);
 });

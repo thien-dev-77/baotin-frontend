@@ -12,9 +12,9 @@ import { CategoryFlyoutLinks } from "./category-flyout-links";
 
 const CATEGORY_PREVIEW_ITEMS = 2;
 
-export function CategoryLinks({ menu = false, flyout = false, showChildPreview = false, onNavigate }: { menu?: boolean; flyout?: boolean; showChildPreview?: boolean; onNavigate?: () => void }) {
+export function CategoryLinks({ menu = false, flyout = false, menuId, showChildPreview = false, onNavigate }: { menu?: boolean; flyout?: boolean; menuId?: string; showChildPreview?: boolean; onNavigate?: () => void }) {
   const { categories } = useCommerce();
-  if (flyout) return <CategoryFlyoutLinks categories={categories} showChildPreview={showChildPreview} onNavigate={onNavigate} />;
+  if (flyout) return <CategoryFlyoutLinks categories={categories} menu={menu} menuId={menuId} showChildPreview={showChildPreview} onNavigate={onNavigate} />;
   return <>{categoryRoots(categories).map(category => <CategoryBranch key={category.slug} category={category} categories={categories} depth={0} menu={menu} showChildPreview={showChildPreview} onNavigate={onNavigate} />)}</>;
 }
 

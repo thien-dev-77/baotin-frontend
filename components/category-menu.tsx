@@ -71,7 +71,8 @@ export function CategoryMenu() {
       }
     };
     const onPointerDown = (event: PointerEvent) => {
-      if (!root.current?.contains(event.target as Node)) setOpen(false);
+      const flyout = event.target instanceof Element ? event.target.closest("[data-category-flyout]") : null;
+      if (!root.current?.contains(event.target as Node) && flyout?.getAttribute("data-category-menu-id") !== menuId) setOpen(false);
     };
     const onResize = () => { setOpen(false); };
 
@@ -84,7 +85,7 @@ export function CategoryMenu() {
       document.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("resize", onResize);
     };
-  }, [open]);
+  }, [open, menuId]);
 
   return (
     <div ref={root} className="bt-category-menu" data-state={open ? "open" : "closed"} onKeyDown={(event) => { if (event.key === "Tab") closeMenu(false); }}>
@@ -126,7 +127,7 @@ export function CategoryMenu() {
         </div>
         <div id={menuId} role="menu" aria-labelledby={titleId} className="bt-category-scroll">
           <div role="group" aria-label="Nhóm sản phẩm">
-            <CategoryLinks menu onNavigate={() => closeMenu()} />
+            {open && <CategoryLinks menu flyout menuId={menuId} onNavigate={() => closeMenu()} />}
           </div>
           <div role="separator" className="bt-category-separator" />
           <div role="group" aria-label="Khám phá thêm">

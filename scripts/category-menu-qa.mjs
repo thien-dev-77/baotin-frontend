@@ -70,9 +70,9 @@ try {
     await headerSearch.press("Escape");
     await trigger.click();
     await expect(menu).toBeVisible();
-    await expect(menu.getByRole("menuitem")).toHaveCount(11);
+    await expect(menu.locator('a[role="menuitem"]')).toHaveCount(11);
     await expect(trigger).toBeFocused();
-    await expect(first.locator("span")).toHaveCSS("font-size", "16px");
+    await expect(first.locator("span")).toHaveCSS("font-size", "14px");
     await expect(first.locator("span")).toHaveCSS("font-weight", "500");
     await expect(panel).toHaveCSS("opacity", "1");
     const bounds = await panel.boundingBox();

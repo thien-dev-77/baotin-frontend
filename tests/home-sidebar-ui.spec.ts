@@ -372,7 +372,7 @@ test("Opening nested branches keeps the footer fixed and dropdown previews disab
   await page.getByRole("button", { name: "Danh mục sản phẩm", exact: true }).click();
   const menu = page.getByRole("menu");
   await expect(menu.locator(".bt-home-category-preview")).toHaveCount(0);
-  await expect(menu.getByRole("menuitem", { name: roots[0].name, exact: true }).locator("span")).toHaveCSS("font-size", "16px");
+  await expect(menu.getByRole("menuitem", { name: roots[0].name, exact: true }).locator("span")).toHaveCSS("font-size", "14px");
   await page.keyboard.press("Escape");
   await all.click(); await expect(page).toHaveURL(`${frontend}/categories`);
 });

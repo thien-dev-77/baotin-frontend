@@ -30,7 +30,7 @@ function childEntries(entry: Entry, categories: Category[], level: number): Entr
   return entry.category.subcategories.filter(name => name.trim()).map((name, index) => ({ id: `${entry.id}-group-${index}`, name, href: `${entry.href}?subcategory=${encodeURIComponent(name)}` }));
 }
 
-export function CategoryFlyoutLinks({ categories, showChildPreview = false, onNavigate }: { categories: Category[]; showChildPreview?: boolean; onNavigate?: () => void }) {
+export function CategoryFlyoutLinks({ categories, menu = false, menuId, showChildPreview = false, onNavigate }: { categories: Category[]; menu?: boolean; menuId?: string; showChildPreview?: boolean; onNavigate?: () => void }) {
   const pathname = usePathname();
   const prefix = useId();
   const roots = useRef<HTMLDivElement>(null);
@@ -56,6 +56,8 @@ export function CategoryFlyoutLinks({ categories, showChildPreview = false, onNa
     const outside = (event: Event) => { if (!inside(event.target)) closeAll(); };
     const scroll = (event: Event) => {
       if (event.target instanceof Element && event.target.closest("[data-category-flyout]")) return;
+      // The sticky header stays in place when the page scrolls; only its list moves the anchors.
+      if (menu && event.target !== roots.current?.closest(".bt-category-scroll")) return;
       closeAll();
     };
     const escape = (event: globalThis.KeyboardEvent) => { if (event.key === "Escape") closeAll(); };
@@ -72,14 +74,14 @@ export function CategoryFlyoutLinks({ categories, showChildPreview = false, onNa
       document.removeEventListener("keydown", escape);
       window.removeEventListener("resize", closeAll);
     };
-  }, [cancelTimers, closeAll]);
+  }, [cancelTimers, closeAll, menu]);
 
   function open(entry: Entry, level: number, anchor: HTMLElement, focusFirst = false) {
     cancelTimers();
     if (!childEntries(entry, visibleCategories, level).length) { setPanels(previous => previous.slice(0, level)); return; }
-    const sidebar = roots.current?.closest(".bt-home-category-sidebar");
-    if (!sidebar) return;
-    const rootLeft = sidebar.getBoundingClientRect().right + ROOT_GAP;
+    const container = roots.current?.closest(menu ? ".bt-category-panel" : ".bt-home-category-sidebar");
+    if (!container) return;
+    const rootLeft = container.getBoundingClientRect().right + ROOT_GAP;
     // Reserve room for all remaining levels instead of stacking panels over each other.
     const columns = MAX_CATEGORY_DEPTH - 1;
     const width = Math.min(PANEL_WIDTH, (window.innerWidth - VIEWPORT_MARGIN - rootLeft - PANEL_GAP * (columns - 1)) / columns);
@@ -111,9 +113,11 @@ export function CategoryFlyoutLinks({ categories, showChildPreview = false, onNa
     const panelId = `${prefix}-panel-${level}`;
     function keyboard(event: KeyboardEvent<HTMLDivElement>) {
       if (event.key === "ArrowRight" && children.length) { event.preventDefault(); event.stopPropagation(); open(entry, level, event.currentTarget, true); return; }
+      if (menu && !level && ["ArrowDown", "ArrowUp", "Home", "End", "Escape"].includes(event.key)) return;
       if (event.key === "ArrowLeft" || event.key === "Escape") { event.preventDefault(); event.stopPropagation(); closeFrom(Math.max(0, level - 1)); return; }
       if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
       event.preventDefault();
+      event.stopPropagation();
       const links = Array.from(event.currentTarget.parentElement?.querySelectorAll<HTMLAnchorElement>(":scope > [data-category-row] [data-category-link]") || []);
       const index = links.findIndex(link => event.currentTarget.contains(link));
       const next = event.key === "Home" ? 0 : event.key === "End" ? links.length - 1 : (index + (event.key === "ArrowDown" ? 1 : -1) + links.length) % links.length;
@@ -121,12 +125,12 @@ export function CategoryFlyoutLinks({ categories, showChildPreview = false, onNa
     }
     return <div key={entry.id} data-category-row data-active={active} className="bt-category-flyout-row" onPointerEnter={event => hover(event, entry, level)} onKeyDown={keyboard}>
       <div className="bt-category-flyout-row-main">
-        <Link href={entry.href} prefetch={false} data-category-link aria-current={pathname === entry.href ? "page" : undefined} onClick={navigate} className={`bt-category-item min-w-0 flex-1${level ? " bt-category-flyout-link" : ""}`}>
+        <Link href={entry.href} prefetch={false} role={menu ? "menuitem" : undefined} tabIndex={menu ? -1 : undefined} data-category-link aria-current={pathname === entry.href ? "page" : undefined} onClick={navigate} className={`bt-category-item min-w-0 flex-1${level ? " bt-category-flyout-link" : ""}`}>
           {!level && entry.category && <CategoryIcon slug={entry.category.slug} />}
           <span>{entry.name}</span>
           {!children.length && !level && <ChevronRight size={16} strokeWidth={1.7} aria-hidden="true" className="bt-category-chevron" />}
         </Link>
-        {children.length > 0 && <button type="button" aria-expanded={active} aria-controls={active ? panelId : undefined} aria-label={`${active ? "Thu gọn" : "Mở"} danh mục con ${entry.name}`} title={`${active ? "Thu gọn" : "Mở"} danh mục con`} className="bt-icon-button shrink-0" onClick={event => {
+        {children.length > 0 && <button type="button" role={menu ? "menuitem" : undefined} tabIndex={menu ? -1 : undefined} aria-expanded={active} aria-controls={active ? panelId : undefined} aria-label={`${active ? "Thu gọn" : "Mở"} danh mục con ${entry.name}`} title={`${active ? "Thu gọn" : "Mở"} danh mục con`} className="bt-icon-button shrink-0" onClick={event => {
           if (active) { closeFrom(level); return; }
           open(entry, level, event.currentTarget.closest<HTMLElement>("[data-category-row]")!, true);
         }}><ChevronRight size={16} aria-hidden="true" /></button>}
@@ -137,7 +141,7 @@ export function CategoryFlyoutLinks({ categories, showChildPreview = false, onNa
 
   return <>
     <div ref={roots} className="bt-category-flyout-roots" onPointerLeave={leave}>{categoryRoots(visibleCategories).map(entry => row(categoryEntry(entry), 0))}</div>
-    {panels.length > 0 && createPortal(panels.map((panel, level) => <FlyoutPanel key={panel.entry.id} panel={panel} id={`${prefix}-panel-${level}`} register={element => {
+    {panels.length > 0 && createPortal(panels.map((panel, level) => <FlyoutPanel key={panel.entry.id} panel={panel} menu={menu} menuId={menuId} id={`${prefix}-panel-${level}`} register={element => {
       if (element) panelElements.current.set(level, element); else panelElements.current.delete(level);
     }} onPointerEnter={cancelTimers} onPointerLeave={leave} onScroll={() => setPanels(previous => previous.slice(0, level + 1))}>
       {childEntries(panel.entry, visibleCategories, level).map(entry => row(entry, level + 1))}
@@ -145,7 +149,7 @@ export function CategoryFlyoutLinks({ categories, showChildPreview = false, onNa
   </>;
 }
 
-function FlyoutPanel({ panel, id, register, onPointerEnter, onPointerLeave, onScroll, children }: { panel: Panel; id: string; register: (element: HTMLElement | null) => void; onPointerEnter: () => void; onPointerLeave: () => void; onScroll: () => void; children: React.ReactNode }) {
+function FlyoutPanel({ panel, id, menu, menuId, register, onPointerEnter, onPointerLeave, onScroll, children }: { panel: Panel; id: string; menu: boolean; menuId?: string; register: (element: HTMLElement | null) => void; onPointerEnter: () => void; onPointerLeave: () => void; onScroll: () => void; children: React.ReactNode }) {
   const ref = useRef<HTMLElement>(null);
   const [top, setTop] = useState(panel.top);
   useLayoutEffect(() => {
@@ -153,7 +157,7 @@ function FlyoutPanel({ panel, id, register, onPointerEnter, onPointerLeave, onSc
     setTop(Math.max(panel.minTop, Math.min(panel.top, window.innerHeight - VIEWPORT_MARGIN - height)));
     if (panel.focusFirst) ref.current?.querySelector<HTMLAnchorElement>("[data-category-link]")?.focus({ preventScroll: true });
   }, [panel]);
-  return <nav ref={element => { ref.current = element; register(element); }} id={id} data-category-flyout aria-label={`Danh mục con ${panel.entry.name}`} className="bt-category-flyout-panel" style={{ left: panel.left, top, width: panel.width, maxHeight: panel.maxHeight }} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave} onScroll={onScroll}>
+  return <nav ref={element => { ref.current = element; register(element); }} id={id} role={menu ? "menu" : undefined} data-category-flyout data-category-menu-id={menuId} aria-label={`Danh mục con ${panel.entry.name}`} className={`bt-category-flyout-panel${menu ? " bt-category-flyout-panel--menu" : ""}`} style={{ left: panel.left, top, width: panel.width, maxHeight: panel.maxHeight }} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave} onScroll={onScroll}>
     <div className="bt-category-flyout-items">{children}</div>
   </nav>;
 }
