@@ -58,6 +58,7 @@ export function RichTextEditor({
       <CKEditor
         editor={ClassicEditor}
         config={{
+          licenseKey: "GPL",
           toolbar: {
             items: [
               "undo",
