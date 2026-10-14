@@ -11,7 +11,7 @@ import {
   Plus,
   RefreshCw,
 } from "lucide-react";
-import { apiMode } from "@/lib/api-client";
+import { apiMode, api } from "@/lib/api-client";
 import { normalize } from "@/lib/catalog";
 import { categoryLabel } from "@/lib/category-tree";
 import type {
@@ -36,6 +36,7 @@ import { CategoryEditor } from "./category-editor";
 import { CatalogTemplateDownload } from "./catalog-template-download";
 import { CategoryBulkActions } from "./category-bulk-actions";
 import { AdminSelectionCheckbox } from "./admin-selection-checkbox";
+import { CategoryTreeSort } from "./category-tree-sort";
 
 export function AdminCategories() {
   const resource = useAdminResource<CategoryDirectory>("/admin/categories");
@@ -45,6 +46,7 @@ export function AdminCategories() {
     apiMode && ["admin", "boss"].includes(sessionUser?.role || "");
   const filters = useAdminFilters();
   const [editing, setEditing] = useState<AdminCategory | null>(null);
+  const [viewMode, setViewMode] = useState<"table" | "tree">("table");
   const [busy, setBusy] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   const selectionBusy = bulkBusy || busy || resource.loading;
@@ -85,6 +87,42 @@ export function AdminCategories() {
       notice("Danh mục đã lưu. Chưa thể cập nhật website, hãy tải lại trang."),
     );
   };
+  const saveSortOrder = async (reordered: { slug: string; sortOrder: number }[]) => {
+    setBusy(true);
+    try {
+      // Update sort order via bulk PATCH (would need a new endpoint)
+      // For now, we'll update one by one - in production, add a bulk sort endpoint
+      for (const item of reordered) {
+        const category = resource.data!.items.find(c => c.slug === item.slug);
+        if (category && category.sortOrder !== item.sortOrder) {
+          await api(`/admin/categories/${encodeURIComponent(item.slug)}`, {
+            method: "PATCH",
+            body: JSON.stringify({
+              name: category.name,
+              slug: category.slug,
+              image: category.image,
+              description: category.description,
+              subcategories: category.subcategories,
+              sortOrder: item.sortOrder,
+              visible: category.visible,
+              parentSlug: category.parentSlug || "",
+              revision: category.revision,
+            }),
+          });
+        }
+      }
+      notice("Đã lưu thứ tự danh mục.");
+      void resource.reload();
+      void reset();
+      void reloadCatalog().catch(() =>
+        notice("Thứ tự đã lưu. Chưa thể cập nhật website, hãy tải lại trang."),
+      );
+    } catch (cause) {
+      notice(cause instanceof Error ? cause.message : "Không thể lưu thứ tự.");
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <>
       <AdminHeading
@@ -93,11 +131,21 @@ export function AdminCategories() {
       >
         <div className="flex flex-wrap gap-2">
           <CatalogTemplateDownload />
+          {canEdit && resource.data && (
+            <Button
+              variant={viewMode === "tree" ? "primary" : "secondary"}
+              disabled={selectionBusy}
+              onClick={() => setViewMode(viewMode === "tree" ? "table" : "tree")}
+            >
+              <FolderTree size={16} />
+              {viewMode === "tree" ? "Xem bảng" : "Sắp xếp cây"}
+            </Button>
+          )}
           <Button
             variant="secondary"
             loading={resource.loading}
             disabled={bulkBusy || busy}
-            onClick={() => { select([]); void resource.reload(); }}
+            onClick={() => { select([]); setViewMode("table"); void resource.reload(); }}
           >
             <RefreshCw size={16} />
             Làm mới
@@ -134,7 +182,16 @@ export function AdminCategories() {
         </div>
       </AdminHeading>
       <ResourceStatus {...resource} />
-      {resource.data && (
+      {resource.data && viewMode === "tree" && (
+        <div className="mt-6">
+          <CategoryTreeSort
+            categories={resource.data.items}
+            onSave={saveSortOrder}
+            busy={busy}
+          />
+        </div>
+      )}
+      {resource.data && viewMode === "table" && (
         <>
           <fieldset disabled={bulkBusy} className="mb-4 flex min-w-0 flex-wrap gap-3">
             <AdminSearch
