@@ -66,6 +66,7 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
   const [richDescription, setRichDescription] = useState(source?.description || "");
   const [richTechnicalDetails, setRichTechnicalDetails] = useState(source?.technicalDetails || "");
   const [richUsageGuide, setRichUsageGuide] = useState(source?.usageGuide || "");
+  const [richShortDescription, setRichShortDescription] = useState(source?.shortDescription || "");
   const listPrice = Number(pricing.listPrice), b2cDiscount = Number(pricing.b2cDiscount), b2bDiscount = Number(pricing.b2bDiscount);
   const validPricing = Number.isSafeInteger(listPrice) && listPrice >= 0 && listPrice <= MAX_PRODUCT_PRICE && [b2cDiscount, b2bDiscount].every(value => Number.isFinite(value) && value >= 0 && value <= MAX_PRODUCT_DISCOUNT && Math.abs(value * 100 - Math.round(value * 100)) < 0.000001);
   const b2cPrice = pricingEdited ? validPricing ? discountedPrice(listPrice, b2cDiscount) : 0 : initialPrices.b2cPrice;
@@ -89,7 +90,8 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
       technicalDetails: richTechnicalDetails || text("technicalDetails"),
       usageGuide: richUsageGuide || text("usageGuide"),
       gallery: images, featured: form.has("featured"), published,
-      alternateCode: text("alternateCode"), sourceUrl: text("sourceUrl"), shortDescription: text("shortDescription"),
+      alternateCode: text("alternateCode"), sourceUrl: text("sourceUrl"), 
+      shortDescription: richShortDescription || text("shortDescription"),
       warranty: text("warranty"),
       ...(variantAttributes.length || variantGroupId ? { variantGroupId: variantGroupId || "self", variantAttributes: variantAttributes.map(attribute => ({ name: attribute.name.trim(), value: attribute.value.trim() })) } : {}),
       ...(product ? { revision: product.revision } : {})
@@ -142,11 +144,23 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
               <ProductPricingFields value={pricing} onChange={value => { setPricing(value); setPricingEdited(true); setError(""); }} b2cPrice={b2cPrice} b2bPrice={b2bPrice} legacy={!pricingEdited} />
               <section className="border-b border-border pb-7">
                 <h2 className="mb-4 text-base font-semibold text-primary">Thuộc tính bổ sung</h2>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="sm:col-span-2"><Field label="Nội dung ngắn"><textarea name="shortDescription" rows={4} maxLength={2000} className="bt-input !h-auto py-3" defaultValue={source?.shortDescription} /></Field></div>
-                  <div className="sm:col-span-2"><Field label="Thông số kỹ thuật" required={published} htmlFor="product-specification"><textarea id="product-specification" name="specification" required={published} rows={3} maxLength={500} className="bt-input !h-auto py-3" defaultValue={source?.specification} /></Field></div>
-                  <div className="sm:col-span-2"><Field label="Bảo hành"><input name="warranty" className="bt-input" maxLength={500} defaultValue={source?.warranty} /></Field></div>
-                  {[{ name: "material", label: "Chất liệu" }, { name: "size", label: "Kích thước" }, { name: "color", label: "Màu sắc" }, { name: "origin", label: "Xuất xứ" }].filter(field => field.name === "size" ? !variantDimension(variantAttributes, "size") : field.name === "color" ? !variantDimension(variantAttributes, "color") : true).map(({ name, label }) => <Field key={name} label={label}><input name={name} className="bt-input" maxLength={100} defaultValue={source?.[name as "material" | "size" | "color" | "origin"]} /></Field>)}
+                <div className="space-y-5">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-primary">Nội dung ngắn</label>
+                    <RichTextEditor
+                      value={richShortDescription}
+                      onChange={setRichShortDescription}
+                      disabled={busy || uploading}
+                      placeholder="Nhập nội dung tóm tắt ngắn về sản phẩm..."
+                      minHeight="150px"
+                    />
+                    <input type="hidden" name="shortDescription" value={richShortDescription} />
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="sm:col-span-2"><Field label="Thông số kỹ thuật" required={published} htmlFor="product-specification"><textarea id="product-specification" name="specification" required={published} rows={3} maxLength={500} className="bt-input !h-auto py-3" defaultValue={source?.specification} /></Field></div>
+                    <div className="sm:col-span-2"><Field label="Bảo hành"><input name="warranty" className="bt-input" maxLength={500} defaultValue={source?.warranty} /></Field></div>
+                    {[{ name: "material", label: "Chất liệu" }, { name: "size", label: "Kích thước" }, { name: "color", label: "Màu sắc" }, { name: "origin", label: "Xuất xứ" }].filter(field => field.name === "size" ? !variantDimension(variantAttributes, "size") : field.name === "color" ? !variantDimension(variantAttributes, "color") : true).map(({ name, label }) => <Field key={name} label={label}><input name={name} className="bt-input" maxLength={100} defaultValue={source?.[name as "material" | "size" | "color" | "origin"]} /></Field>)}
+                  </div>
                 </div>
               </section>
             </div>
