@@ -33,7 +33,7 @@ export function SafeHtml({ html, className = "" }: SafeHtmlProps) {
       "th",
       "td",
     ],
-    ALLOWED_ATTR: ["href", "target", "rel", "class"],
+    ALLOWED_ATTR: ["href", "target", "rel", "class", "colspan", "rowspan"],
     ALLOW_DATA_ATTR: false,
   });
 

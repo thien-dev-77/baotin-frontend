@@ -1,4 +1,6 @@
 import type { ProductSpecification } from "@/lib/product-detail";
+import { productContentHtml } from "@/lib/product-content";
+import { SafeHtml } from "@/components/safe-html";
 
 export function ProductSpecifications({ specifications, technicalDetails }: { specifications: ProductSpecification[]; technicalDetails?: string }) {
   return (
@@ -16,7 +18,7 @@ export function ProductSpecifications({ specifications, technicalDetails }: { sp
           </tbody>
         </table>
       </div>
-      {technicalDetails && <p className="mt-4 whitespace-pre-line break-words text-sm leading-7 text-text-secondary">{technicalDetails}</p>}
+      {technicalDetails && <SafeHtml html={productContentHtml(technicalDetails)} className="bt-product-rich-text mt-4 break-words text-sm leading-7 text-text-secondary" />}
     </>
   );
 }

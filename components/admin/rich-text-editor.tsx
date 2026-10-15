@@ -19,10 +19,14 @@ import {
   IndentBlock,
 } from "ckeditor5";
 import "ckeditor5/ckeditor5.css";
+import { productContentHtml } from "@/lib/product-content";
 
 interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
+  onPlainTextChange?: (value: string) => void;
+  label?: string;
+  id?: string;
   disabled?: boolean;
   placeholder?: string;
   minHeight?: string;
@@ -31,12 +35,16 @@ interface RichTextEditorProps {
 export function RichTextEditor({
   value,
   onChange,
+  onPlainTextChange,
+  label,
+  id,
   disabled = false,
   placeholder = "Nhập nội dung...",
   minHeight = "200px",
 }: RichTextEditorProps) {
   const [isReady, setIsReady] = useState(false);
   const editorRef = useRef<ClassicEditor | null>(null);
+  const lastData = useRef("");
 
   useEffect(() => {
     setIsReady(true);
@@ -54,11 +62,12 @@ export function RichTextEditor({
   }
 
   return (
-    <div className={`rich-text-editor ${disabled ? "opacity-50 pointer-events-none" : ""}`}>
+    <div className={`rich-text-editor min-w-0 w-full font-normal ${disabled ? "opacity-50 pointer-events-none" : ""}`}>
       <CKEditor
         editor={ClassicEditor}
         config={{
           licenseKey: "GPL",
+          label: label || placeholder,
           toolbar: {
             items: [
               "undo",
@@ -111,22 +120,36 @@ export function RichTextEditor({
             defaultProtocol: "https://",
           },
         }}
-        data={value}
+        data={productContentHtml(value)}
         disabled={disabled}
         onReady={(editor) => {
           editorRef.current = editor;
+          lastData.current = editor.getData();
           // Set minimum height for editor content
           const editableElement = editor.ui.view.editable.element;
           if (editableElement) {
             editableElement.style.minHeight = minHeight;
           }
+          const root = editor.editing.view.document.getRoot();
+          if (id && root) editor.editing.view.change(writer => writer.setAttribute("id", id, root));
         }}
         onChange={(_, editor) => {
           const data = editor.getData();
+          if (data === lastData.current) return;
+          lastData.current = data;
           onChange(data);
+          if (onPlainTextChange) {
+            const root = editor.model.document.getRoot();
+            const text = root ? Array.from(editor.model.createRangeIn(root).getItems()).map(item => item.is("$textProxy") ? item.data : " ").join("") : "";
+            onPlainTextChange(text.replace(/\s+/g, " ").trim());
+          }
         }}
       />
       <style jsx global>{`
+        .rich-text-editor .ck-editor {
+          min-width: 0;
+          max-width: 100%;
+        }
         .rich-text-editor .ck-editor__editable {
           min-height: ${minHeight};
         }

@@ -19,12 +19,14 @@ import { discountedPrice, productPrices, MAX_PRODUCT_PRICE, MAX_PRODUCT_DISCOUNT
 import { ProductPricingFields, type ProductPricingDraft } from "./product-pricing-fields";
 import { ProductVariantFields } from "./product-variant-fields";
 import { variantDimension } from "@/lib/product-variants";
+import { PRODUCT_SPECIFICATION_MAX_LENGTH, PRODUCT_TECHNICAL_DETAILS_MAX_LENGTH } from "@/lib/product-content";
 const RichTextEditor = dynamic(() => import("./rich-text-editor").then(module => module.RichTextEditor), {
   ssr: false,
   loading: () => <p role="status" className="py-3 text-sm text-text-secondary">Đang tải trình soạn thảo...</p>,
 });
 
 type AdminProduct = ApiAdminState["products"][number];
+const PRODUCT_EDITOR_TABS = { basic: "Thông tin cơ bản", content: "Nội dung chi tiết", media: "Hình ảnh" };
 
 export function ProductEditorPage({ id }: { id?: string }) {
   const { products, reset: reload, loadedResources } = useAdmin();
@@ -67,16 +69,19 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
   const siblings = variantGroupId ? products.filter(item => item.variantGroupId === variantGroupId) : [];
   const [pricing, setPricing] = useState<ProductPricingDraft>(() => ({ listPrice: String(initialPrices.listPrice), b2cDiscount: String(Math.min(MAX_PRODUCT_DISCOUNT, initialPrices.b2cDiscount)), b2bDiscount: String(initialPrices.b2bDiscount ?? 0) }));
   const [pricingEdited, setPricingEdited] = useState(!product || initialPrices.configured);
-  const [activeTab, setActiveTab] = useState("basic");
+  const [activeTab, setActiveTab] = useState(PRODUCT_EDITOR_TABS.basic);
+  const [contentVisited, setContentVisited] = useState(false);
+  // Keep list/search content short and plain; technicalDetails stores the full formatted content.
+  const [specification, setSpecification] = useState(source?.specification || "");
   const [richDescription, setRichDescription] = useState(source?.description || "");
-  const [richTechnicalDetails, setRichTechnicalDetails] = useState(source?.technicalDetails || "");
+  const [richTechnicalDetails, setRichTechnicalDetails] = useState(source?.technicalDetails || source?.specification || "");
   const [richUsageGuide, setRichUsageGuide] = useState(source?.usageGuide || "");
   const [richShortDescription, setRichShortDescription] = useState(source?.shortDescription || "");
   const listPrice = Number(pricing.listPrice), b2cDiscount = Number(pricing.b2cDiscount), b2bDiscount = Number(pricing.b2bDiscount);
   const validPricing = Number.isSafeInteger(listPrice) && listPrice >= 0 && listPrice <= MAX_PRODUCT_PRICE && [b2cDiscount, b2bDiscount].every(value => Number.isFinite(value) && value >= 0 && value <= MAX_PRODUCT_DISCOUNT && Math.abs(value * 100 - Math.round(value * 100)) < 0.000001);
   const b2cPrice = pricingEdited ? validPricing ? discountedPrice(listPrice, b2cDiscount) : 0 : initialPrices.b2cPrice;
   const b2bPrice = pricingEdited ? validPricing ? discountedPrice(listPrice, b2bDiscount) : 0 : initialPrices.b2bPrice;
-  const { dirty, markSaved, close } = useUnsavedForm(formRef, true, busy || uploading, JSON.stringify(images));
+  const { dirty, markSaved, close } = useUnsavedForm(formRef, true, busy || uploading, JSON.stringify([images, richDescription, richTechnicalDetails, richUsageGuide, richShortDescription]));
   const categories = apiCategories || categoryCatalog;
   const stale = product && currentProduct?.revision !== product.revision;
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -88,7 +93,7 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
       name: text("name"), code: text("code"), slug: slug.trim(), category, subcategory,
       brand: text("brand"), unit: text("unit"), price: b2cPrice,
       ...(pricingEdited ? { listPrice, b2cDiscount, b2bDiscount } : product?.oldPrice !== undefined ? { oldPrice: product.oldPrice } : {}),
-      specification: text("specification"), material: text("material"),
+      specification: specification.trim(), material: text("material"),
       size: variantDimension(variantAttributes, "size")?.value.trim() || text("size"),
       color: variantDimension(variantAttributes, "color")?.value.trim() || text("color"), origin: text("origin"),
       description: richDescription || text("description"), 
@@ -103,12 +108,17 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
       ...(product ? { revision: product.revision } : {})
     };
     if (pricingEdited && (!validPricing || Object.values(pricing).some(value => value.trim() === ""))) { setError("Kiểm tra giá niêm yết và chiết khấu."); return; }
+    if (richTechnicalDetails.length > PRODUCT_TECHNICAL_DETAILS_MAX_LENGTH) {
+      setActiveTab(PRODUCT_EDITOR_TABS.basic);
+      setError(`Thông số kỹ thuật quá dài. Vui lòng rút gọn còn tối đa ${PRODUCT_TECHNICAL_DETAILS_MAX_LENGTH.toLocaleString("vi-VN")} ký tự, bao gồm định dạng.`);
+      return;
+    }
     if (published && (!images.length || !payload.specification || payload.price <= 0)) {
       setError("Sản phẩm công khai cần ít nhất một ảnh, thông số và giá bán lớn hơn 0."); return;
     }
     setBusy(true); setError("");
     try {
-      const response = await api<{ id: string; product: any }>(product ? `/admin/products/${encodeURIComponent(product.id)}` : "/admin/products", { method: product ? "PATCH" : "POST", body: JSON.stringify(payload) });
+      const response = await api<{ id: string; product: AdminProduct }>(product ? `/admin/products/${encodeURIComponent(product.id)}` : "/admin/products", { method: product ? "PATCH" : "POST", body: JSON.stringify(payload) });
       await reload();
       await reloadCatalog().catch(cause => notice(cause instanceof Error ? cause.message : "Không thể tải catalog."));
       notice(product ? "Đã lưu sản phẩm." : "Đã thêm sản phẩm.");
@@ -128,19 +138,24 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
   return <>
     <Link href={listUrl} className="mb-4 inline-flex items-center gap-2 text-sm text-text-secondary hover:text-primary hover:underline decoration-brand underline-offset-4"><ArrowLeft size={16} />Sản phẩm</Link>
     <AdminHeading title={product ? "Sửa sản phẩm" : template ? "Thêm biến thể" : "Thêm sản phẩm"} subtitle={product?.code || template?.code} />
-    <form ref={formRef} onSubmit={save} data-unsaved={dirty || undefined} className="min-w-0">
+    <form ref={formRef} onSubmit={save} onInvalidCapture={event => {
+      const input = event.target as HTMLInputElement;
+      if (!input.closest("[hidden]")) return;
+      event.preventDefault();
+      setActiveTab(PRODUCT_EDITOR_TABS.basic);
+      requestAnimationFrame(() => input.reportValidity());
+    }} data-unsaved={dirty || undefined} className="min-w-0">
       {error && <p role="alert" className="mb-5 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-danger">{error}</p>}
       {stale && <div role="alert" className="mb-5 flex flex-wrap items-center justify-between gap-3 border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Sản phẩm đã được cập nhật ở phiên khác.<Button type="button" variant="secondary" loading={refreshing} disabled={busy || uploading} onClick={() => close(() => void onReload())}><RefreshCw size={16} />Tải lại sản phẩm</Button></div>}
       {!apiMode && <p role="alert" className="mb-5 text-sm text-text-secondary">Chưa kết nối API. Không thể lưu sản phẩm.</p>}
       <fieldset disabled={busy || uploading} className="grid min-w-0 gap-8 xl:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0">
-          <Tabs options={["Thông tin cơ bản", "Nội dung chi tiết", "Hình ảnh"]} value={activeTab} onChange={value => {
-            const tabMap: Record<string, string> = { "Thông tin cơ bản": "basic", "Nội dung chi tiết": "content", "Hình ảnh": "media" };
-            setActiveTab(tabMap[value] || "basic");
+          <Tabs options={Object.values(PRODUCT_EDITOR_TABS)} value={activeTab} onChange={value => {
+            setActiveTab(value);
+            if (value === PRODUCT_EDITOR_TABS.content) setContentVisited(true);
           }} />
           
-          {activeTab === "basic" && (
-            <div className="min-w-0 space-y-7 pt-6">
+            <div hidden={activeTab !== PRODUCT_EDITOR_TABS.basic} className="min-w-0 space-y-7 pt-6">
               <section className="border-b border-border pb-7">
                 <h2 className="mb-4 text-base font-semibold text-primary">Thông tin sản phẩm</h2>
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -161,8 +176,10 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
                 <h2 className="mb-4 text-base font-semibold text-primary">Thuộc tính bổ sung</h2>
                 <div className="space-y-5">
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-primary">Nội dung ngắn</label>
+                    <label htmlFor="product-short-description" className="mb-1.5 block text-sm font-medium text-primary">Nội dung ngắn</label>
                     <RichTextEditor
+                      id="product-short-description"
+                      label="Nội dung ngắn"
                       value={richShortDescription}
                       onChange={setRichShortDescription}
                       disabled={busy || uploading}
@@ -172,23 +189,26 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
                     <input type="hidden" name="shortDescription" value={richShortDescription} />
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="sm:col-span-2"><Field label="Thông số kỹ thuật" required={published} htmlFor="product-specification"><textarea id="product-specification" name="specification" required={published} rows={3} maxLength={500} className="bt-input !h-auto py-3" defaultValue={source?.specification} /></Field></div>
+                    <div className="min-w-0 sm:col-span-2"><Field label="Thông số kỹ thuật" required={published} htmlFor="product-specification">
+                      <RichTextEditor id="product-specification" label="Thông số kỹ thuật" value={richTechnicalDetails} onChange={setRichTechnicalDetails} onPlainTextChange={text => setSpecification(Array.from(text).slice(0, PRODUCT_SPECIFICATION_MAX_LENGTH).join(""))} disabled={busy || uploading} placeholder="Nhập thông số kỹ thuật, danh sách hoặc bảng thông số..." minHeight="250px" />
+                    </Field></div>
                     <div className="sm:col-span-2"><Field label="Bảo hành"><input name="warranty" className="bt-input" maxLength={500} defaultValue={source?.warranty} /></Field></div>
                     {[{ name: "material", label: "Chất liệu" }, { name: "size", label: "Kích thước" }, { name: "color", label: "Màu sắc" }, { name: "origin", label: "Xuất xứ" }].filter(field => field.name === "size" ? !variantDimension(variantAttributes, "size") : field.name === "color" ? !variantDimension(variantAttributes, "color") : true).map(({ name, label }) => <Field key={name} label={label}><input name={name} className="bt-input" maxLength={100} defaultValue={source?.[name as "material" | "size" | "color" | "origin"]} /></Field>)}
                   </div>
                 </div>
               </section>
             </div>
-          )}
 
-          {activeTab === "content" && (
-            <div className="min-w-0 space-y-7 pt-6">
+            <div hidden={activeTab !== PRODUCT_EDITOR_TABS.content} className="min-w-0 space-y-7 pt-6">
+              {contentVisited && <>
               <section className="border-b border-border pb-7">
                 <h2 className="mb-4 text-base font-semibold text-primary">Nội dung chi tiết</h2>
                 <div className="space-y-5">
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-primary">Mô tả sản phẩm</label>
+                    <label htmlFor="product-description" className="mb-1.5 block text-sm font-medium text-primary">Mô tả sản phẩm</label>
                     <RichTextEditor
+                      id="product-description"
+                      label="Mô tả sản phẩm"
                       value={richDescription}
                       onChange={setRichDescription}
                       disabled={busy || uploading}
@@ -198,21 +218,12 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
                     <input type="hidden" name="description" value={richDescription} />
                   </div>
                   
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-primary">Thông số chi tiết</label>
-                    <RichTextEditor
-                      value={richTechnicalDetails}
-                      onChange={setRichTechnicalDetails}
-                      disabled={busy || uploading}
-                      placeholder="Nhập thông số kỹ thuật chi tiết..."
-                      minHeight="300px"
-                    />
-                    <input type="hidden" name="technicalDetails" value={richTechnicalDetails} />
-                  </div>
                   
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-primary">Hướng dẫn sử dụng</label>
+                    <label htmlFor="product-usage-guide" className="mb-1.5 block text-sm font-medium text-primary">Hướng dẫn sử dụng</label>
                     <RichTextEditor
+                      id="product-usage-guide"
+                      label="Hướng dẫn sử dụng"
                       value={richUsageGuide}
                       onChange={setRichUsageGuide}
                       disabled={busy || uploading}
@@ -223,10 +234,10 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
                   </div>
                 </div>
               </section>
+              </>}
             </div>
-          )}
 
-          {activeTab === "media" && (
+          {activeTab === PRODUCT_EDITOR_TABS.media && (
             <div className="min-w-0 pt-6">
               <section className="pb-5"><ProductImageUpload images={images} onChange={setImages} busy={busy || uploading} uploading={uploading} onBusyChange={setUploading} /></section>
             </div>
