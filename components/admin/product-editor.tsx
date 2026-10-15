@@ -18,6 +18,7 @@ import { useUnsavedForm } from "@/lib/unsaved-form";
 import { discountedPrice, productPrices, MAX_PRODUCT_PRICE, MAX_PRODUCT_DISCOUNT } from "@/lib/product-pricing";
 import { ProductPricingFields, type ProductPricingDraft } from "./product-pricing-fields";
 import { ProductVariantFields } from "./product-variant-fields";
+import { ProductVariantCopy } from "./product-variant-copy";
 import { variantDimension } from "@/lib/product-variants";
 import { PRODUCT_SPECIFICATION_MAX_LENGTH, PRODUCT_TECHNICAL_DETAILS_MAX_LENGTH } from "@/lib/product-content";
 const RichTextEditor = dynamic(() => import("./rich-text-editor").then(module => module.RichTextEditor), {
@@ -138,6 +139,10 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
   return <>
     <Link href={listUrl} className="mb-4 inline-flex items-center gap-2 text-sm text-text-secondary hover:text-primary hover:underline decoration-brand underline-offset-4"><ArrowLeft size={16} />Sản phẩm</Link>
     <AdminHeading title={product ? "Sửa sản phẩm" : template ? "Thêm biến thể" : "Thêm sản phẩm"} subtitle={product?.code || template?.code} />
+    {product?.variantGroupId && <ProductVariantCopy source={product} targets={siblings.filter(item => item.id !== product.id)} disabled={busy || uploading || Boolean(stale)} unsaved={dirty} onUpdated={async () => {
+      await reloadCatalog().catch(cause => notice(cause instanceof Error ? cause.message : "Không thể tải catalog."));
+      await onReload(); router.refresh();
+    }} />}
     <form ref={formRef} onSubmit={save} onInvalidCapture={event => {
       const input = event.target as HTMLInputElement;
       if (!input.closest("[hidden]")) return;

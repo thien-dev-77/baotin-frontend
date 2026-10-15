@@ -42,6 +42,20 @@ new variants start with a blank label rather than copying the root's label.
 Groups with several attributes display one selector per attribute, using its
 values (for example, `Hướng: Trái / Phải`), without a combined SKU picker.
 
+After saving a SKU, use **Áp dụng cho biến thể khác** above the edit form to
+reuse its saved content. Choose the recipient SKUs in the same group and the
+individual fields to replace: name, short/full description, guide, warranty,
+technical details, gallery, material or origin. Nonempty name/descriptions,
+guide and warranty are selected initially; technical details and images require
+an explicit selection because they may contain SKU-specific information.
+Empty source fields start unchecked and warn that selecting them clears the
+recipient's content. Technical details also copy their plain listing summary;
+gallery changes copy the cover image. Price, stock, SKU, slug, variant values,
+custom labels and publication state are preserved. Unsaved edits must be saved
+first. One request applies all chosen changes atomically; stale source/target
+revisions stop the entire request and provide a reload action. Maximum 500
+recipient SKUs. This requires the backend copy endpoint to be deployed first.
+
 Use **Thiết lập loại biến thể** in the product editor to open
 `/admin/products/:id/variants`. Add **Màu sắc**, **Hướng**, **Kích thước**, or
 a custom type (up to six), rename/remove existing types, and fill each SKU's
@@ -61,7 +75,8 @@ or define variant groups automatically. Use the admin editor/API for variants.
 API categories populate selects. New photos upload before save and remain
 unattached until the product is saved. Maximum 10 photos, 5 MB per photo;
 JPEG/PNG/WebP. First gallery photo is the cover. Thumbnails use next/image.
-Description changes appear on the storefront description tab as plain text.
+Rich descriptions render on the storefront with HTML filtering; legacy plain
+text retains line breaks.
 
 Saving refreshes admin state and storefront catalog, then returns to the list.
 The form retains its original revision; concurrent changes show a reload action
