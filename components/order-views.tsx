@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { ProductImage as Image } from "@/components/product-image";
 import { money, mockOrders, Order, OrderStatus } from "@/lib/catalog";
 import { useCommerce } from "@/components/commerce-provider";
 import { CommerceLoading, OrderTotals } from "@/components/checkout-flow";

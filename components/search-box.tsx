@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { ProductImage as Image } from "@/components/product-image";
 import { money, normalize, priceFor, slugify } from "@/lib/catalog";
 import { apiMode } from "@/lib/api-client";
 import { useApiResource } from "@/lib/use-api-resource";

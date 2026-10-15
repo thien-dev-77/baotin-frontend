@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { ProductImage as Image } from "@/components/product-image";
 import { useProductSelection } from "@/lib/use-product-selection";
 import { ResourceStatus } from "./admin/admin-resource";
 import { discountFor, money, Order, priceFor } from "@/lib/catalog";

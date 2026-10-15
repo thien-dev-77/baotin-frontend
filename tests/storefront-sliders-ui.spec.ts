@@ -8,11 +8,13 @@ import { catalog, categoryCatalog } from "../lib/catalog";
 import { heroSlides } from "../lib/home-data";
 import { storeContact } from "../lib/store-contact";
 import { previewCatalogPage } from "../lib/catalog-query";
+import { DEFAULT_PRODUCT_IMAGE } from "../lib/product-media";
 
 const frontend = "http://127.0.0.1:3053";
 const images = ["/images/catalog/led-strip.png", "/images/catalog/handle-brass-hd.jpg", "/images/catalog/hardware.png"];
 const product = { ...catalog[0], id: "qa-gallery", slug: "qa-gallery", name: "Sản phẩm kiểm tra gallery", image: images[0], gallery: images, featured: false };
 const fallbackProduct = { ...product, id: "qa-single-photo", slug: "qa-single-photo", gallery: [] };
+const emptyProduct = { ...product, id: "qa-no-photo", slug: "qa-no-photo", image: "", gallery: [] };
 const showcaseProducts = [product, fallbackProduct, ...Array.from({ length: 8 }, (_, index) => ({ ...product, id: `qa-showcase-${index}`, slug: `qa-showcase-${index}`, code: `QA-${index}` }))];
 const kitchen = categoryCatalog[0];
 const upperKitchen = { ...kitchen, slug: "qa-upper-kitchen", name: "Phụ kiện tủ bếp trên", parentSlug: kitchen.slug, subcategories: [] };
@@ -40,7 +42,7 @@ test.beforeAll(async () => {
     else if (url.pathname === "/api/catalog/bootstrap" || url.pathname === "/api/catalog/selection") body = { products: showcaseProducts, categories };
     else if (url.pathname === "/api/catalog/search") body = previewCatalogPage(showcaseProducts, categories, url.searchParams);
     else if (url.pathname.startsWith("/api/categories/")) body = categories.find(category => category.slug === decodeURIComponent(url.pathname.split("/").at(-1)!));
-    else if (url.pathname.startsWith("/api/catalog/product/")) body = url.pathname.endsWith(fallbackProduct.slug) ? fallbackProduct : product;
+    else if (url.pathname.startsWith("/api/catalog/product/")) body = url.pathname.endsWith(emptyProduct.slug) ? emptyProduct : url.pathname.endsWith(fallbackProduct.slug) ? fallbackProduct : product;
     else if (url.pathname === "/api/content") body = { items: heroSlides.map((slide, index) => ({ ...slide, id: `qa-banner-${index}`, slug: `qa-banner-${index}`, title: slide.alt, kind: "banner", position: index })) };
     else if (url.pathname.startsWith("/api/reviews/")) body = { items: [], summary: { rating: 0, count: 0 } };
     else if (url.pathname === "/api/notifications/count") body = { unreadCount: 0 };
@@ -154,6 +156,59 @@ test("A product with only a cover image has a usable gallery", async ({ page }) 
   const image = page.locator(".bt-product-gallery-main img");
   await expect(image).toBeVisible(); await expect.poll(() => image.evaluate((image: HTMLImageElement) => image.naturalWidth > 0 && image.clientWidth > 100)).toBe(true);
   await expect(page.getByRole("button", { name: "Xem ảnh 2", exact: true })).toHaveCount(0);
+});
+
+for (const width of [1440, 390]) test(`Missing and corrupt product images use the local default at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 1000 });
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.route("**/_next/image?**", async route => {
+    const source = new URL(route.request().url()).searchParams.get("url");
+    if (source === images[0]) { await route.fulfill({ status: 404, contentType: "text/plain", body: "Image missing" }); return; }
+    if (source === images[2]) { await route.fulfill({ status: 200, contentType: "image/webp", body: "Invalid image bytes" }); return; }
+    await route.continue();
+  });
+  await page.goto(`${frontend}/products/${product.slug}`);
+  const gallery = page.getByRole("region", { name: "Hình ảnh sản phẩm", exact: true });
+  const active = gallery.locator(".bt-product-gallery-main .splide__slide.is-active img");
+  const expectDefault = async (image: ReturnType<typeof page.locator>) => {
+    await expect(image).toHaveAttribute("src", DEFAULT_PRODUCT_IMAGE);
+    await expect(image).not.toHaveAttribute("srcset", /.+/);
+    await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
+  };
+  await expectDefault(active);
+  await expectDefault(gallery.getByRole("button", { name: "Xem ảnh 1", exact: true }).locator("img"));
+  await gallery.getByRole("button", { name: "Phóng to ảnh", exact: true }).click();
+  await expectDefault(page.getByRole("dialog").locator("img"));
+  await page.keyboard.press("Escape");
+  await gallery.getByRole("button", { name: "Xem ảnh 2", exact: true }).click();
+  await expect(active).toHaveAttribute("alt", `${product.name} - Ảnh 2`);
+  await expect(active).not.toHaveAttribute("src", DEFAULT_PRODUCT_IMAGE);
+  await expect.poll(() => active.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
+  await gallery.getByRole("button", { name: "Xem ảnh 3", exact: true }).click();
+  await expect(active).toHaveAttribute("alt", `${product.name} - Ảnh 3`);
+  await expectDefault(active);
+  await expectDefault(gallery.getByRole("button", { name: "Xem ảnh 3", exact: true }).locator("img"));
+  await expect.poll(() => active.evaluate(element => getComputedStyle(element.closest(".splide__slide")!).opacity)).toBe("1");
+  await mkdir("/private/tmp/baotin-product-image-fallback", { recursive: true });
+  await gallery.screenshot({ path: `/private/tmp/baotin-product-image-fallback/gallery-${width}.png`, style: "header, nextjs-portal { visibility: hidden !important; }" });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await page.goto(frontend);
+  const card = page.locator(".bt-product-card").first();
+  await card.scrollIntoViewIfNeeded(); await expectDefault(card.locator("img"));
+  expect(errors).toEqual([]);
+});
+
+test("Products without an image render the local default without JavaScript", async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
+  try {
+    const page = await context.newPage();
+    await page.goto(`${frontend}/products/${emptyProduct.slug}`);
+    const image = page.locator(".bt-product-gallery-main img");
+    await expect(image).toHaveAttribute("src", DEFAULT_PRODUCT_IMAGE);
+    await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
+    await expect(page.getByRole("button", { name: "Xem ảnh 2", exact: true })).toHaveCount(0);
+  } finally { await context.close(); }
 });
 
 for (const width of [1440, 390, 320]) test(`Phone and quote actions remain readable at ${width}px`, async ({ page }) => {

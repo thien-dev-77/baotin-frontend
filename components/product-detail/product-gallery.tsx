@@ -4,15 +4,15 @@ import { Modal } from "@/components/ui";
 import type { Product } from "@/lib/catalog";
 import { ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import Image from "next/image";
+import { ProductImage as Image } from "@/components/product-image";
+import { DEFAULT_PRODUCT_IMAGE } from "@/lib/product-media";
 import { Splide, SplideSlide, SplideTrack } from "@splidejs/react-splide";
 import type { Splide as SplideCore } from "@splidejs/splide";
 import "@splidejs/react-splide/css/core";
 
 export function ProductGallery({ product }: { product: Product }) {
   const images = Array.from(new Set((product.gallery?.length ? product.gallery : [product.image]).filter(Boolean)));
-  if (!images.length) return <section aria-label="Hình ảnh sản phẩm" className="flex aspect-square items-center justify-center rounded-xl bg-section text-sm text-text-muted">Chưa có hình ảnh sản phẩm</section>;
-  return <Gallery key={product.id} product={product} images={images} />;
+  return <Gallery key={product.id} product={product} images={images.length ? images : [DEFAULT_PRODUCT_IMAGE]} />;
 }
 
 function Gallery({ product, images }: { product: Product; images: string[] }) {

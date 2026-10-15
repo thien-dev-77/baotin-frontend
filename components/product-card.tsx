@@ -3,7 +3,7 @@
 import { Product, money, priceFor } from "@/lib/catalog";
 import { Eye, Heart, Star } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
+import { ProductImage as Image } from "@/components/product-image";
 import { useCommerce } from "@/components/commerce-provider";
 import { apiMode } from "@/lib/api-client";
 import { productPrices } from "@/lib/product-pricing";

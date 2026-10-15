@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { ProductImage as Image } from "@/components/product-image";
 
 import type { AdminApproval } from "@/lib/admin-preview";
 import { money, type Product } from "@/lib/catalog";

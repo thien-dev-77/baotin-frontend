@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { ProductImage as Image } from "@/components/product-image";
 import { ArrowLeft, ArrowRight, ImagePlus, Star, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { api, apiMode } from "@/lib/api-client";
