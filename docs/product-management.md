@@ -44,6 +44,16 @@ values (for example, `Hướng: Trái / Phải`). If several SKUs share the sele
 values, a **Mã sản phẩm** chooser preserves access to each SKU. It uses custom
 labels with the SKU code, or the SKU itself when no label is set.
 
+Use the unlink icon beside a SKU in **Các SKU trong nhóm** to **Tách khỏi nhóm**.
+The confirmation loads a fresh full-group snapshot, including private SKUs.
+The detached SKU keeps its identity, URL, attributes, custom label, content,
+prices, inventory and visibility, but becomes an isolated group and no longer
+appears among the old group's storefront options. Detaching the root selects
+a remaining SKU as the new anchor automatically. Even a two-SKU group can be
+split; both become independent products. Unsaved edits must be saved first.
+Read failures or concurrent changes block detaching and offer a group reload.
+Deploy the backend detach endpoint before enabling this frontend action.
+
 After saving a SKU, use **Áp dụng cho biến thể khác** above the edit form to
 reuse its saved content. Choose the recipient SKUs in the same group and the
 individual fields to replace: name, short/full description, guide, warranty,

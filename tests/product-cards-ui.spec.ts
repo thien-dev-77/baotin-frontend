@@ -90,7 +90,8 @@ for (const [width, columns] of [[1440, 5], [1024, 5], [768, 3], [390, 2], [320, 
       await expect(image).toHaveAttribute("loading", "lazy");
       await expect(image).toHaveCSS("object-fit", "contain");
       await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
-      await expect(card.locator(".bt-product-card-discount")).toHaveText("GIẢM-20%");
+      await expect(media.locator(".bt-product-card-discount")).toHaveCount(0);
+      await expect(card.locator(".bt-product-card-price .bt-product-card-discount")).toHaveText("-20%");
       await expect(card.locator(".bt-product-card-discount")).toHaveCSS("background-color", "rgb(255, 196, 0)");
       await expect(card.locator(".bt-product-card-discount")).toHaveCSS("color", "rgb(23, 23, 23)");
       await expect(card.locator("del")).toHaveText(money(16000000));

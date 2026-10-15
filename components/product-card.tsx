@@ -15,10 +15,12 @@ export function PriceDisplay({ product, compact = false }: { product: Product; c
   const price = priceFor(product, customer);
   const prices = productPrices(product);
   const referencePrice = prices.configured ? prices.listPrice : product.oldPrice;
+  const discount = referencePrice ? Math.max(0, Math.round((1 - price / referencePrice) * 100)) : 0;
   return <div className="min-w-0">
     <div className={`bt-product-card-price ${compact ? "bt-product-card-price--compact" : ""}`}>
       <span className="bt-price-amount">{money(price)}</span>
       {referencePrice !== undefined && referencePrice > price && <del>{money(referencePrice)}</del>}
+      {discount > 0 && <span className="bt-product-card-discount" aria-label={`Giảm ${discount}%`}>-{discount}%</span>}
     </div>
     <div className="bt-product-card-account">
       {isB2b ? <span className="font-medium text-primary">Giá B2B</span> : customer ? <span>Chờ kích hoạt B2B</span> : <Link href="/login" className="hover:underline">Đăng nhập B2B để xem giá</Link>}
@@ -44,11 +46,8 @@ function productTags(product: Product) {
 }
 
 export function ProductCard({ product, list = false, imageSizes }: { product: Product; list?: boolean; imageSizes?: string }) {
-  const { favorites, toggleFavorite, customer } = useCommerce();
+  const { favorites, toggleFavorite } = useCommerce();
   const liked = favorites.includes(product.id);
-  const prices = productPrices(product);
-  const referencePrice = prices.configured ? prices.listPrice : product.oldPrice;
-  const discount = referencePrice ? Math.max(0, Math.round((1 - priceFor(product, customer) / referencePrice) * 100)) : 0;
   const tags = productTags(product);
   const summary = product.reviewSummary;
   return <article className={`bt-product-card group ${list ? "bt-product-card--list" : ""}`}>
@@ -56,7 +55,6 @@ export function ProductCard({ product, list = false, imageSizes }: { product: Pr
       <Link href={`/products/${product.slug}`} prefetch={false} className="bt-product-card-image-link"><Image src={product.image} data-image-src={product.image} alt={product.name} fill loading="lazy" quality={85} sizes={list ? "(min-width: 640px) 180px, 112px" : imageSizes || "(min-width: 1440px) 246px, (min-width: 1280px) 238px, (min-width: 1024px) 20vw, (min-width: 640px) 33vw, 50vw"} className="object-contain transition duration-200 group-hover:scale-[1.02]" /></Link>
       <Link href={`/products/${product.slug}`} prefetch={false} aria-label={`Xem chi tiết - ${product.name}`} className="bt-product-card-details"><Eye size={16} strokeWidth={1.6} className="shrink-0" aria-hidden="true" /><span>Xem chi tiết</span></Link>
       <button type="button" aria-label={`${liked ? "Bỏ yêu thích" : "Yêu thích"} ${product.name}`} aria-pressed={liked} title={liked ? "Bỏ yêu thích" : "Yêu thích"} onClick={() => toggleFavorite(product.id)} className={`bt-product-card-favorite ${liked ? "text-brand" : "text-text-muted"}`}><Heart size={18} fill={liked ? "currentColor" : "none"} aria-hidden="true" /></button>
-      {discount > 0 && <span className="bt-product-card-discount" aria-label={`Giảm ${discount}%`}><span>GIẢM</span><strong>-{discount}%</strong></span>}
       <ProductAuthenticityLabel compact />
     </div>
     <div className="bt-product-card-content">

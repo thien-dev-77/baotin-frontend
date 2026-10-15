@@ -125,9 +125,7 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
 .bt-product-card-meta span:last-child { flex-shrink: 0; }
 .bt-product-card-favorite { position: absolute; top: 4px; left: 4px; display: flex; width: 40px; height: 40px; align-items: center; justify-content: center; border-radius: 50%; background: rgba(255, 255, 255, .94); transition: color 160ms ease; }
 .bt-product-card-favorite:hover:not([aria-pressed="true"]) { color: var(--color-primary); }
-.bt-product-card-discount { position: absolute; top: 8px; right: 8px; display: flex; min-width: 44px; flex-direction: column; align-items: center; border: 1px solid var(--color-brand); border-radius: 4px 4px 4px 0; background: var(--color-brand); padding: 4px; color: var(--color-primary); font-size: 11px; font-weight: 700; line-height: 16px; }
-.bt-product-card-discount > span { width: 100%; border-bottom: 1px dashed var(--color-border); padding-bottom: 2px; text-align: center; }
-.bt-product-card-discount strong { padding-top: 2px; font-size: 13px; }
+.bt-product-card-discount { display: inline-flex; flex-shrink: 0; align-self: center; align-items: center; border-radius: 4px; background: var(--color-brand); padding: 2px 6px; color: var(--color-primary); font-size: 11px; font-weight: 600; line-height: 16px; white-space: nowrap; }
 .bt-product-card--list { flex-direction: row; }
 .bt-product-card--list .bt-product-card-media { width: 180px; align-self: flex-start; }
 @container product-card (max-width: 210px) {
@@ -138,6 +136,7 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
 @container product-card (max-width: 160px) {
   .bt-product-card-content { padding: 8px; }
   .bt-product-card-price .bt-price-amount { font-size: 14px; }
+  .bt-product-card-price del { font-size: 11px; }
   .bt-product-card-reviews { gap: 4px; font-size: 11px; }
   .bt-product-card-star { width: 13px; height: 13px; }
   .bt-product-card-star svg { min-width: 13px; width: 13px; height: 13px; }

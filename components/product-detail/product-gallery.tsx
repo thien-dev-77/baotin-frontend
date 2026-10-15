@@ -88,12 +88,6 @@ function Gallery({ product, images }: { product: Product; images: string[] }) {
 
             <ProductAuthenticityLabel />
 
-            {product.featured && (
-              <span className="absolute left-3 top-3 z-10 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-primary shadow-sm">
-                Nổi bật
-              </span>
-            )}
-
             <button
               className="absolute bottom-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md transition-shadow hover:shadow-lg"
               aria-label="Phóng to ảnh"

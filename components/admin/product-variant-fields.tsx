@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Unlink2 } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { Button, Field } from "@/components/ui";
 import { MAX_VARIANT_LABEL_LENGTH, variantLabel } from "@/lib/product-variants";
 
 type Attribute = NonNullable<Product["variantAttributes"]>[number];
 
-export function ProductVariantFields({ attributes, onChange, label, onLabelChange, groupId, siblings, currentId, returnTo, schemaLocked }: {
+export function ProductVariantFields({ attributes, onChange, label, onLabelChange, groupId, siblings, currentId, returnTo, schemaLocked, onDetach, detachDisabled, unsaved }: {
   attributes: Attribute[];
   onChange: (attributes: Attribute[]) => void;
   label: string;
@@ -18,6 +18,9 @@ export function ProductVariantFields({ attributes, onChange, label, onLabelChang
   currentId?: string;
   returnTo: string;
   schemaLocked: boolean;
+  onDetach?: (id: string) => void;
+  detachDisabled?: boolean;
+  unsaved?: boolean;
 }) {
   const edit = (index: number, field: keyof Attribute, value: string) => onChange(attributes.map((item, position) => position === index ? { ...item, [field]: value } : item));
   return <section className="border-b border-border pb-7">
@@ -40,7 +43,11 @@ export function ProductVariantFields({ attributes, onChange, label, onLabelChang
     </div>}
     {groupId && <div className="mt-4 border-t border-border pt-4">
       <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="text-sm font-semibold text-primary">Các SKU trong nhóm</h3><Link className="bt-button-secondary" href={`/admin/products/new?variantOf=${encodeURIComponent(groupId)}&returnTo=${encodeURIComponent(returnTo)}`}><Plus size={16} />Tạo biến thể</Link></div>
-      <ul className="mt-3 flex flex-wrap gap-2">{siblings.map(item => <li key={item.id}><Link href={`/admin/products/${encodeURIComponent(item.id)}/edit?returnTo=${encodeURIComponent(returnTo)}`} title={item.code} aria-current={item.id === currentId ? "page" : undefined} className={`inline-flex min-h-9 items-center rounded border px-3 text-sm ${item.id === currentId ? "border-brand bg-section font-semibold text-primary" : "border-border text-text-secondary hover:border-brand"}`}>{variantLabel(item)}</Link></li>)}</ul>
+      <ul aria-label="Các SKU trong nhóm" className="mt-3 flex flex-wrap gap-2">{siblings.map(item => <li key={item.id} className={`inline-flex max-w-full items-center rounded border ${item.id === currentId ? "border-brand bg-section font-semibold text-primary" : "border-border text-text-secondary"}`}>
+        <Link href={`/admin/products/${encodeURIComponent(item.id)}/edit?returnTo=${encodeURIComponent(returnTo)}`} title={item.code} aria-current={item.id === currentId ? "page" : undefined} className="inline-flex min-h-10 min-w-0 items-center break-all px-3 text-sm hover:text-primary">{variantLabel(item)}</Link>
+        {onDetach && siblings.length > 1 && <button type="button" aria-label={`Tách ${item.code} khỏi nhóm`} title={`Tách ${item.code} khỏi nhóm`} disabled={detachDisabled || unsaved} onClick={() => onDetach(item.id)} className="inline-flex h-10 w-10 shrink-0 items-center justify-center border-l border-border text-text-muted transition-colors hover:bg-section hover:text-danger disabled:cursor-not-allowed disabled:opacity-40"><Unlink2 size={15} aria-hidden="true" /></button>}
+      </li>)}</ul>
+      {onDetach && siblings.length > 1 && <p className="mt-2 text-xs leading-5 text-text-secondary">{unsaved ? "Lưu các thay đổi trước khi tách SKU khỏi nhóm." : "Chọn biểu tượng ngắt liên kết cạnh mã SKU để tách sản phẩm đó khỏi nhóm."}</p>}
     </div>}
   </section>;
 }
