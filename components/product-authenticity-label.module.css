@@ -44,18 +44,21 @@
 }
 
 .compact {
-  width: 100%;
-  max-width: none;
-  border-top-right-radius: 8px;
+  bottom: 8px;
+  left: 8px;
+  width: min(84%, 240px);
+  max-width: calc(100% - 16px);
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 16%);
 }
 
 .compact .content {
   gap: 4px;
-  padding: 4px 5px;
-  font-size: clamp(7px, 4cqi, 10px);
+  padding: 4px 6px;
+  font-size: clamp(6px, 3.8cqi, 8px);
 }
 
 .compact .icon {
-  width: clamp(16px, 9cqi, 22px);
+  width: clamp(14px, 8cqi, 18px);
   border-width: 1.5px;
 }
