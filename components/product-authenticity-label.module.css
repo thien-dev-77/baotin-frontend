@@ -1,10 +1,16 @@
 .label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
   container-type: inline-size;
-  width: 100%;
+  width: min(76%, 440px);
+  max-width: calc(100% - 64px);
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: 0 12px 0 0;
   background: linear-gradient(105deg, #fff8df 0%, #ffdc4d 40%, #ffe263 70%, #fff5d1 100%);
   color: var(--color-primary);
+  pointer-events: none;
 }
 
 .content {
@@ -37,13 +43,19 @@
   height: 74%;
 }
 
+.compact {
+  width: 100%;
+  max-width: none;
+  border-top-right-radius: 8px;
+}
+
 .compact .content {
-  gap: 5px;
-  padding: 5px 6px;
-  font-size: clamp(8px, 4cqi, 10px);
+  gap: 4px;
+  padding: 4px 5px;
+  font-size: clamp(7px, 4cqi, 10px);
 }
 
 .compact .icon {
-  width: 22px;
+  width: clamp(16px, 9cqi, 22px);
   border-width: 1.5px;
 }

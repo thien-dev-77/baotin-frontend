@@ -117,7 +117,7 @@ for (const [width, columns] of [[1440, 5], [1024, 5], [768, 3], [390, 2], [320, 
         const button = (await details.boundingBox())!;
         expect(Math.abs(button.x + button.width / 2 - area.x - area.width / 2)).toBeLessThan(1);
         expect(button.width).toBeLessThan(area.width - 16);
-        expect(Math.abs(area.y + area.height - button.y - button.height - 10)).toBeLessThan(1);
+        expect(Math.abs(button.y + button.height / 2 - area.y - area.height / 2)).toBeLessThan(1);
         expect(button.height).toBe(36);
         expect(await details.locator("span").evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
         const favorite = (await card.locator(".bt-product-card-favorite").boundingBox())!;
@@ -230,7 +230,7 @@ test("The same product card layout is used in catalog grid and list views", asyn
   const button = (await details.boundingBox())!;
   expect(Math.abs(button.x + button.width / 2 - area.x - area.width / 2)).toBeLessThan(1);
   expect(button.width).toBeLessThan(area.width - 16);
-  expect(Math.abs(area.y + area.height - button.y - button.height - 10)).toBeLessThan(1);
+  expect(Math.abs(button.y + button.height / 2 - area.y - area.height / 2)).toBeLessThan(1);
   expect(await details.locator("span").evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   expect(await card.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   api.check();
@@ -249,7 +249,7 @@ test("Product card hover respects reduced motion", async ({ page }) => {
   api.check();
 });
 
-test("Bottom hover link opens real API product details without adding a cart line", async ({ page, request }) => {
+test("Hover link opens real API product details without adding a cart line", async ({ page, request }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   const response = await request.get(`${base}/api/backend/catalog/bootstrap`);
   expect(response.ok()).toBe(true);

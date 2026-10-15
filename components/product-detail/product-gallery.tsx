@@ -59,61 +59,60 @@ function Gallery({ product, images }: { product: Product; images: string[] }) {
           onMoved={handleSlideChange}
           aria-label="Ảnh sản phẩm"
         >
-          <div className="overflow-hidden rounded-xl bg-section shadow-sm">
-            <div className="relative">
-              <SplideTrack>
-                {images.map((image, index) => (
-                  <SplideSlide key={image}>
-                    <div
-                      className="bt-product-gallery-frame relative w-full overflow-hidden bg-section"
-                      style={{ aspectRatio: activeRatio }}
-                    >
-                      <Image
-                        src={image}
-                        alt={`${product.name} - Ảnh ${index + 1}`}
-                        fill
-                        sizes="(min-width: 1280px) 500px, (min-width: 1024px) 40vw, (min-width: 640px) 60vw, 100vw"
-                        quality={90}
-                        priority={index === 0}
-                        className="h-full w-full object-contain"
-                        onLoad={({ currentTarget }) => {
-                          if (!currentTarget.naturalWidth || !currentTarget.naturalHeight) return;
-                          const ratio = currentTarget.naturalWidth / currentTarget.naturalHeight;
-                          setImageRatios(current => current[image] === ratio ? current : { ...current, [image]: ratio });
-                        }}
-                      />
-                    </div>
-                  </SplideSlide>
-                ))}
-              </SplideTrack>
+          <div className="relative overflow-hidden rounded-xl bg-section shadow-sm">
+            <SplideTrack>
+              {images.map((image, index) => (
+                <SplideSlide key={image}>
+                  <div
+                    className="bt-product-gallery-frame relative w-full overflow-hidden bg-section"
+                    style={{ aspectRatio: activeRatio }}
+                  >
+                    <Image
+                      src={image}
+                      alt={`${product.name} - Ảnh ${index + 1}`}
+                      fill
+                      sizes="(min-width: 1280px) 500px, (min-width: 1024px) 40vw, (min-width: 640px) 60vw, 100vw"
+                      quality={90}
+                      priority={index === 0}
+                      className="h-full w-full object-contain"
+                      onLoad={({ currentTarget }) => {
+                        if (!currentTarget.naturalWidth || !currentTarget.naturalHeight) return;
+                        const ratio = currentTarget.naturalWidth / currentTarget.naturalHeight;
+                        setImageRatios(current => current[image] === ratio ? current : { ...current, [image]: ratio });
+                      }}
+                    />
+                  </div>
+                </SplideSlide>
+              ))}
+            </SplideTrack>
 
-              {product.featured && (
-                <span className="absolute left-3 top-3 z-10 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-primary shadow-sm">
-                  Nổi bật
-                </span>
-              )}
+            <ProductAuthenticityLabel />
 
-              <button
-                className="absolute bottom-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md transition-shadow hover:shadow-lg"
-                aria-label="Phóng to ảnh"
-                title="Phóng to ảnh"
-                onClick={() => setZoom(true)}
-              >
-                <ZoomIn size={20} />
-              </button>
+            {product.featured && (
+              <span className="absolute left-3 top-3 z-10 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-primary shadow-sm">
+                Nổi bật
+              </span>
+            )}
 
-              {images.length > 1 && (
-                <div className="splide__arrows">
-                  <button type="button" className="splide__arrow splide__arrow--prev">
-                    <ChevronLeft size={20} className="text-primary" />
-                  </button>
-                  <button type="button" className="splide__arrow splide__arrow--next">
-                    <ChevronRight size={20} className="text-primary" />
-                  </button>
-                </div>
-              )}
-            </div>
-            <div className="px-1.5 pb-1.5"><ProductAuthenticityLabel /></div>
+            <button
+              className="absolute bottom-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md transition-shadow hover:shadow-lg"
+              aria-label="Phóng to ảnh"
+              title="Phóng to ảnh"
+              onClick={() => setZoom(true)}
+            >
+              <ZoomIn size={20} />
+            </button>
+
+            {images.length > 1 && (
+              <div className="splide__arrows">
+                <button type="button" className="splide__arrow splide__arrow--prev">
+                  <ChevronLeft size={20} className="text-primary" />
+                </button>
+                <button type="button" className="splide__arrow splide__arrow--next">
+                  <ChevronRight size={20} className="text-primary" />
+                </button>
+              </div>
+            )}
           </div>
         </Splide>
 
@@ -186,17 +185,19 @@ function Gallery({ product, images }: { product: Product; images: string[] }) {
       </section>
 
       <Modal open={zoom} onClose={() => setZoom(false)} title={product.name}>
-        <Image
-          src={images[photo] || images[0]}
-          alt={product.name}
-          width={1000}
-          height={1000}
-          sizes="(min-width: 640px) 640px, 100vw"
-          quality={90}
-          loading="eager"
-          className="max-h-[65vh] w-full object-contain"
-        />
-        <div className="mt-2"><ProductAuthenticityLabel /></div>
+        <div className="relative mx-auto w-fit max-w-full overflow-hidden rounded-lg">
+          <Image
+            src={images[photo] || images[0]}
+            alt={product.name}
+            width={1000}
+            height={1000}
+            sizes="(min-width: 640px) 640px, 100vw"
+            quality={90}
+            loading="eager"
+            className="block max-h-[65vh] w-auto max-w-full object-contain"
+          />
+          <ProductAuthenticityLabel />
+        </div>
       </Modal>
     </>
   );
