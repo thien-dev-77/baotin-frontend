@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { createServer, type Server } from "node:http";
 import { spawn, type ChildProcess } from "node:child_process";
 import { once } from "node:events";
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { catalog, categoryCatalog } from "../lib/catalog";
 import type { ApiAdminState } from "../lib/api-types";
 import { previewCatalogPage } from "../lib/catalog-query";
@@ -107,8 +107,8 @@ for (const width of [1440, 390]) test(`Editor tabs retain content and save forma
   await mkdir("/private/tmp/baotin-product-editor-content", { recursive: true });
   await page.screenshot({ path: `/private/tmp/baotin-product-editor-content/editor-${width}.png`, fullPage: true });
   await page.goto(`${base}/products/${product.slug}`);
-  const technicalDetails = page.getByRole("table", { name: "Thông số kỹ thuật", exact: true }).locator(".bt-product-rich-text");
-  await expect(technicalDetails.locator("strong")).toHaveText("Công suất 2800W");
+  const technicalDetails = page.getByRole("table", { name: "Thông số kỹ thuật", exact: true });
+  await expect(technicalDetails).toContainText("Công suất 2800W");
   await expect(technicalDetails).toContainText("Kích thước 730 × 430mm");
   expect(api.errors).toEqual([]);
 });
@@ -145,13 +145,63 @@ test("Invalid basic fields reveal their tab when saving from the content tab", a
   await expect(page.getByLabel("Tên sản phẩm", { exact: false })).toBeFocused(); expect(api.writes).toEqual([]);
 });
 
-test("Storefront technical HTML preserves tables and strips executable markup", async ({ page }) => {
+test("Storefront technical content becomes rows without executable markup", async ({ page }) => {
   await mockEditor(page, { slug: "qa-safe-rich-specification", technicalDetails: '<p><strong>Thông số chuẩn</strong></p><ul><li>Inox 304</li></ul><table><tbody><tr><td colspan="2">600mm</td></tr></tbody></table><img src="x" onerror="window.qaInjected=true"><script>window.qaInjected=true</script><a href="javascript:alert(1)">Không thực thi</a>' });
   await page.goto(`${base}/products/${product.slug}`);
-  const details = page.getByRole("table", { name: "Thông số kỹ thuật", exact: true }).locator(".bt-product-rich-text");
-  await expect(details.locator("strong")).toHaveText("Thông số chuẩn"); await expect(details.locator("li")).toHaveCSS("list-style-type", "disc");
-  await expect(details.locator("td")).toHaveAttribute("colspan", "2");
+  const details = page.getByRole("table", { name: "Thông số kỹ thuật", exact: true });
+  await expect(details).toContainText("Thông số chuẩn"); await expect(details).toContainText("Inox 304");
+  await expect(details).toContainText("600mm");
   await expect(details.locator("script, img, [onerror], [href^='javascript:']")).toHaveCount(0);
+});
+
+const technicalRows = [
+  ["Model", "FULCO FC-ML338i"], ["Loại sản phẩm", "Bếp từ đôi âm"], ["Xuất xứ", "Made in Malaysia"],
+  ["Số vùng nấu", "2 vùng nấu từ"], ["Mặt kính", "KANGER cao cấp vát 4 cạnh"],
+  ["Điều khiển", "Cảm ứng trượt độc lập 12 mức công suất"], ["Công nghệ", "Smart Inverter"],
+  ["Chức năng Booster", "2400W mỗi vùng nấu"], ["Chức năng nấu", "Giữ ấm, Giã đông, Chiên rán"],
+  ["Điện áp", "220–240V ~ 50–60Hz"], ["Công suất lò trái", "2200W (Booster 2400W)"],
+  ["Công suất lò phải", "2200W (Booster 2400W)"], ["Kích thước sản phẩm", "730 × 430 mm"],
+  ["Kích thước khoét đá", "680 × 395 mm"], ["Bảo hành", "5 năm"],
+];
+
+for (const width of [1440, 390]) test(`Storefront replaces legacy specifications with CKEditor label/value rows at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 1000 });
+  const api = await mockEditor(page, {
+    slug: `qa-technical-table-${width}`, specification: "Thông số cũ không hiển thị",
+    technicalDetails: `<p>${technicalRows.map(([label, value]) => `${label}: ${value}`).join("<br>")}</p>`,
+  });
+  await page.goto(`${base}/products/${product.slug}`);
+  const table = page.getByRole("table", { name: "Thông số kỹ thuật", exact: true });
+  await expect(table.getByRole("row")).toHaveCount(technicalRows.length);
+  await expect(table.getByRole("rowheader")).toHaveText(technicalRows.map(([label]) => label));
+  await expect(table.getByRole("cell")).toHaveText(technicalRows.map(([, value]) => value));
+  await expect(table.getByRole("rowheader", { name: "Mã hàng", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("tabpanel")).not.toContainText("Thông số cũ không hiển thị");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await mkdir("/private/tmp/baotin-technical-table", { recursive: true });
+  await table.screenshot({ path: `/private/tmp/baotin-technical-table/table-${width}.png` });
+  await page.getByRole("tab", { name: "Tài liệu / Hướng dẫn", exact: true }).click();
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Tải bảng thông số", exact: true }).click();
+  const download = await downloadPromise;
+  const path = await download.path();
+  expect(path).not.toBeNull();
+  const csv = await readFile(path!, "utf8");
+  expect(csv).toContain('"Model","FULCO FC-ML338i"');
+  expect(csv).toContain('"Kích thước khoét đá","680 × 395 mm"');
+  expect(csv).not.toContain("Thông số cũ không hiển thị");
+  expect(csv).not.toContain('"Mã hàng"');
+  expect(api.writes).toEqual([]); expect(api.errors).toEqual([]);
+});
+
+test("Empty technical details hide the legacy table and its download", async ({ page }) => {
+  await mockEditor(page, { slug: "qa-empty-technical-table", technicalDetails: "<p>&nbsp;</p>", specification: "Thông số cũ không hiển thị" });
+  await page.goto(`${base}/products/${product.slug}`);
+  await expect(page.getByRole("table", { name: "Thông số kỹ thuật", exact: true })).toHaveCount(0);
+  await expect(page.getByText("Thông số kỹ thuật đang được cập nhật.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("tabpanel")).not.toContainText("Thông số cũ không hiển thị");
+  await page.getByRole("tab", { name: "Tài liệu / Hướng dẫn", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Tải bảng thông số", exact: true })).toHaveCount(0);
 });
 
 test("Long technical content saves in full with a bounded plain-text listing summary", async ({ page }) => {

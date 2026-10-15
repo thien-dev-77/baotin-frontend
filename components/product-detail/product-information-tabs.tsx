@@ -53,7 +53,6 @@ function ProductDescription({ product }: { product: Product }) {
         className="bt-product-rich-text mt-3 break-words text-sm leading-7 text-text-secondary"
       />
       <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-text-secondary">
-        <li>Thông số: {product.specification}.</li>
         <li>Chất liệu bền bỉ, dễ vệ sinh và bảo dưỡng.</li>
         <li>Kiểm tra kích thước lắp đặt trước khi đặt hàng.</li>
         <li>Inside Sales hỗ trợ đối chiếu mã hàng và tư vấn phụ kiện phù hợp.</li>
@@ -77,7 +76,7 @@ function ProductDocuments({ code, usageGuide, specifications }: { code: string; 
   return (
     <div className="space-y-4">
       {usageGuide && <SafeHtml html={productContentHtml(usageGuide)} className="bt-product-rich-text break-words text-sm leading-7 text-text-secondary" />}
-      <Button variant="secondary" onClick={downloadSpecifications}><Download size={17} />Tải bảng thông số</Button>
+      {specifications.length > 0 && <Button variant="secondary" onClick={downloadSpecifications}><Download size={17} />Tải bảng thông số</Button>}
       <Link href="/guides" className="block text-sm text-primary">Xem hướng dẫn chọn và lắp phụ kiện →</Link>
       <p className="text-sm text-text-secondary">Liên hệ Bảo Tín để nhận tài liệu lắp đặt của nhà sản xuất theo đúng mã hàng.</p>
     </div>
