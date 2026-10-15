@@ -5,6 +5,7 @@ import type { Product } from "@/lib/catalog";
 import { ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { ProductImage as Image } from "@/components/product-image";
+import { ProductAuthenticityLabel } from "@/components/product-authenticity-label";
 import { DEFAULT_PRODUCT_IMAGE } from "@/lib/product-media";
 import { Splide, SplideSlide, SplideTrack } from "@splidejs/react-splide";
 import type { Splide as SplideCore } from "@splidejs/splide";
@@ -58,58 +59,61 @@ function Gallery({ product, images }: { product: Product; images: string[] }) {
           onMoved={handleSlideChange}
           aria-label="Ảnh sản phẩm"
         >
-          <div className="relative">
-            <SplideTrack>
-              {images.map((image, index) => (
-                <SplideSlide key={image}>
-                  <div
-                    className="bt-product-gallery-frame relative w-full overflow-hidden rounded-xl bg-section shadow-sm"
-                    style={{ aspectRatio: activeRatio }}
-                  >
-                    <Image
-                      src={image}
-                      alt={`${product.name} - Ảnh ${index + 1}`}
-                      fill
-                      sizes="(min-width: 1280px) 500px, (min-width: 1024px) 40vw, (min-width: 640px) 60vw, 100vw"
-                      quality={90}
-                      priority={index === 0}
-                      className="h-full w-full object-contain"
-                      onLoad={({ currentTarget }) => {
-                        if (!currentTarget.naturalWidth || !currentTarget.naturalHeight) return;
-                        const ratio = currentTarget.naturalWidth / currentTarget.naturalHeight;
-                        setImageRatios(current => current[image] === ratio ? current : { ...current, [image]: ratio });
-                      }}
-                    />
-                  </div>
-                </SplideSlide>
-              ))}
-            </SplideTrack>
+          <div className="overflow-hidden rounded-xl bg-section shadow-sm">
+            <div className="relative">
+              <SplideTrack>
+                {images.map((image, index) => (
+                  <SplideSlide key={image}>
+                    <div
+                      className="bt-product-gallery-frame relative w-full overflow-hidden bg-section"
+                      style={{ aspectRatio: activeRatio }}
+                    >
+                      <Image
+                        src={image}
+                        alt={`${product.name} - Ảnh ${index + 1}`}
+                        fill
+                        sizes="(min-width: 1280px) 500px, (min-width: 1024px) 40vw, (min-width: 640px) 60vw, 100vw"
+                        quality={90}
+                        priority={index === 0}
+                        className="h-full w-full object-contain"
+                        onLoad={({ currentTarget }) => {
+                          if (!currentTarget.naturalWidth || !currentTarget.naturalHeight) return;
+                          const ratio = currentTarget.naturalWidth / currentTarget.naturalHeight;
+                          setImageRatios(current => current[image] === ratio ? current : { ...current, [image]: ratio });
+                        }}
+                      />
+                    </div>
+                  </SplideSlide>
+                ))}
+              </SplideTrack>
 
-            {product.featured && (
-              <span className="absolute left-3 top-3 z-10 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-primary shadow-sm">
-                Nổi bật
-              </span>
-            )}
+              {product.featured && (
+                <span className="absolute left-3 top-3 z-10 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-primary shadow-sm">
+                  Nổi bật
+                </span>
+              )}
 
-            <button
-              className="absolute bottom-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md transition-shadow hover:shadow-lg"
-              aria-label="Phóng to ảnh"
-              title="Phóng to ảnh"
-              onClick={() => setZoom(true)}
-            >
-              <ZoomIn size={20} />
-            </button>
+              <button
+                className="absolute bottom-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md transition-shadow hover:shadow-lg"
+                aria-label="Phóng to ảnh"
+                title="Phóng to ảnh"
+                onClick={() => setZoom(true)}
+              >
+                <ZoomIn size={20} />
+              </button>
 
-            {images.length > 1 && (
-              <div className="splide__arrows">
-                <button type="button" className="splide__arrow splide__arrow--prev">
-                  <ChevronLeft size={20} className="text-primary" />
-                </button>
-                <button type="button" className="splide__arrow splide__arrow--next">
-                  <ChevronRight size={20} className="text-primary" />
-                </button>
-              </div>
-            )}
+              {images.length > 1 && (
+                <div className="splide__arrows">
+                  <button type="button" className="splide__arrow splide__arrow--prev">
+                    <ChevronLeft size={20} className="text-primary" />
+                  </button>
+                  <button type="button" className="splide__arrow splide__arrow--next">
+                    <ChevronRight size={20} className="text-primary" />
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="px-1.5 pb-1.5"><ProductAuthenticityLabel /></div>
           </div>
         </Splide>
 
@@ -192,6 +196,7 @@ function Gallery({ product, images }: { product: Product; images: string[] }) {
           loading="eager"
           className="max-h-[65vh] w-full object-contain"
         />
+        <div className="mt-2"><ProductAuthenticityLabel /></div>
       </Modal>
     </>
   );
