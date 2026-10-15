@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 import { catalog, categoryCatalog } from "../lib/catalog";
 import type { ApiAdminState } from "../lib/api-types";
@@ -29,6 +29,8 @@ for (const width of [1440, 390]) test(`Configure independent color, direction an
       "/admin/resources": state, "/catalog/bootstrap": { products: state.products, categories: categoryCatalog },
       "/catalog/selection": { products: state.products }, "/notifications/count": { unreadCount: 0 },
       "/orders": [], "/account": { favorites: [] },
+      "/admin/products/group-root/variants": { products: state.products },
+      "/admin/products/group-child/variants": { products: state.products },
     };
     if (!(path in responses)) errors.push(`Unexpected read: ${path}`);
     await route.fulfill({ json: responses[path] || {} });
@@ -56,4 +58,122 @@ for (const width of [1440, 390]) test(`Configure independent color, direction an
   await mkdir("/private/tmp/baotin-variant-types-ui", { recursive: true });
   await page.screenshot({ path: `/private/tmp/baotin-variant-types-ui/types-${width}.png`, fullPage: true });
   expect(errors).toEqual([]);
+});
+
+type GroupProduct = ApiAdminState["products"][number];
+type GroupWrite = { products: { id: string; revision: number; attributes: NonNullable<GroupProduct["variantAttributes"]> }[] };
+
+async function mockFreshGroup(page: Page) {
+  let current: GroupProduct[] = [600, 700, 800].map((size, index) => ({
+    ...catalog[0], id: index === 0 ? "group-root" : `group-child-${size}`, slug: `group-${size}`, code: `QA-${size}`,
+    variantGroupId: "group-root", published: index !== 2, revision: 7 + index,
+    variantAttributes: [{ name: "Phiên bản", value: `QA-${size}` }, { name: "Kích thước", value: `${size}mm` }],
+  }));
+  const state: ApiAdminState = { products: structuredClone(current).map(product => ({ ...product, revision: 1 })), categories: categoryCatalog, orders: [], customers: [], approvals: [], receipts: [], warehouse: {}, paymentDueDates: {}, today: "2026-10-15" };
+  const writes: GroupWrite[] = [], errors: string[] = [];
+  let readError = "", writeError = "";
+  page.on("pageerror", error => errors.push(error.message));
+  await page.route("**/api/backend/**", async route => {
+    const request = route.request(), path = new URL(request.url()).pathname.slice("/api/backend".length);
+    if (request.method() === "GET" && /^\/admin\/products\/[^/]+\/variants$/.test(path)) {
+      await route.fulfill({ status: readError ? 503 : 200, json: readError ? { message: readError } : { products: current } }); return;
+    }
+    if (request.method() === "PATCH" && path === "/admin/products/group-root/variants") {
+      const body = request.postDataJSON() as GroupWrite; writes.push(body);
+      const stale = body.products.length !== current.length || body.products.some(product => current.find(row => row.id === product.id)?.revision !== product.revision);
+      if (writeError || stale) { await route.fulfill({ status: 409, json: { message: writeError || "Một SKU đã được cập nhật ở phiên khác. Tải lại trước khi lưu." } }); return; }
+      current = current.map(product => ({ ...product, revision: (product.revision || 0) + 1, variantAttributes: body.products.find(row => row.id === product.id)!.attributes }));
+      await route.fulfill({ json: { products: current } }); return;
+    }
+    if (request.method() !== "GET") { errors.push(`Unexpected write: ${path}`); await route.fulfill({ status: 405, json: {} }); return; }
+    const responses: Record<string, unknown> = {
+      "/auth/session": { user: { id: "qa-admin", name: "QA Admin", email: "qa@example.test", role: "admin", branches: ["Quy Nhơn"], customer: null } },
+      "/admin/resources": state, "/catalog/bootstrap": { products: current, categories: categoryCatalog },
+      "/catalog/selection": { products: current }, "/notifications/count": { unreadCount: 0 }, "/orders": [], "/account": { favorites: [] },
+    };
+    if (!(path in responses)) errors.push(`Unexpected read: ${path}`);
+    await route.fulfill({ json: responses[path] || {} });
+  });
+  return {
+    writes, errors,
+    rows: () => structuredClone(current),
+    update: (id: string, changes: Partial<GroupProduct>) => { current = current.map(product => product.id === id ? { ...product, ...changes } : product); },
+    readError: (message: string) => { readError = message; },
+    writeError: (message: string) => { writeError = message; },
+  };
+}
+
+for (const width of [1440, 390]) test(`Remove version while keeping sizes with fresh SKU revisions at ${width}px`, async ({ page }) => {
+  const fixture = await mockFreshGroup(page);
+  await page.setViewportSize({ width, height: 1000 });
+  await page.goto(`${base}/admin/products/group-child-700/variants`);
+  await expect(page.getByLabel("Tên loại biến thể 1", { exact: true })).toHaveValue("Phiên bản");
+  // A concurrent price/content update must not prevent removing a dimension.
+  fixture.update("group-child-700", { revision: 15, price: 123456, name: "Tên mới ở phiên khác" });
+  await page.getByRole("button", { name: "Xóa loại biến thể 1", exact: true }).click();
+  await page.getByRole("button", { name: "Lưu thiết lập biến thể", exact: true }).click();
+  await expect.poll(() => fixture.writes.length).toBe(1);
+  await expect(page.getByLabel("Tên loại biến thể 1", { exact: true })).toHaveValue("Kích thước");
+  await expect(page.getByLabel("Tên loại biến thể 2", { exact: true })).toHaveCount(0);
+  expect(fixture.writes[0].products).toEqual([
+    { id: "group-root", revision: 7, attributes: [{ name: "Kích thước", value: "600mm" }] },
+    { id: "group-child-700", revision: 15, attributes: [{ name: "Kích thước", value: "700mm" }] },
+    { id: "group-child-800", revision: 9, attributes: [{ name: "Kích thước", value: "800mm" }] },
+  ]);
+  const row = fixture.rows().find(product => product.id === "group-child-700")!;
+  expect(row.name).toBe("Tên mới ở phiên khác"); expect(row.price).toBe(123456);
+  await page.getByLabel("Kích thước của QA-600", { exact: true }).fill("650mm");
+  await page.getByRole("button", { name: "Lưu thiết lập biến thể", exact: true }).click();
+  await expect.poll(() => fixture.writes.length).toBe(2);
+  await expect(page.getByLabel("Kích thước của QA-600", { exact: true })).toHaveValue("650mm");
+  expect(fixture.writes[1].products.map(product => product.revision)).toEqual([8, 16, 10]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await mkdir("/private/tmp/baotin-variant-removal", { recursive: true });
+  await page.screenshot({ path: `/private/tmp/baotin-variant-removal/sizes-${width}.png`, fullPage: true });
+  expect(fixture.errors).toEqual([]);
+});
+
+test("A concurrent schema change keeps edits and requires a fresh group before retrying", async ({ page }) => {
+  const fixture = await mockFreshGroup(page);
+  await page.goto(`${base}/admin/products/group-root/variants`);
+  await expect(page.getByLabel("Tên loại biến thể 1", { exact: true })).toHaveValue("Phiên bản");
+  fixture.update("group-child-700", { revision: 15, variantAttributes: [{ name: "Phiên bản", value: "QA-700" }, { name: "Kích thước", value: "750mm" }] });
+  await page.getByRole("button", { name: "Xóa loại biến thể 1", exact: true }).click();
+  await page.getByRole("button", { name: "Lưu thiết lập biến thể", exact: true }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "Các thuộc tính hoặc danh sách SKU trong nhóm đã thay đổi" })).toBeVisible();
+  expect(fixture.writes).toHaveLength(0);
+  await expect(page.getByLabel("Tên loại biến thể 1", { exact: true })).toHaveValue("Kích thước");
+  await page.getByRole("button", { name: "Tải lại nhóm biến thể", exact: true }).click();
+  await page.getByRole("dialog", { name: "Bỏ thay đổi chưa lưu?", exact: true }).getByRole("button", { name: "Bỏ thay đổi", exact: true }).click();
+  await expect(page.getByLabel("Tên loại biến thể 1", { exact: true })).toHaveValue("Phiên bản");
+  await expect(page.getByLabel("Kích thước của QA-700", { exact: true })).toHaveValue("750mm");
+  await page.getByRole("button", { name: "Xóa loại biến thể 1", exact: true }).click();
+  await page.getByRole("button", { name: "Lưu thiết lập biến thể", exact: true }).click();
+  await expect.poll(() => fixture.writes.length).toBe(1);
+  expect(fixture.writes[0].products[1]).toEqual({ id: "group-child-700", revision: 15, attributes: [{ name: "Kích thước", value: "750mm" }] });
+  expect(fixture.errors).toEqual([]);
+});
+
+test("Group read failures never expose the cached form and can be retried", async ({ page }) => {
+  const fixture = await mockFreshGroup(page);
+  fixture.readError("Không thể tải nhóm mới nhất");
+  await page.goto(`${base}/admin/products/group-root/variants`);
+  await expect(page.getByRole("alert").filter({ hasText: "Không thể tải nhóm mới nhất" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Lưu thiết lập biến thể", exact: true })).toHaveCount(0);
+  fixture.readError("");
+  await page.getByRole("button", { name: "Thử lại", exact: true }).click();
+  await expect(page.getByLabel("Tên loại biến thể 1", { exact: true })).toHaveValue("Phiên bản");
+  expect(fixture.writes).toHaveLength(0); expect(fixture.errors).toEqual([]);
+});
+
+test("A revision race at save time preserves the unsaved removal", async ({ page }) => {
+  const fixture = await mockFreshGroup(page);
+  fixture.writeError("Một SKU đã được cập nhật ở phiên khác. Tải lại trước khi lưu.");
+  await page.goto(`${base}/admin/products/group-root/variants`);
+  await page.getByRole("button", { name: "Xóa loại biến thể 1", exact: true }).click();
+  await page.getByRole("button", { name: "Lưu thiết lập biến thể", exact: true }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "Một SKU đã được cập nhật ở phiên khác" })).toBeVisible();
+  await expect(page.getByLabel("Tên loại biến thể 1", { exact: true })).toHaveValue("Kích thước");
+  await expect(page.getByLabel("Kích thước của QA-700", { exact: true })).toHaveValue("700mm");
+  expect(fixture.writes).toHaveLength(1); expect(fixture.errors).toEqual([]);
 });
