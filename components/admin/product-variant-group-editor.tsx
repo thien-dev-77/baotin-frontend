@@ -63,7 +63,7 @@ function VariantGroupEditor({ root, siblings: currentSiblings, editId, onReload,
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (saving.current || !apiMode) return;
-    if (!names.length || names.some(name => !name.trim()) || new Set(names.map(variantKey)).size !== names.length) { setError("Nhập từ 1 đến 6 loại biến thể với tên khác nhau."); return; }
+    if (names.some(name => !name.trim()) || new Set(names.map(variantKey)).size !== names.length) { setError("Tên các loại biến thể phải được nhập đầy đủ và khác nhau."); return; }
     if (values.some(row => row.some(value => !value.trim()))) { setError("Nhập giá trị cho từng loại biến thể của tất cả SKU."); return; }
     saving.current = true; setBusy(true); setError("");
     try {
@@ -78,7 +78,7 @@ function VariantGroupEditor({ root, siblings: currentSiblings, editId, onReload,
       // Rebase unrelated price/content changes; the backend still checks these
       // fresh revisions atomically in case another write races with this save.
       await api(path, { method: "PATCH", body: JSON.stringify({ products: siblings.map((product, row) => ({ id: product.id, revision: byId.get(product.id)!.revision, attributes: names.map((name, column) => ({ name: name.trim(), value: values[row][column].trim() })) })) }) });
-      markSaved(); notice("Đã lưu các loại biến thể và giá trị của từng SKU.");
+      markSaved(); notice("Đã cập nhật loại biến thể cho toàn bộ SKU trong nhóm.");
       await reloadCatalog().catch(cause => notice(cause instanceof Error ? cause.message : "Không thể tải catalog."));
       await onSaved().catch(cause => notice(cause instanceof Error ? cause.message : "Không thể tải danh sách sản phẩm."));
       await onReload();
@@ -90,7 +90,7 @@ function VariantGroupEditor({ root, siblings: currentSiblings, editId, onReload,
     <Link href={editUrl} className="mb-4 inline-flex items-center gap-2 text-sm text-text-secondary"><ArrowLeft size={16} />Về sửa sản phẩm</Link>
     <AdminHeading title="Thiết lập loại biến thể" subtitle={root.name} />
     <form ref={formRef} onSubmit={save} className="min-w-0 space-y-6">
-      <p className="text-sm text-text-secondary">Tạo riêng từng loại như Màu sắc, Hướng, Kích thước. Mỗi SKU có một giá trị cho mỗi loại. Các thiết lập này áp dụng cho toàn bộ nhóm.</p>
+      <p className="text-sm text-text-secondary">Thêm, đổi tên hoặc xóa loại biến thể tại đây sẽ áp dụng cho toàn bộ {siblings.length} SKU trong nhóm. Mã hàng, giá, hình ảnh và tồn kho riêng của từng SKU được giữ nguyên.</p>
       {error && <p role="alert" className="rounded border border-red-200 bg-red-50 p-3 text-sm text-danger">{error}</p>}
       {error && <Button type="button" variant="secondary" disabled={busy} onClick={() => close(() => void onReload())}><RefreshCw size={16} />Tải lại nhóm biến thể</Button>}
       <fieldset disabled={busy} className="min-w-0 space-y-6">
@@ -100,25 +100,25 @@ function VariantGroupEditor({ root, siblings: currentSiblings, editId, onReload,
             {ATTRIBUTE_PRESETS.map(name => <Button key={name} type="button" variant="secondary" disabled={names.length >= MAX_VARIANT_ATTRIBUTES || names.some(item => variantKey(item) === variantKey(name))} onClick={() => add(name)}><Plus size={16} />Thêm {name}</Button>)}
             <Button type="button" variant="secondary" disabled={names.length >= MAX_VARIANT_ATTRIBUTES} onClick={() => add("")}><Plus size={16} />Thêm loại khác</Button>
           </div>
-          {!names.length && <p className="text-sm text-text-secondary">Chưa có loại biến thể. Chọn một loại ở trên để bắt đầu.</p>}
+          {!names.length && <p className="text-sm text-text-secondary">Nhóm không còn loại biến thể. Khi lưu, các loại cũ sẽ được xóa khỏi tất cả SKU; các SKU vẫn được giữ trong nhóm.</p>}
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{names.map((name, index) => <div key={index} className="rounded border border-border p-3">
             <div className="flex items-end gap-2"><div className="min-w-0 flex-1"><Field label={`Tên loại biến thể ${index + 1}`}><input className="bt-input" required maxLength={50} value={name} onChange={event => setNames(names.map((item, position) => position === index ? event.target.value : item))} placeholder="Ví dụ: Hướng" /></Field></div><button type="button" className="bt-icon-button shrink-0" aria-label={`Xóa loại biến thể ${index + 1}`} onClick={() => remove(index)}><Trash2 size={17} /></button></div>
             <p className="mt-2 break-words text-xs text-text-secondary">Giá trị: {Array.from(new Set(values.map(row => row[index]?.trim()).filter(Boolean))).join(", ") || "Chưa nhập"}</p>
           </div>)}</div>
         </section>
-        {names.length > 0 && <section className="min-w-0 space-y-3">
+        <section className="min-w-0 space-y-3">
           <h2 className="text-base font-semibold text-primary">Giá trị theo từng SKU</h2>
           <div className="overflow-x-auto rounded border border-border" role="region" aria-label="Giá trị biến thể theo SKU" tabIndex={0}>
             <table className="bt-admin-table"><thead><tr><th scope="col">Mã SKU</th>{names.map((name, index) => <th key={index} scope="col">{name || `Loại ${index + 1}`}</th>)}</tr></thead>
               <tbody>{siblings.map((product, row) => <tr key={product.id}><th scope="row" className="min-w-[150px] p-3 text-left text-sm font-medium">{product.code}</th>{names.map((name, column) => <td key={column} className="min-w-[180px]"><input className="bt-input" aria-label={`${name || `Loại ${column + 1}`} của ${product.code}`} maxLength={100} required value={values[row][column]} onChange={event => setValues(values.map((items, position) => position === row ? items.map((item, index) => index === column ? event.target.value : item) : items))} placeholder={name === "Hướng" ? "Ví dụ: Trái, Phải" : name === "Màu sắc" ? "Ví dụ: Đen" : name === "Kích thước" ? "Ví dụ: 800mm" : "Nhập giá trị"} /></td>)}</tr>)}</tbody>
             </table>
           </div>
-          <p className="text-xs text-text-secondary">Mỗi tổ hợp giá trị cần khác nhau. Sau khi lưu, chọn “Tạo SKU biến thể” để thêm một tổ hợp mới.</p>
-        </section>}
+          <p className="text-xs text-text-secondary">Nếu các SKU còn cùng thông số sau khi xóa một loại, khách vẫn có thể chọn từng mã hàng trên trang sản phẩm.</p>
+        </section>
       </fieldset>
       {root.variantGroupId && <Link href={`/admin/products/new?variantOf=${encodeURIComponent(root.id)}`} className="bt-button-secondary"><Plus size={16} />Tạo SKU biến thể</Link>}
       {!apiMode && <p role="alert" className="text-sm text-text-secondary">Chưa kết nối API. Không thể lưu thiết lập.</p>}
-      <div className="bt-admin-save-bar"><Button type="button" variant="secondary" disabled={busy} onClick={() => close(() => router.push(editUrl))}>Hủy</Button><Button type="submit" loading={busy} disabled={!apiMode || !names.length}><Save size={17} />Lưu thiết lập biến thể</Button></div>
+      <div className="bt-admin-save-bar"><Button type="button" variant="secondary" disabled={busy} onClick={() => close(() => router.push(editUrl))}>Hủy</Button><Button type="submit" loading={busy} disabled={!apiMode}><Save size={17} />Lưu thiết lập biến thể</Button></div>
     </form>
   </>;
 }

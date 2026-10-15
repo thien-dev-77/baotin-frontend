@@ -40,7 +40,9 @@ example, `FCL303-R` can display `Phải`). Leave it blank to display the SKU cod
 The label is used in the admin group's links and single-attribute choices;
 new variants start with a blank label rather than copying the root's label.
 Groups with several attributes display one selector per attribute, using its
-values (for example, `Hướng: Trái / Phải`), without a combined SKU picker.
+values (for example, `Hướng: Trái / Phải`). If several SKUs share the selected
+values, a **Mã sản phẩm** chooser preserves access to each SKU. It uses custom
+labels with the SKU code, or the SKU itself when no label is set.
 
 After saving a SKU, use **Áp dụng cho biến thể khác** above the edit form to
 reuse its saved content. Choose the recipient SKUs in the same group and the
@@ -61,8 +63,13 @@ Use **Thiết lập loại biến thể** in the product editor to open
 a custom type (up to six), rename/remove existing types, and fill each SKU's
 values in separate columns. Save applies the full configuration to every SKU,
 including private SKUs. This also works for products without a variant group;
-after saving, use **Tạo SKU biến thể** to add another combination. Duplicate
-combinations or stale SKU revisions prevent the whole configuration from saving.
+after saving, use **Tạo SKU biến thể** to add another combination. Removing a type
+also removes it from every related SKU, even when the remaining values become
+identical. Removing the last type keeps all SKUs in the group and leaves only
+the SKU chooser on the storefront. Prices, inventory, photos and visibility
+remain separate. New conflicting value combinations and stale SKU revisions
+still prevent the whole configuration from saving. Group snapshots load fresh
+on entry and before saving; unrelated content changes are rebased safely.
 The customer detail page renders the options above the purchase panel, and
 switching options navigates to the matching SKU with its own image, price and
 inventory. Multi-attribute selection picks an existing compatible SKU.

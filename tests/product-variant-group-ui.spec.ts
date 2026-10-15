@@ -177,3 +177,39 @@ test("A revision race at save time preserves the unsaved removal", async ({ page
   await expect(page.getByLabel("Kích thước của QA-700", { exact: true })).toHaveValue("700mm");
   expect(fixture.writes).toHaveLength(1); expect(fixture.errors).toEqual([]);
 });
+
+for (const width of [1440, 390]) test(`Removing types updates every related SKU including equal sizes at ${width}px`, async ({ page }) => {
+  const fixture = await mockFreshGroup(page);
+  fixture.update("group-child-700", { variantAttributes: [{ name: "Phiên bản", value: "QA-700" }, { name: "Kích thước", value: "600mm" }] });
+  await page.setViewportSize({ width, height: 1000 });
+  await page.goto(`${base}/admin/products/group-child-700/variants`);
+  await expect(page.getByText(/áp dụng cho toàn bộ 3 SKU/)).toBeVisible();
+  await page.getByRole("button", { name: "Xóa loại biến thể 1", exact: true }).click();
+  await page.getByRole("button", { name: "Lưu thiết lập biến thể", exact: true }).click();
+  await expect.poll(() => fixture.writes.length).toBe(1);
+  await expect(page.getByLabel("Tên loại biến thể 1", { exact: true })).toHaveValue("Kích thước");
+  for (const product of fixture.rows()) {
+    expect(product.variantAttributes?.map(attribute => attribute.name)).toEqual(["Kích thước"]);
+    await page.goto(`${base}/admin/products/${product.id}/variants`);
+    await expect(page.getByLabel("Tên loại biến thể 1", { exact: true })).toHaveValue("Kích thước");
+    await expect(page.getByLabel("Tên loại biến thể 2", { exact: true })).toHaveCount(0);
+  }
+  await page.getByRole("button", { name: "Xóa loại biến thể 1", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Lưu thiết lập biến thể", exact: true })).toBeEnabled();
+  await page.getByRole("button", { name: "Lưu thiết lập biến thể", exact: true }).click();
+  await expect.poll(() => fixture.writes.length).toBe(2);
+  await expect(page.getByText(/Nhóm không còn loại biến thể/)).toBeVisible();
+  for (const product of fixture.rows()) {
+    expect(product.variantAttributes).toEqual([]);
+    expect(product.variantGroupId).toBe("group-root");
+    await page.goto(`${base}/admin/products/${product.id}/variants`);
+    await expect(page.getByText(/Nhóm không còn loại biến thể/)).toBeVisible();
+    await expect(page.getByLabel("Tên loại biến thể 1", { exact: true })).toHaveCount(0);
+    for (const code of ["QA-600", "QA-700", "QA-800"]) await expect(page.getByRole("rowheader", { name: code, exact: true })).toBeVisible();
+  }
+  expect(fixture.writes[1].products.every(product => product.attributes.length === 0)).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await mkdir("/private/tmp/baotin-variant-removal", { recursive: true });
+  await page.screenshot({ path: `/private/tmp/baotin-variant-removal/all-types-removed-${width}.png`, fullPage: true });
+  expect(fixture.errors).toEqual([]);
+});
