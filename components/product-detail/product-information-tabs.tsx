@@ -1,8 +1,10 @@
 "use client";
 
 import { ProductReviews } from "@/components/product-detail/product-reviews";
+import { SafeHtml } from "@/components/safe-html";
 import { Button, Tabs } from "@/components/ui";
 import type { Product } from "@/lib/catalog";
+import { productContentHtml } from "@/lib/product-content";
 import type { ProductReview, ProductSpecification } from "@/lib/product-detail";
 import { Download } from "lucide-react";
 import Link from "next/link";
@@ -46,9 +48,10 @@ function ProductDescription({ product }: { product: Product }) {
   return (
     <>
       <h2 className="text-base font-bold text-primary">{product.name}</h2>
-      <p className="mt-3 whitespace-pre-line break-words text-sm leading-7 text-text-secondary">
-        {product.description || `${product.name} được lựa chọn để hoàn thiện hệ nội thất đồng bộ. Chất liệu ${product.material.toLowerCase()} và thiết kế phù hợp cho nhu cầu sử dụng hàng ngày.`}
-      </p>
+      <SafeHtml
+        html={productContentHtml(product.description || `${product.name} được lựa chọn để hoàn thiện hệ nội thất đồng bộ. Chất liệu ${product.material.toLowerCase()} và thiết kế phù hợp cho nhu cầu sử dụng hàng ngày.`)}
+        className="bt-product-rich-text mt-3 break-words text-sm leading-7 text-text-secondary"
+      />
       <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-text-secondary">
         <li>Thông số: {product.specification}.</li>
         <li>Chất liệu bền bỉ, dễ vệ sinh và bảo dưỡng.</li>
@@ -73,7 +76,7 @@ function ProductDocuments({ code, usageGuide, specifications }: { code: string; 
 
   return (
     <div className="space-y-4">
-      {usageGuide && <p className="whitespace-pre-line break-words text-sm leading-7 text-text-secondary">{usageGuide}</p>}
+      {usageGuide && <SafeHtml html={productContentHtml(usageGuide)} className="bt-product-rich-text break-words text-sm leading-7 text-text-secondary" />}
       <Button variant="secondary" onClick={downloadSpecifications}><Download size={17} />Tải bảng thông số</Button>
       <Link href="/guides" className="block text-sm text-primary">Xem hướng dẫn chọn và lắp phụ kiện →</Link>
       <p className="text-sm text-text-secondary">Liên hệ Bảo Tín để nhận tài liệu lắp đặt của nhà sản xuất theo đúng mã hàng.</p>

@@ -107,8 +107,9 @@ for (const width of [1440, 390]) test(`Editor tabs retain content and save forma
   await mkdir("/private/tmp/baotin-product-editor-content", { recursive: true });
   await page.screenshot({ path: `/private/tmp/baotin-product-editor-content/editor-${width}.png`, fullPage: true });
   await page.goto(`${base}/products/${product.slug}`);
-  await expect(page.locator(".bt-product-rich-text strong")).toHaveText("Công suất 2800W");
-  await expect(page.locator(".bt-product-rich-text")).toContainText("Kích thước 730 × 430mm");
+  const technicalDetails = page.getByRole("table", { name: "Thông số kỹ thuật", exact: true }).locator(".bt-product-rich-text");
+  await expect(technicalDetails.locator("strong")).toHaveText("Công suất 2800W");
+  await expect(technicalDetails).toContainText("Kích thước 730 × 430mm");
   expect(api.errors).toEqual([]);
 });
 
@@ -147,7 +148,7 @@ test("Invalid basic fields reveal their tab when saving from the content tab", a
 test("Storefront technical HTML preserves tables and strips executable markup", async ({ page }) => {
   await mockEditor(page, { slug: "qa-safe-rich-specification", technicalDetails: '<p><strong>Thông số chuẩn</strong></p><ul><li>Inox 304</li></ul><table><tbody><tr><td colspan="2">600mm</td></tr></tbody></table><img src="x" onerror="window.qaInjected=true"><script>window.qaInjected=true</script><a href="javascript:alert(1)">Không thực thi</a>' });
   await page.goto(`${base}/products/${product.slug}`);
-  const details = page.locator(".bt-product-rich-text");
+  const details = page.getByRole("table", { name: "Thông số kỹ thuật", exact: true }).locator(".bt-product-rich-text");
   await expect(details.locator("strong")).toHaveText("Thông số chuẩn"); await expect(details.locator("li")).toHaveCSS("list-style-type", "disc");
   await expect(details.locator("td")).toHaveAttribute("colspan", "2");
   await expect(details.locator("script, img, [onerror], [href^='javascript:']")).toHaveCount(0);

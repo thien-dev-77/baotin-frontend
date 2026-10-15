@@ -1,6 +1,8 @@
 "use client";
 
 import type { Product } from "@/lib/catalog";
+import { productContentHtml } from "@/lib/product-content";
+import { SafeHtml } from "@/components/safe-html";
 import { Star } from "lucide-react";
 import Link from "next/link";
 
@@ -24,9 +26,10 @@ export function ProductOverview({ product, reviewCount, rating = 0, onShowReview
         </span>
         <button onClick={onShowReviews} className="text-primary">{reviewCount ? `${rating.toFixed(1)} (${reviewCount} đánh giá)` : "Chưa có đánh giá"}</button>
       </div>
-      <p className="mt-4 whitespace-pre-line break-words text-sm leading-6 text-text-secondary">
-        {product.shortDescription || `${product.name} chính hãng, bền bỉ và đồng bộ. Phù hợp cho xưởng nội thất, công trình và ngôi nhà Việt.`}
-      </p>
+      <SafeHtml
+        html={productContentHtml(product.shortDescription || `${product.name} chính hãng, bền bỉ và đồng bộ. Phù hợp cho xưởng nội thất, công trình và ngôi nhà Việt.`)}
+        className="bt-product-rich-text mt-4 break-words text-sm leading-6 text-text-secondary"
+      />
     </section>
   );
 }
