@@ -10,7 +10,7 @@ import { ProductVariantSelector } from "@/components/product-detail/product-vari
 import { RelatedProducts } from "@/components/product-detail/related-products";
 import { Breadcrumb } from "@/components/ui";
 import { type Product } from "@/lib/catalog";
-import { getProductRecommendations, initialProductReviews, type ProductReview } from "@/lib/product-detail";
+import { getProductRecommendations, getProductSpecifications, initialProductReviews, type ProductReview } from "@/lib/product-detail";
 import { getTechnicalSpecificationRows } from "@/lib/product-technical-specifications";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCommerce } from "@/components/commerce-provider";
@@ -34,7 +34,8 @@ export function ProductDetail({ product: initialProduct }: { product: Product & 
   const visibleReviews = apiMode ? reviewResource.data?.items || [] : reviews;
   const rating = visibleReviews.length ? visibleReviews.reduce((sum, review) => sum + review.stars, 0) / visibleReviews.length : 0;
   const category = categories.find((item) => item.slug === product.category);
-  const specifications = useMemo(() => getTechnicalSpecificationRows(product.technicalDetails), [product.technicalDetails]);
+  const technicalRows = useMemo(() => getTechnicalSpecificationRows(product.technicalDetails), [product.technicalDetails]);
+  const specifications = technicalRows.length === 1 ? getProductSpecifications(product) : technicalRows;
   const recommendations = useApiResource<CatalogPageResponse>(`/catalog/search?category=${encodeURIComponent(product.category)}&pageSize=5`, apiMode, undefined, readCatalogPage);
   const { related, bundle } = getProductRecommendations(product, apiMode ? recommendations.data?.products || [] : products);
 

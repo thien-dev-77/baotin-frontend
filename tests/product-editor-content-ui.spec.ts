@@ -120,6 +120,8 @@ for (const width of [1440, 390]) test(`Editor tabs retain content and save forma
   await page.screenshot({ path: `/private/tmp/baotin-product-editor-content/editor-${width}.png`, fullPage: true });
   await page.goto(`${base}/products/${product.slug}`);
   const technicalDetails = page.getByRole("table", { name: "Thông số kỹ thuật", exact: true });
+  await expect(technicalDetails.getByRole("rowheader", { name: "Mã hàng", exact: true })).toBeVisible();
+  await expect(technicalDetails.getByRole("rowheader", { name: "Thương hiệu", exact: true })).toBeVisible();
   await expect(technicalDetails).toContainText("Công suất 2800W");
   await expect(technicalDetails).toContainText("Kích thước 730 × 430mm");
   expect(api.errors).toEqual([]);
@@ -158,7 +160,7 @@ test("Invalid basic fields reveal their tab when saving from the content tab", a
 });
 
 test("Storefront technical content becomes rows without executable markup", async ({ page }) => {
-  await mockEditor(page, { slug: "qa-safe-rich-specification", technicalDetails: '<p><strong>Thông số chuẩn</strong></p><ul><li>Inox 304</li></ul><table><tbody><tr><td colspan="2">600mm</td></tr></tbody></table><img src="x" onerror="window.qaInjected=true"><script>window.qaInjected=true</script><a href="javascript:alert(1)">Không thực thi</a>' });
+  await mockEditor(page, { slug: "qa-safe-rich-specification", technicalDetails: '<p>Thông số: <strong>Thông số chuẩn</strong></p><ul><li>Chất liệu: Inox 304</li></ul><table><tbody><tr><td colspan="2">600mm</td></tr></tbody></table><img src="x" onerror="window.qaInjected=true"><script>window.qaInjected=true</script><a href="javascript:alert(1)">Không thực thi</a>' });
   await page.goto(`${base}/products/${product.slug}`);
   const details = page.getByRole("table", { name: "Thông số kỹ thuật", exact: true });
   await expect(details).toContainText("Thông số chuẩn"); await expect(details).toContainText("Inox 304");
