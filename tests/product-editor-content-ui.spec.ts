@@ -11,7 +11,7 @@ import type { ProductVariantCopyField } from "../lib/product-variant-copy";
 
 const base = "http://127.0.0.1:3054";
 const staff = { id: "qa-admin", name: "QA Admin", email: "qa@example.test", role: "admin", branches: ["Quy Nhơn"], customer: null };
-const initialProduct = { ...catalog[0], id: "qa-rich-specification", slug: "qa-rich-specification", code: "QA-RICH", published: true, revision: 1, description: "Mô tả cũ", technicalDetails: "Kích thước: 730 × 430\nCông suất < 2800W", shortDescription: "", usageGuide: "", gallery: [catalog[0].image] };
+const initialProduct = { ...catalog[0], id: "qa-rich-specification", slug: "qa-rich-specification", code: "QA-RICH", published: true, revision: 1, description: "Mô tả cũ", technicalDetails: "Kích thước: 730 × 430\nCông suất < 2800W", shortDescription: "", usageGuide: "", gallery: [catalog[0].image], showAuthenticityLabel: undefined as boolean | undefined };
 let product = { ...initialProduct };
 let server: Server;
 let child: ChildProcess;
@@ -56,7 +56,8 @@ async function mockEditor(page: Page, overrides: Partial<typeof initialProduct> 
   const copies: { revision: number; fields: ProductVariantCopyField[]; products: { id: string; revision: number }[] }[] = [];
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
-  await page.route("**/_next/image?**", route => route.fulfill({ contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aSu8AAAAASUVORK5CYII=", "base64") }));
+  const imageFixture = await readFile("public/product-placeholder.svg");
+  await page.route("**/_next/image?**", route => route.fulfill({ contentType: "image/svg+xml", body: imageFixture }));
   await page.route("**/api/backend/**", async route => {
     const request = route.request(), url = new URL(request.url());
     const path = url.pathname.slice("/api/backend".length);
@@ -90,6 +91,58 @@ async function mockEditor(page: Page, overrides: Partial<typeof initialProduct> 
   });
   return { writes, copies, errors, state };
 }
+
+for (const width of [1440, 390]) test(`Authenticity checkbox persists visibility on cards, gallery and zoom at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 1000 });
+  const api = await mockEditor(page);
+  await page.goto(`${base}/admin/products/${product.id}/edit`);
+  const checkbox = page.getByRole("checkbox", { name: "Hiển thị nhãn phân phối chính hãng", exact: true });
+  await expect(checkbox).toBeChecked();
+  await expect(page.getByRole("textbox", { name: /Thông số kỹ thuật/ })).toBeVisible();
+  await checkbox.uncheck();
+  await expect(page.locator("form[data-unsaved=true]")).toHaveCount(1);
+  await page.getByRole("button", { name: "Lưu sản phẩm", exact: true }).click();
+  await expect.poll(() => api.writes.length).toBe(1);
+  expect(api.writes[0].showAuthenticityLabel).toBe(false);
+  await expect(checkbox).not.toBeChecked();
+  await expect(page.locator("form[data-unsaved=true]")).toHaveCount(0);
+  await page.goto(`${base}/search?q=${encodeURIComponent(product.code)}`);
+  const card = page.locator(".bt-product-card").first();
+  await expect(card).toBeVisible();
+  await expect(card.locator("[data-product-authenticity]")).toHaveCount(0);
+  await page.goto(`${base}/products/${product.slug}`);
+  const gallery = page.getByRole("region", { name: "Hình ảnh sản phẩm", exact: true });
+  await expect(gallery).toBeVisible();
+  await expect(gallery.locator("[data-product-authenticity]")).toHaveCount(0);
+  await gallery.getByRole("button", { name: "Phóng to ảnh", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator("[data-product-authenticity]")).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await page.goto(`${base}/admin/products/${product.id}/edit`);
+  await expect(checkbox).not.toBeChecked();
+  await expect(page.getByRole("textbox", { name: /Thông số kỹ thuật/ })).toBeVisible();
+  await checkbox.check();
+  await page.getByRole("button", { name: "Lưu sản phẩm", exact: true }).click();
+  await expect.poll(() => api.writes.length).toBe(2);
+  expect(api.writes[1].showAuthenticityLabel).toBe(true);
+  await expect(checkbox).toBeChecked();
+  await expect(page.locator("form[data-unsaved=true]")).toHaveCount(0);
+  await page.goto(`${base}/search?q=${encodeURIComponent(product.name)}`);
+  await expect(card.locator("[data-product-authenticity]")).toBeVisible();
+  await page.goto(`${base}/products/${product.slug}`);
+  await expect(gallery.locator("[data-product-authenticity]")).toBeVisible();
+  await gallery.getByRole("button", { name: "Phóng to ảnh", exact: true }).click();
+  await expect(dialog.locator("[data-product-authenticity]")).toBeVisible();
+  await page.keyboard.press("Escape");
+  expect(api.errors).toEqual([]);
+});
+
+test("New products enable the authenticity label by default", async ({ page }) => {
+  await mockEditor(page);
+  await page.goto(`${base}/admin/products/new`);
+  await expect(page.getByRole("checkbox", { name: "Hiển thị nhãn phân phối chính hãng", exact: true })).toBeChecked();
+});
 
 for (const width of [1440, 390]) test(`Editor tabs retain content and save formatted technical details at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 1000 });

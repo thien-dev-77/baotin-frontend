@@ -29,6 +29,11 @@ price and independent B2C/B2B discounts, description, technical specification, m
 origin, featured flag and public/private mode. Name initially generates a slug;
 manual slug edits are preserved. Stock is read-only and linked to the ledger.
 
+The **Hiển thị nhãn phân phối chính hãng** checkbox in the **Hiển thị** card
+defaults to checked for new and legacy products. Uncheck and save to hide the
+label on product cards, the cover image in the gallery and its zoom view.
+The setting is stored per SKU as `showAuthenticityLabel`; other SKUs are unchanged.
+
 To create a group, add one or more attribute rows to a product (for example
 `Kích thước khoang tủ (T): 600mm`, optionally `Màu sắc: Bạc`) and save it.
 Open that product again and select **Tạo biến thể**. The next form copies the

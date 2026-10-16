@@ -105,6 +105,7 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
       technicalDetails: richTechnicalDetails || text("technicalDetails"),
       usageGuide: richUsageGuide || text("usageGuide"),
       gallery: images, featured: form.has("featured"), published,
+      showAuthenticityLabel: form.has("showAuthenticityLabel"),
       alternateCode: text("alternateCode"), sourceUrl: text("sourceUrl"), 
       shortDescription: richShortDescription || text("shortDescription"),
       warranty: text("warranty"),
@@ -258,7 +259,13 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
             <fieldset className="space-y-2"><legend className="sr-only">Chế độ hiển thị</legend>
               {[{ value: false, label: "Riêng tư", Icon: LockKeyhole }, { value: true, label: "Công khai", Icon: Globe }].map(({ value, label, Icon }) => <label key={label} className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-md border px-3 text-sm ${published === value ? "border-brand bg-section text-primary" : "border-border text-text-secondary"}`}><input type="radio" name="visibility" checked={published === value} onChange={() => setPublished(value)} className="accent-brand" /><Icon size={17} /><span>{label}</span></label>)}
             </fieldset>
-            <label className="mt-5 flex items-center gap-2 text-sm text-primary"><input type="checkbox" name="featured" defaultChecked={product?.featured} className="h-4 w-4 accent-brand" />Sản phẩm nổi bật</label>
+            <div className="mt-5 space-y-3">
+              <label className="flex items-center gap-2 text-sm text-primary"><input type="checkbox" name="featured" defaultChecked={product?.featured} className="h-4 w-4 shrink-0 accent-brand" />Sản phẩm nổi bật</label>
+              <div>
+                <label className="flex items-start gap-2 text-sm leading-5 text-primary"><input type="checkbox" name="showAuthenticityLabel" defaultChecked={product?.showAuthenticityLabel !== false} aria-describedby="product-authenticity-hint" className="mt-0.5 h-4 w-4 shrink-0 accent-brand" /><span>Hiển thị nhãn phân phối chính hãng</span></label>
+                <p id="product-authenticity-hint" className="ml-6 mt-1 text-xs leading-5 text-text-secondary">Áp dụng cho sản phẩm này trên card và ảnh đại diện trong gallery.</p>
+              </div>
+            </div>
           </ProductFormSection>
           {product && <ProductFormSection id="product-stock" title="Tồn khả dụng" icon={Warehouse}><p className="text-2xl font-semibold tabular-nums text-primary">{currentProduct?.stock || 0} <span className="text-sm font-normal text-text-secondary">{product.unit}</span></p><Link href="/admin/ledger" className="mt-3 inline-flex text-sm font-medium text-primary underline decoration-border underline-offset-4 hover:decoration-primary">Sổ tồn kho</Link></ProductFormSection>}
           {product?.published && <Link href={`/products/${product.slug}`} target="_blank" rel="noopener noreferrer" className="bt-button-secondary w-full"><ExternalLink size={16} />Xem sản phẩm</Link>}

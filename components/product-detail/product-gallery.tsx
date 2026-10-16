@@ -19,6 +19,7 @@ export function ProductGallery({ product }: { product: Product }) {
 function Gallery({ product, images }: { product: Product; images: string[] }) {
   const [photo, setPhoto] = useState(0);
   const [zoom, setZoom] = useState(false);
+  const showAuthenticityLabel = product.showAuthenticityLabel !== false && photo === 0;
   const [imageRatios, setImageRatios] = useState<Record<string, number>>({});
   const activeRatio = imageRatios[images[photo]] ?? 1;
   const mainSplideRef = useRef<InstanceType<typeof Splide>>(null);
@@ -86,7 +87,7 @@ function Gallery({ product, images }: { product: Product; images: string[] }) {
               ))}
             </SplideTrack>
 
-            {photo === 0 && <ProductAuthenticityLabel />}
+            {showAuthenticityLabel && <ProductAuthenticityLabel />}
 
             <button
               className="absolute bottom-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md transition-shadow hover:shadow-lg"
@@ -190,7 +191,7 @@ function Gallery({ product, images }: { product: Product; images: string[] }) {
             loading="eager"
             className="block max-h-[65vh] w-auto max-w-full object-contain"
           />
-          {photo === 0 && <ProductAuthenticityLabel />}
+          {showAuthenticityLabel && <ProductAuthenticityLabel />}
         </div>
       </Modal>
     </>
