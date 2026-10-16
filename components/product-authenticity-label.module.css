@@ -3,8 +3,7 @@
   bottom: 0;
   left: 0;
   z-index: 1;
-  container-type: inline-size;
-  width: min(76%, 440px);
+  width: fit-content;
   max-width: calc(100% - 64px);
   overflow: hidden;
   border-radius: 0 12px 0 0;
@@ -17,19 +16,23 @@
   display: flex;
   min-width: 0;
   align-items: center;
-  justify-content: center;
-  gap: clamp(6px, 2cqi, 12px);
-  padding: 7px clamp(6px, 2.5cqi, 14px);
-  font-size: clamp(10px, 3cqi, 16px);
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
   font-weight: 800;
   line-height: 1.3;
-  text-align: center;
+  text-align: left;
   text-transform: uppercase;
+}
+
+.content > span:last-child {
+  text-wrap: balance;
 }
 
 .icon {
   display: inline-flex;
-  width: clamp(24px, 7cqi, 38px);
+  width: 24px;
   aspect-ratio: 1;
   flex-shrink: 0;
   align-items: center;
@@ -45,20 +48,19 @@
 
 .compact {
   bottom: 8px;
-  left: 8px;
+  left: 0;
   width: min(84%, 240px);
   max-width: calc(100% - 16px);
-  border-radius: 6px;
+  border-radius: 0 6px 6px 0;
   box-shadow: 0 2px 6px rgb(0 0 0 / 16%);
 }
 
 .compact .content {
   gap: 4px;
   padding: 4px 6px;
-  font-size: clamp(6px, 3.8cqi, 8px);
 }
 
 .compact .icon {
-  width: clamp(14px, 8cqi, 18px);
+  width: 18px;
   border-width: 1.5px;
 }

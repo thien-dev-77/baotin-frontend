@@ -102,6 +102,8 @@ for (const width of [1440, 390, 320]) test(`Readable menu, visible banner and us
   await page.goto(`${frontend}/products/${product.slug}`);
   const gallery = page.getByRole("region", { name: "Hình ảnh sản phẩm", exact: true });
   await expect(gallery.locator(".bt-product-gallery-main")).toHaveClass(/is-initialized/);
+  const authenticity = gallery.locator("[data-product-authenticity]");
+  await expect(authenticity).toBeVisible();
   const activeImage = gallery.locator(".bt-product-gallery-main .splide__slide.is-active img");
   const expectFittedImage = async () => {
     await expect.poll(() => activeImage.evaluate((image: HTMLImageElement) => {
@@ -119,21 +121,28 @@ for (const width of [1440, 390, 320]) test(`Readable menu, visible banner and us
   })).toBeLessThan(2);
   await gallery.getByRole("button", { name: "Xem ảnh 2", exact: true }).click();
   await expect(gallery.getByRole("button", { name: "Xem ảnh 2", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(authenticity).toHaveCount(0);
   await expect(activeImage).toHaveAttribute("alt", `${product.name} - Ảnh 2`);
   await expect.poll(() => activeImage.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
   await expectFittedImage();
   await gallery.getByRole("button", { name: "Phóng to ảnh", exact: true }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible(); await expect.poll(() => dialog.locator("img").evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+  await expect(dialog.locator("[data-product-authenticity]")).toHaveCount(0);
   await page.keyboard.press("Escape");
   await gallery.getByRole("button", { name: "Ảnh tiếp", exact: true }).click();
   await expect(activeImage).toHaveAttribute("alt", `${product.name} - Ảnh 3`);
+  await expect(authenticity).toHaveCount(0);
   await expect.poll(() => activeImage.evaluate(image => getComputedStyle(image.closest(".splide__slide")!).opacity)).toBe("1");
   await expectFittedImage();
   await gallery.locator(".bt-product-gallery-main .splide__arrow--next").click();
   await expect(activeImage).toHaveAttribute("alt", `${product.name} - Ảnh 1`);
   await expectFittedImage();
   await expect(activeImage.locator("..").locator("..")).toHaveCSS("opacity", "1");
+  await expect(authenticity).toBeVisible();
+  await gallery.getByRole("button", { name: "Phóng to ảnh", exact: true }).click();
+  await expect(dialog.locator("[data-product-authenticity]")).toBeVisible();
+  await page.keyboard.press("Escape");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await gallery.screenshot({ path: `/private/tmp/baotin-storefront-sliders/gallery-${width}.png` });
   expect(errors).toEqual([]);

@@ -86,7 +86,7 @@ function Gallery({ product, images }: { product: Product; images: string[] }) {
               ))}
             </SplideTrack>
 
-            <ProductAuthenticityLabel />
+            {photo === 0 && <ProductAuthenticityLabel />}
 
             <button
               className="absolute bottom-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md transition-shadow hover:shadow-lg"
@@ -190,7 +190,7 @@ function Gallery({ product, images }: { product: Product; images: string[] }) {
             loading="eager"
             className="block max-h-[65vh] w-auto max-w-full object-contain"
           />
-          <ProductAuthenticityLabel />
+          {photo === 0 && <ProductAuthenticityLabel />}
         </div>
       </Modal>
     </>
