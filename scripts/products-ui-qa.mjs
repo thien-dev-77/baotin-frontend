@@ -11,6 +11,8 @@ if (!["localhost", "127.0.0.1"].includes(new URL(base).hostname)) throw new Erro
 const backend = resolve(process.env.QA_BACKEND_DIR || "../backend");
 const requireBackend = createRequire(resolve(backend, "package.json"));
 const env = requireBackend("dotenv").parse(await readFile(resolve(backend, ".env.local"), "utf8"));
+const { productMediaRoot } = requireBackend("./dist/media/product-media.js");
+const mediaRoot = productMediaRoot(process.env.MEDIA_DIR || env.MEDIA_DIR || "media");
 if (new URL(env.DATABASE_URL).hostname !== "127.0.0.1") throw new Error("Never run product UI QA against Supabase.");
 const schema = env.DB_SCHEMA || "baotin_app";
 if (!/^[a-z][a-z0-9_]{0,40}$/.test(schema)) throw new Error("Invalid local schema.");
@@ -189,6 +191,6 @@ try {
   }
   await sql.end();
   for (const url of uploaded) {
-    if (/^\/media\/uploads\/[a-f0-9-]+\.webp$/.test(url)) await unlink(resolve(backend, "media", url.slice("/media/".length))).catch(() => {});
+    if (/^\/media\/uploads\/[a-f0-9-]+\.webp$/.test(url)) await unlink(resolve(mediaRoot, url.slice("/media/".length))).catch(() => {});
   }
 }
