@@ -63,8 +63,8 @@ for (const width of [1440, 390]) test(`Configure independent color, direction an
 type GroupProduct = ApiAdminState["products"][number];
 type GroupWrite = { products: { id: string; revision: number; attributes: NonNullable<GroupProduct["variantAttributes"]> }[] };
 
-async function mockFreshGroup(page: Page) {
-  let current: GroupProduct[] = [600, 700, 800].map((size, index) => ({
+async function mockFreshGroup(page: Page, products?: GroupProduct[]) {
+  let current: GroupProduct[] = products || [600, 700, 800].map((size, index) => ({
     ...catalog[0], id: index === 0 ? "group-root" : `group-child-${size}`, slug: `group-${size}`, code: `QA-${size}`,
     variantGroupId: "group-root", published: index !== 2, revision: 7 + index,
     variantAttributes: [{ name: "Phiên bản", value: `QA-${size}` }, { name: "Kích thước", value: `${size}mm` }],
@@ -102,6 +102,44 @@ async function mockFreshGroup(page: Page) {
     writeError: (message: string) => { writeError = message; },
   };
 }
+
+for (const width of [1440, 390]) test(`Detailed duplicate combinations appear below the create SKU link at ${width}px`, async ({ page }) => {
+  const codes = ["FC09S-750-B-304", "FC09S-800-B-304", "FC09S-750-X-304", "FC09S-800-X-304"];
+  const fixture = await mockFreshGroup(page, codes.map((code, index) => ({ ...catalog[0], code, slug: code.toLowerCase(),
+    id: index === 0 ? "group-root" : `conflict-${index}`, revision: 8, published: index !== 3, variantGroupId: "group-root",
+    variantAttributes: [{ name: "Kích thước", value: "800mm" }, { name: "Vật dụng", value: code }],
+  })));
+  const message = [
+    "Tổ hợp thuộc tính bị trùng ở 2 nhóm SKU:",
+    "• SKU FC09S-750-B-304, FC09S-800-B-304 cùng có Kích thước: 800mm · Vật dụng: Bát.",
+    "• SKU FC09S-750-X-304, FC09S-800-X-304 cùng có Kích thước: 800mm · Vật dụng: Xoang.",
+    "Kiểm tra và sửa giá trị của các SKU trên, thêm thuộc tính để phân biệt hoặc tách SKU khỏi nhóm, rồi lưu lại.",
+  ].join("\n");
+  fixture.writeError(message);
+  await page.setViewportSize({ width, height: 1000 });
+  await page.goto(`${base}/admin/products/group-root/variants`);
+  for (const code of codes) await page.getByLabel(`Vật dụng của ${code}`, { exact: true }).fill(code.includes("-B-") ? "Bát" : "Xoang");
+  await page.getByRole("button", { name: "Lưu thiết lập biến thể", exact: true }).click();
+  const alert = page.getByRole("alert").filter({ hasText: "Tổ hợp thuộc tính bị trùng" });
+  await expect(alert).toBeInViewport({ ratio: 1 });
+  await expect(alert.locator("p")).toHaveText(message);
+  await expect(alert.locator("p")).toHaveCSS("white-space", "pre-line");
+  const create = page.getByRole("link", { name: "Tạo SKU biến thể", exact: true });
+  const linkRect = (await create.boundingBox())!, errorRect = (await alert.boundingBox())!;
+  expect(errorRect.y).toBeGreaterThan(linkRect.y + linkRect.height);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  for (const code of codes) await expect(page.getByLabel(`Vật dụng của ${code}`, { exact: true })).toHaveValue(code.includes("-B-") ? "Bát" : "Xoang");
+  await mkdir("/private/tmp/baotin-variant-conflict-details", { recursive: true });
+  await page.screenshot({ path: `/private/tmp/baotin-variant-conflict-details/error-${width}.png` });
+  fixture.writeError("");
+  for (const code of codes.filter(code => code.includes("-750-"))) await page.getByLabel(`Kích thước của ${code}`, { exact: true }).fill("750mm");
+  await page.getByRole("button", { name: "Lưu thiết lập biến thể", exact: true }).click();
+  await expect.poll(() => fixture.writes.length).toBe(2);
+  await expect(page.getByRole("button", { name: "Lưu thiết lập biến thể", exact: true })).toBeEnabled();
+  await expect(alert).toHaveCount(0);
+  await expect(page.getByLabel("Kích thước của FC09S-750-B-304", { exact: true })).toHaveValue("750mm");
+  expect(fixture.writes).toHaveLength(2); expect(fixture.errors).toEqual([]);
+});
 
 for (const width of [1440, 390]) test(`Remove version while keeping sizes with fresh SKU revisions at ${width}px`, async ({ page }) => {
   const fixture = await mockFreshGroup(page);

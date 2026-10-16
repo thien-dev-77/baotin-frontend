@@ -80,6 +80,10 @@ the SKU chooser on the storefront. Prices, inventory, photos and visibility
 remain separate. New conflicting value combinations and stale SKU revisions
 still prevent the whole configuration from saving. Group snapshots load fresh
 on entry and before saving; unrelated content changes are rebased safely.
+Save errors appear directly below **Tạo SKU biến thể** and scroll into view.
+Duplicate-combination errors list every conflicting set of SKU codes and
+attribute values, with instructions to correct the group; all unsaved values
+remain available for editing and retrying.
 The customer detail page renders the options above the purchase panel, and
 switching options navigates to the matching SKU with its own image, price and
 inventory. Multi-attribute selection picks an existing compatible SKU.

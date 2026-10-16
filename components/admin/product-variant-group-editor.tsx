@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Plus, RefreshCw, Save, Trash2 } from "lucide-react";
 import { api, apiMode } from "@/lib/api-client";
 import type { ApiAdminState } from "@/lib/api-types";
@@ -50,6 +50,8 @@ function VariantGroupEditor({ root, siblings: currentSiblings, editId, onReload,
   const [error, setError] = useState("");
   const saving = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (error) errorRef.current?.scrollIntoView({ block: "center", behavior: "instant" }); }, [error]);
   const { markSaved, close } = useUnsavedForm(formRef, true, busy, JSON.stringify([names, values]));
   const editUrl = `/admin/products/${encodeURIComponent(editId)}/edit`;
   const add = (name: string) => {
@@ -91,8 +93,6 @@ function VariantGroupEditor({ root, siblings: currentSiblings, editId, onReload,
     <AdminHeading title="Thiết lập loại biến thể" subtitle={root.name} />
     <form ref={formRef} onSubmit={save} className="min-w-0 space-y-6">
       <p className="text-sm text-text-secondary">Thêm, đổi tên hoặc xóa loại biến thể tại đây sẽ áp dụng cho toàn bộ {siblings.length} SKU trong nhóm. Mã hàng, giá, hình ảnh và tồn kho riêng của từng SKU được giữ nguyên.</p>
-      {error && <p role="alert" className="rounded border border-red-200 bg-red-50 p-3 text-sm text-danger">{error}</p>}
-      {error && <Button type="button" variant="secondary" disabled={busy} onClick={() => close(() => void onReload())}><RefreshCw size={16} />Tải lại nhóm biến thể</Button>}
       <fieldset disabled={busy} className="min-w-0 space-y-6">
         <section className="space-y-4">
           <h2 className="text-base font-semibold text-primary">Các loại biến thể</h2>
@@ -117,6 +117,10 @@ function VariantGroupEditor({ root, siblings: currentSiblings, editId, onReload,
         </section>
       </fieldset>
       {root.variantGroupId && <Link href={`/admin/products/new?variantOf=${encodeURIComponent(root.id)}`} className="bt-button-secondary"><Plus size={16} />Tạo SKU biến thể</Link>}
+      {error && <div ref={errorRef} role="alert" className="space-y-3 rounded border border-red-200 bg-red-50 p-4 text-sm text-danger">
+        <p className="whitespace-pre-line break-words leading-6">{error}</p>
+        <Button type="button" variant="secondary" disabled={busy} onClick={() => close(() => void onReload())}><RefreshCw size={16} />Tải lại nhóm biến thể</Button>
+      </div>}
       {!apiMode && <p role="alert" className="text-sm text-text-secondary">Chưa kết nối API. Không thể lưu thiết lập.</p>}
       <div className="bt-admin-save-bar"><Button type="button" variant="secondary" disabled={busy} onClick={() => close(() => router.push(editUrl))}>Hủy</Button><Button type="submit" loading={busy} disabled={!apiMode}><Save size={17} />Lưu thiết lập biến thể</Button></div>
     </form>
