@@ -4,7 +4,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState } from "react";
-import { ArrowLeft, ExternalLink, Globe, LockKeyhole, RefreshCw, Save } from "lucide-react";
+import { ArrowLeft, ExternalLink, Eye, FileText, Globe, ListChecks, LockKeyhole, Package, RefreshCw, Save, Warehouse } from "lucide-react";
 import { api, apiMode } from "@/lib/api-client";
 import { categoryCatalog, slugify } from "@/lib/catalog";
 import { categoryLabel } from "@/lib/category-tree";
@@ -22,6 +22,7 @@ import { ProductVariantCopy } from "./product-variant-copy";
 import { ProductVariantDetach } from "./product-variant-detach";
 import { variantDimension } from "@/lib/product-variants";
 import { PRODUCT_SPECIFICATION_MAX_LENGTH, PRODUCT_TECHNICAL_DETAILS_MAX_LENGTH } from "@/lib/product-content";
+import { ProductFormSection } from "./product-form-section";
 const RichTextEditor = dynamic(() => import("./rich-text-editor").then(module => module.RichTextEditor), {
   ssr: false,
   loading: () => <p role="status" className="py-3 text-sm text-text-secondary">Đang tải trình soạn thảo...</p>,
@@ -160,16 +161,15 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
       {error && <p role="alert" className="mb-5 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-danger">{error}</p>}
       {stale && <div role="alert" className="mb-5 flex flex-wrap items-center justify-between gap-3 border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Sản phẩm đã được cập nhật ở phiên khác.<Button type="button" variant="secondary" loading={refreshing} disabled={busy || uploading} onClick={() => close(() => void onReload())}><RefreshCw size={16} />Tải lại sản phẩm</Button></div>}
       {!apiMode && <p role="alert" className="mb-5 text-sm text-text-secondary">Chưa kết nối API. Không thể lưu sản phẩm.</p>}
-      <fieldset disabled={busy || uploading} className="grid min-w-0 gap-8 xl:grid-cols-[minmax(0,1fr)_280px]">
+      <fieldset disabled={busy || uploading} className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0">
           <Tabs options={Object.values(PRODUCT_EDITOR_TABS)} value={activeTab} onChange={value => {
             setActiveTab(value);
             if (value === PRODUCT_EDITOR_TABS.content) setContentVisited(true);
           }} />
           
-            <div hidden={activeTab !== PRODUCT_EDITOR_TABS.basic} className="min-w-0 space-y-7 pt-6">
-              <section className="border-b border-border pb-7">
-                <h2 className="mb-4 text-base font-semibold text-primary">Thông tin sản phẩm</h2>
+            <div hidden={activeTab !== PRODUCT_EDITOR_TABS.basic} className="min-w-0 space-y-6 pt-6">
+              <ProductFormSection id="product-information" title="Thông tin sản phẩm" icon={Package} description="Thông tin nhận diện, phân loại và đường dẫn của sản phẩm.">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="sm:col-span-2"><Field label="Tên sản phẩm" required><input className="bt-input" name="name" required minLength={2} maxLength={200} defaultValue={source?.name} onChange={event => { if (!customSlug.current) setSlug(slugify(event.target.value)); }} /></Field></div>
                   <Field label="Mã hàng" required><input className="bt-input" name="code" required maxLength={80} defaultValue={product?.code} /></Field>
@@ -181,11 +181,10 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
                   <Field label="Đường dẫn" required><input className="bt-input" required maxLength={200} pattern="[a-z0-9]+(-[a-z0-9]+)*" value={slug} onChange={event => { customSlug.current = true; setSlug(event.target.value); }} /></Field>
                   <div className="sm:col-span-2"><Field label="Link sản phẩm nhà cung cấp"><input className="bt-input" name="sourceUrl" type="url" maxLength={300} defaultValue={source?.sourceUrl} /></Field></div>
                 </div>
-              </section>
+              </ProductFormSection>
               <ProductVariantFields attributes={variantAttributes} onChange={setVariantAttributes} label={variantLabel} onLabelChange={setVariantLabel} groupId={product?.variantGroupId} siblings={siblings} currentId={product?.id} returnTo={listUrl} schemaLocked={Boolean(template || product?.variantGroupId && (product.id !== product.variantGroupId || siblings.length > 1))} onDetach={product ? setDetachId : undefined} detachDisabled={busy || uploading || Boolean(stale) || !apiMode} unsaved={dirty} />
               <ProductPricingFields value={pricing} onChange={value => { setPricing(value); setPricingEdited(true); setError(""); }} b2cPrice={b2cPrice} b2bPrice={b2bPrice} legacy={!pricingEdited} />
-              <section className="border-b border-border pb-7">
-                <h2 className="mb-4 text-base font-semibold text-primary">Thuộc tính bổ sung</h2>
+              <ProductFormSection id="product-attributes" title="Thuộc tính bổ sung" icon={ListChecks} description="Nội dung ngắn, thông số kỹ thuật, chất liệu và chính sách bảo hành.">
                 <div className="space-y-5">
                   <div>
                     <label htmlFor="product-short-description" className="mb-1.5 block text-sm font-medium text-primary">Nội dung ngắn</label>
@@ -208,13 +207,12 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
                     {[{ name: "material", label: "Chất liệu" }, { name: "size", label: "Kích thước" }, { name: "color", label: "Màu sắc" }, { name: "origin", label: "Xuất xứ" }].filter(field => field.name === "size" ? !variantDimension(variantAttributes, "size") : field.name === "color" ? !variantDimension(variantAttributes, "color") : true).map(({ name, label }) => <Field key={name} label={label}><input name={name} className="bt-input" maxLength={100} defaultValue={source?.[name as "material" | "size" | "color" | "origin"]} /></Field>)}
                   </div>
                 </div>
-              </section>
+              </ProductFormSection>
             </div>
 
-            <div hidden={activeTab !== PRODUCT_EDITOR_TABS.content} className="min-w-0 space-y-7 pt-6">
+            <div hidden={activeTab !== PRODUCT_EDITOR_TABS.content} className="min-w-0 space-y-6 pt-6">
               {contentVisited && <>
-              <section className="border-b border-border pb-7">
-                <h2 className="mb-4 text-base font-semibold text-primary">Nội dung chi tiết</h2>
+              <ProductFormSection id="product-content" title="Nội dung chi tiết" icon={FileText} description="Biên soạn mô tả sản phẩm và hướng dẫn sử dụng cho khách hàng.">
                 <div className="space-y-5">
                   <div>
                     <label htmlFor="product-description" className="mb-1.5 block text-sm font-medium text-primary">Mô tả sản phẩm</label>
@@ -245,25 +243,24 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
                     <input type="hidden" name="usageGuide" value={richUsageGuide} />
                   </div>
                 </div>
-              </section>
+              </ProductFormSection>
               </>}
             </div>
 
           {activeTab === PRODUCT_EDITOR_TABS.media && (
             <div className="min-w-0 pt-6">
-              <section className="pb-5"><ProductImageUpload images={images} onChange={setImages} busy={busy || uploading} uploading={uploading} onBusyChange={setUploading} /></section>
+              <ProductImageUpload images={images} onChange={setImages} busy={busy || uploading} uploading={uploading} onBusyChange={setUploading} />
             </div>
           )}
         </div>
         <aside className="min-w-0 space-y-6 xl:sticky xl:top-20 xl:self-start">
-          <section className="border-b border-border pb-5">
-            <h2 className="mb-4 text-base font-semibold text-primary">Hiển thị</h2>
+          <ProductFormSection id="product-visibility" title="Hiển thị" icon={Eye}>
             <fieldset className="space-y-2"><legend className="sr-only">Chế độ hiển thị</legend>
               {[{ value: false, label: "Riêng tư", Icon: LockKeyhole }, { value: true, label: "Công khai", Icon: Globe }].map(({ value, label, Icon }) => <label key={label} className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-md border px-3 text-sm ${published === value ? "border-brand bg-section text-primary" : "border-border text-text-secondary"}`}><input type="radio" name="visibility" checked={published === value} onChange={() => setPublished(value)} className="accent-brand" /><Icon size={17} /><span>{label}</span></label>)}
             </fieldset>
             <label className="mt-5 flex items-center gap-2 text-sm text-primary"><input type="checkbox" name="featured" defaultChecked={product?.featured} className="h-4 w-4 accent-brand" />Sản phẩm nổi bật</label>
-          </section>
-          {product && <section className="border-b border-border pb-5"><h2 className="mb-2 text-base font-semibold text-primary">Tồn khả dụng</h2><p className="text-sm text-text-secondary">{currentProduct?.stock || 0} {product.unit}</p><Link href="/admin/ledger" className="mt-3 inline-flex text-sm font-medium text-primary">Sổ tồn kho</Link></section>}
+          </ProductFormSection>
+          {product && <ProductFormSection id="product-stock" title="Tồn khả dụng" icon={Warehouse}><p className="text-2xl font-semibold tabular-nums text-primary">{currentProduct?.stock || 0} <span className="text-sm font-normal text-text-secondary">{product.unit}</span></p><Link href="/admin/ledger" className="mt-3 inline-flex text-sm font-medium text-primary underline decoration-border underline-offset-4 hover:decoration-primary">Sổ tồn kho</Link></ProductFormSection>}
           {product?.published && <Link href={`/products/${product.slug}`} target="_blank" rel="noopener noreferrer" className="bt-button-secondary w-full"><ExternalLink size={16} />Xem sản phẩm</Link>}
         </aside>
       </fieldset>

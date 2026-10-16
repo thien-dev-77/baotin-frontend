@@ -56,8 +56,8 @@ export function ProductVariantCopy({ source, targets, disabled, unsaved, onUpdat
   if (!targets.length) return null;
 
   return <>
-    <section aria-label="Sao chép nội dung cho biến thể" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-white p-4">
-      <div className="min-w-0 flex-1"><h2 className="text-sm font-semibold text-primary">Dùng nội dung này cho các biến thể khác</h2><p className="mt-1 text-xs leading-5 text-text-secondary">{unsaved ? "Lưu sản phẩm trước khi áp dụng nội dung cho biến thể khác." : `Chọn nội dung đã lưu của ${source.code} và SKU nhận trong cùng nhóm.`}</p></div>
+    <section aria-label="Sao chép nội dung cho biến thể" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-white p-4">
+      <div className="w-full min-w-0 sm:w-auto sm:flex-1"><h2 className="text-sm font-semibold text-primary">Dùng nội dung này cho các biến thể khác</h2><p className="mt-1 text-xs leading-5 text-text-secondary">{unsaved ? "Lưu sản phẩm trước khi áp dụng nội dung cho biến thể khác." : `Chọn nội dung đã lưu của ${source.code} và SKU nhận trong cùng nhóm.`}</p></div>
       <Button type="button" variant="secondary" onClick={start} disabled={disabled || unsaved || !apiMode}><Copy size={16} />Áp dụng cho biến thể khác</Button>
     </section>
     <Modal open={open} onClose={() => { if (!busy) setOpen(false); }} title="Áp dụng nội dung cho biến thể" busy={busy} trackChanges={false}>

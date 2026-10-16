@@ -6,6 +6,7 @@ import { useState } from "react";
 import { api, apiMode } from "@/lib/api-client";
 import { LoadingSpinner } from "@/components/ui";
 import { MAX_PRODUCT_GALLERY, MAX_IMAGE_UPLOAD_BATCH } from "@/lib/product-media";
+import { ProductFormSection } from "./product-form-section";
 
 type Props = { images: string[]; onChange: (images: string[]) => void; busy: boolean; uploading: boolean; onBusyChange: (busy: boolean) => void };
 
@@ -33,14 +34,13 @@ export function ProductImageUpload({ images, onChange, busy, uploading, onBusyCh
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Không thể tải ảnh."); }
     finally { onBusyChange(false); }
   };
-  return <>
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-      <h2 className="text-base font-semibold text-primary">Hình ảnh <span className="ml-1 text-sm font-normal text-text-muted">{images.length}/{MAX_PRODUCT_GALLERY}</span></h2>
+  return <ProductFormSection id="product-images" title="Hình ảnh" icon={ImagePlus} description="Ảnh đầu tiên là ảnh đại diện. Bạn có thể đổi thứ tự hoặc chọn ảnh đại diện khác." actions={<>
+      <span className="text-xs tabular-nums text-text-muted">{images.length}/{MAX_PRODUCT_GALLERY} ảnh</span>
       <label aria-busy={uploading || undefined} className={`bt-button-secondary cursor-pointer ${busy || images.length >= MAX_PRODUCT_GALLERY || !apiMode ? "pointer-events-none opacity-50" : ""}`}>
         {uploading ? <LoadingSpinner size={17} /> : <ImagePlus size={17} />}Thêm ảnh
         <input type="file" multiple className="sr-only" aria-label="Thêm ảnh sản phẩm" accept="image/jpeg,image/png,image/webp" disabled={busy || images.length >= MAX_PRODUCT_GALLERY || !apiMode} onChange={event => { const files = Array.from(event.target.files || []); event.target.value = ""; void upload(files); }} />
       </label>
-    </div>
+    </>}>
     {error && <p role="alert" className="mb-3 text-sm text-danger">{error}</p>}
     {images.length ? <ol className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
       {images.map((src, index) => <li key={src} className="overflow-hidden rounded-md border border-border bg-white">
@@ -55,5 +55,5 @@ export function ProductImageUpload({ images, onChange, busy, uploading, onBusyCh
         </div>
       </li>)}
     </ol> : <div className="flex min-h-36 items-center justify-center gap-2 border border-dashed border-border bg-section text-sm text-text-muted"><ImagePlus size={20} />Chưa có ảnh</div>}
-  </>;
+  </ProductFormSection>;
 }
