@@ -27,6 +27,7 @@
 }
 
 .content > span:last-child {
+  font-size: 8px;
   text-wrap: balance;
 }
 
@@ -49,7 +50,7 @@
 .compact {
   bottom: 8px;
   left: 0;
-  width: min(84%, 240px);
+  width: min(84%, 188px);
   max-width: calc(100% - 16px);
   border-radius: 0 6px 6px 0;
   box-shadow: 0 2px 6px rgb(0 0 0 / 16%);
