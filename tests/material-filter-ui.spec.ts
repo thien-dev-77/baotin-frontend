@@ -14,6 +14,9 @@ const products = materials.map((material, index) => ({ ...catalog[0], id: `QA-MA
   ...(index === 1 ? { color: "Trắng", origin: "Made in Malaysia" } : {}),
   ...(index === 2 ? { color: "Black", colorGroups: [], origin: "Germany", originGroups: [] } : {}),
 }));
+const noColorCategory = { slug: "qa-no-color", name: "QA chưa có màu", image: "/product-placeholder.svg", description: "", subcategories: [] };
+const fixtureCategories = [...categoryCatalog, noColorCategory];
+const fixtureProducts = [...products, ...[0, 1].map(index => ({ ...catalog[0], id: `QA-NO-COLOR-${index}`, code: `QA-NO-COLOR-${index}`, slug: `qa-no-color-${index}`, name: `QA chưa có màu ${index}`, category: noColorCategory.slug, brand: "QA Scope", material: "", color: "", origin: "", image: "/product-placeholder.svg", gallery: ["/product-placeholder.svg"] }))];
 let server: Server;
 let child: ChildProcess;
 let logs = "";
@@ -26,8 +29,9 @@ test.beforeAll(async ({ request }) => {
     const url = new URL(incoming.url!, backend);
     const json = (value: unknown, status = 200) => { outgoing.writeHead(status, { "Content-Type": "application/json" }); outgoing.end(JSON.stringify(value)); };
     if (incoming.method !== "GET") { json({ message: "Read-only QA API" }, 405); return; }
-    if (url.pathname === "/api/catalog/bootstrap") { json({ products, categories: categoryCatalog, brands: ["Fulco", "HAFELE"] }); return; }
-    if (url.pathname === "/api/catalog/search") { json(previewCatalogPage(products, categoryCatalog, url.searchParams)); return; }
+    if (url.pathname === "/api/catalog/bootstrap") { json({ products: fixtureProducts, categories: fixtureCategories, brands: ["Fulco", "HAFELE", "QA Scope"] }); return; }
+    if (url.pathname === "/api/catalog/search") { json(previewCatalogPage(fixtureProducts, fixtureCategories, url.searchParams)); return; }
+    if (url.pathname === `/api/categories/${noColorCategory.slug}`) { json(noColorCategory); return; }
     if (url.pathname === "/api/auth/session") { json({ user: null }); return; }
     if (url.pathname === "/api/orders") { json([]); return; }
     if (url.pathname === "/api/health") { json({ status: "ok" }); return; }
@@ -135,4 +139,28 @@ for (const width of [1440, 390]) test(`Color and origin groups use explicit sele
   await color.getByRole("button", { name: "Bỏ chọn", exact: true }).click();
   await expect(page).toHaveURL(url => !url.searchParams.has("colorGroup") && url.searchParams.get("originGroup") === "malaysia");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+});
+
+for (const width of [1440, 390]) test(`A category without colors hides unrelated choices and can clear a previously selected color at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 1000 });
+  const path = `${frontend}/category/${noColorCategory.slug}?category=${noColorCategory.slug}`;
+  await page.goto(path);
+  await expect(page.locator("header").first()).toHaveAttribute("aria-busy", "false");
+  await expect(page.locator('section[aria-label="Kết quả sản phẩm"] .bt-product-card')).toHaveCount(2);
+  if (width < 1024) await page.getByRole("button", { name: /^Bộ lọc/ }).click();
+  const panel = width < 1024 ? page.getByRole("dialog", { name: "Lọc sản phẩm", exact: true }) : page.locator("aside");
+  await expect(panel.locator('[data-attribute-filter="color"]')).toHaveCount(0);
+  if (width < 1024) await panel.getByRole("button", { name: /^Xem \d+ sản phẩm$/ }).click();
+  await page.goto(path + "&colorGroup=white");
+  await expect(page.locator("header").first()).toHaveAttribute("aria-busy", "false");
+  await expect(page.getByText("Không tìm thấy sản phẩm phù hợp", { exact: true })).toBeVisible();
+  if (width < 1024) await page.getByRole("button", { name: /^Bộ lọc/ }).click();
+  const color = panel.locator('[data-attribute-filter="color"]');
+  await expect(color.getByRole("checkbox", { name: "Trắng", exact: true })).toBeChecked();
+  await expect(color.getByRole("checkbox")).toHaveCount(1);
+  await color.getByRole("button", { name: "Bỏ chọn", exact: true }).click();
+  await expect(page).toHaveURL(url => !url.searchParams.has("colorGroup") && url.searchParams.get("category") === noColorCategory.slug);
+  await expect(color).toHaveCount(0);
+  if (width < 1024) await panel.getByRole("button", { name: /^Xem \d+ sản phẩm$/ }).click();
+  await expect(page.locator('section[aria-label="Kết quả sản phẩm"] .bt-product-card')).toHaveCount(2);
 });

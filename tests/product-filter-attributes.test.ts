@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { availableFacetGroups, inferredFacetGroups, matchesProductFacet, productFacetGroups, PRODUCT_FACETS, PRODUCT_FACET_FIELDS, type ProductFacetField } from "../lib/product-filter-attributes";
+import { catalog, categoryCatalog } from "../lib/catalog";
+import { previewCatalogPage } from "../lib/catalog-query";
 
 const cases: [ProductFacetField, string, string[]][] = [
   ["color", "Màu đen mờ", ["black"]],
@@ -50,4 +52,25 @@ test("Published metadata is authoritative; selected empty-result groups remain r
     assert.equal(new Set(values).size, values.length);
     assert.deepEqual(productFacetGroups({ [`${field}Groups`]: ["invalid"] }, field), []);
   }
+});
+
+test("Preview facets belong to the category, brand and query before active filters and pagination", () => {
+  const categories = [...categoryCatalog,
+    { slug: "qa-scope", name: "QA Scope", image: "", description: "", subcategories: [] },
+    { slug: "qa-child", parentSlug: "qa-scope", name: "QA Child", image: "", description: "", subcategories: [] },
+  ];
+  const products = [
+    { ...catalog[0], id: "scope-black", name: "Inside black", category: "qa-child", brand: "Scope A", color: "Đen", material: "Thép", origin: "Việt Nam" },
+    { ...catalog[0], id: "scope-empty", name: "Inside empty", category: "qa-child", brand: "Scope A", color: "", material: "", origin: "" },
+    { ...catalog[0], id: "scope-outside", name: "Outside white", category: "led-tu-ke", brand: "Scope B", color: "Trắng", material: "Nhựa", origin: "Germany" },
+  ];
+  const filtered = previewCatalogPage(products, categories, new URLSearchParams("category=qa-scope&colorGroup=white&pageSize=1"));
+  assert.equal(filtered.total, 0);
+  assert.deepEqual(filtered.facets.colorGroup, ["black"]);
+  assert.deepEqual(filtered.facets.materialGroup, ["steel"]);
+  assert.deepEqual(filtered.facets.originGroup, ["vietnam"]);
+  assert.deepEqual(previewCatalogPage(products, categories, new URLSearchParams("brand=Scope B")).facets.colorGroup, ["white"]);
+  assert.deepEqual(previewCatalogPage(products, categories, new URLSearchParams("q=Inside&pageSize=1")).facets.colorGroup, ["black"]);
+  assert.deepEqual(previewCatalogPage(products, categories, new URLSearchParams("q=missing")).facets.colorGroup, []);
+  assert.deepEqual(availableFacetGroups("color", [], ["white"], filtered.facets.colorGroup).map(option => option.value), ["black", "white"]);
 });

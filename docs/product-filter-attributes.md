@@ -12,7 +12,11 @@ its own value. The color description still comes from the variant dimension.
 
 The storefront uses the same vocabulary in the sidebar and mobile drawer.
 Published effective groups from API metadata are authoritative, with text
-inference retained for older metadata. Groups are collapsed after six choices,
+inference retained for older metadata. Group choices follow the current category
+(including descendants), brand and search across all matching products, rather
+than the global catalog or only the current result page. Empty facets are hidden;
+selected values remain removable even if the current scope has no matches.
+Groups are collapsed after six choices,
 expanded lists scroll within 256px, and selected options remain visible.
 Existing exact-text links remain removable. New grouped choices clear only the
 corresponding legacy text constraint, retain other filters, and reset pagination.
