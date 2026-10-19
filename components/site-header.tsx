@@ -1,5 +1,6 @@
 "use client";
 import { CategoryMenu } from "@/components/category-menu";
+import { BrandMenu } from "@/components/brand-menu";
 import { Logo } from "@/components/logo";
 import { SearchBox } from "@/components/search-box";
 import { Modal } from "@/components/ui";
@@ -22,6 +23,8 @@ type HeaderService = {
   icon: LucideIcon;
   isZalo?: boolean;
 };
+
+type HeaderNavigationItem = { label: string; href: string } | { label: string; type: "brands" };
 
 const quoteAction: HeaderService = {
   title: "Nhận báo giá",
@@ -90,21 +93,25 @@ export function SiteHeader() {
     { label: "Yêu thích", accessibleName: "Yêu thích", href: "/wishlist", icon: Heart },
     { label: "Giỏ hàng", accessibleName: `Giỏ hàng, ${count} sản phẩm`, href: "/cart", icon: ShoppingCart },
   ];
-  const navigation = [
+  const navigation: HeaderNavigationItem[] = [
     { label: "Sản phẩm", href: "/catalog" },
     { label: "Đặt hàng B2B", href: "/account/products" },
-    { label: "Thương hiệu", href: "/brand/fulco" },
+    { label: "Thương hiệu", type: "brands" },
     { label: "Khuyến mãi", href: "/promotions" },
     { label: "Tài liệu kỹ thuật", href: "/guides" },
     { label: "Liên hệ", href: "/contact" },
   ];
   const quickServices = [services[0], quoteAction, services[1]];
   // Keep both Zalo actions in the drawer even though they share the same URL.
-  const drawerLinks = Array.from(new Map([
+  const drawerItems: HeaderNavigationItem[] = [
     ...actions, ...services.map(action => ({ label: action.title, href: action.href })),
     { label: quoteAction.title, href: quoteAction.href }, ...navigation,
     { label: "Chính sách B2B", href: "/policies/cong-no" },
-  ].map(item => [item.href === storeContact.zaloHref ? `${item.href}#${item.label}` : item.href, item])).values());
+  ];
+  const drawerLinks = Array.from(new Map<string, HeaderNavigationItem>(drawerItems.map(item => {
+    if (!("href" in item)) return ["brands", item] as const;
+    return [item.href === storeContact.zaloHref ? `${item.href}#${item.label}` : item.href, item] as const;
+  })).values());
   return (
     <>
       <a
@@ -197,17 +204,17 @@ export function SiteHeader() {
               aria-label="Điều hướng chính"
               className="bt-header-navigation scrollbar-hide"
             >
-              {navigation.map(({ label, href }) => (
+              {navigation.map(item => "href" in item ? (
                 <Link
-                  key={label}
-                  href={href}
+                  key={item.label}
+                  href={item.href}
                   prefetch={false}
-                  aria-current={pathname === href ? "page" : undefined}
+                  aria-current={pathname === item.href ? "page" : undefined}
                   className="bt-header-nav-link"
                 >
-                  {label}
+                  {item.label}
                 </Link>
-              ))}
+              ) : <BrandMenu key={item.label} />)}
             </nav>
             <HeaderServiceLink action={quoteAction} textLink />
             <a href={storeContact.phoneHref} className="bt-header-hotline"><Phone size={15} strokeWidth={1.8} aria-hidden="true" /><span>Hotline: <strong>{storeContact.displayPhone}</strong></span></a>
@@ -222,7 +229,7 @@ export function SiteHeader() {
       >
         <nav className="space-y-1">
           <CategoryLinks onNavigate={() => setMobile(false)} />
-          {drawerLinks.map((item) => (
+          {drawerLinks.map((item) => "href" in item ? (
             <Link
               key={item.href}
               href={item.href}
@@ -234,7 +241,7 @@ export function SiteHeader() {
             >
               {item.label}
             </Link>
-          ))}
+          ) : <BrandMenu key={item.label} inline onNavigate={() => setMobile(false)} />)}
         </nav>
       </Modal>
     </>

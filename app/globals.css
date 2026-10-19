@@ -391,6 +391,20 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
 .bt-header-navigation { display: flex; min-width: 0; flex: 1; align-items: center; gap: 16px; overflow-x: auto; }
 .bt-header-nav-link { display: inline-flex; min-height: 44px; flex-shrink: 0; align-items: center; border-bottom: 2px solid transparent; color: var(--color-primary); font-size: 13px; font-weight: 500; line-height: 20px; white-space: nowrap; }
 .bt-header-nav-link:hover, .bt-header-nav-link[aria-current="page"] { border-bottom-color: var(--color-brand); }
+.bt-brand-menu { flex-shrink: 0; }
+.bt-brand-trigger { gap: 6px; cursor: pointer; }
+.bt-brand-trigger[aria-expanded="true"], .bt-brand-trigger[data-active="true"] { border-bottom-color: var(--color-brand); }
+.bt-brand-trigger svg { transition: transform 140ms ease; }
+.bt-brand-trigger[aria-expanded="true"] svg { transform: rotate(180deg); }
+.bt-brand-panel { position: fixed; z-index: 45; display: flex; padding-top: 6px; }
+.bt-brand-list { width: 100%; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-background); padding: 6px; box-shadow: 0 10px 28px rgb(23 23 23 / 12%); }
+.bt-brand-link { display: flex; min-height: 42px; align-items: center; border-radius: 6px; padding: 10px 12px; color: var(--color-primary); font-size: 13px; font-weight: 500; line-height: 20px; overflow-wrap: anywhere; }
+.bt-brand-link:hover, .bt-brand-link:focus-visible, .bt-brand-link[aria-current="page"] { background: var(--color-section); box-shadow: inset 2px 0 var(--color-brand); }
+.bt-brand-link:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; }
+.bt-brand-empty { padding: 10px 12px; color: var(--color-text-muted); font-size: 13px; }
+.bt-brand-menu--inline .bt-brand-trigger { width: 100%; justify-content: space-between; border: 0; padding-block: 12px; font-size: 14px; font-weight: 600; }
+.bt-brand-panel--inline { position: static; padding-top: 0; }
+.bt-brand-panel--inline .bt-brand-list { max-height: 280px; background: var(--color-section); box-shadow: none; }
 .bt-header-hotline { display: none; flex-shrink: 0; align-items: center; gap: 6px; color: var(--color-text-secondary); font-size: 12px; line-height: 20px; white-space: nowrap; }
 .bt-header-hotline svg { color: var(--color-brand-hover); }
 .bt-header-hotline strong { color: var(--color-primary); font-weight: 600; }
