@@ -57,6 +57,18 @@ npm run dev -- --port 3010
 
 Website: http://localhost:3010. Quan tri: http://localhost:3010/admin.
 Thu tien va doi chieu: http://localhost:3010/admin/accounting.
+
+Build production tren hosting bang `npm run build` (khong goi truc tiep
+`next build`). Script `scripts/build.mjs` chay Webpack voi cac pool
+Tokio, Rayon, libuv va so module Webpack xu ly dong thoi deu gioi han 1;
+Next.js gioi han worker thu thap du lieu/prerender qua `experimental.cpus: 1`.
+Cac bien nay duoc dat truoc khi Next/SWC khoi dong de tranh loi
+`OS can't spawn worker thread`
+tren hosting gioi han process/thread. Build co the cham hon; van giu
+kiem tra TypeScript. Cau hinh nay chi gioi han tung pool, khong phai tong
+so thread cua toan bo build. Neu hosting van bao loi, can kiem tra quota
+process/thread va tai khoan hosting tai thoi diem build.
+
 Frontend env: NEXT_PUBLIC_API_MODE=true, BACKEND_URL=http://127.0.0.1:4000.
 Chay API tu repo backend theo
 [backend README](https://github.com/thien-dev-77/baotin-backend/blob/develop/README.md).
