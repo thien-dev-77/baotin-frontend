@@ -9,7 +9,8 @@ The group definitions and aliases live in `lib/material-groups.ts`. They match
 the backend's definitions, including explicit 304 grades, unspecified inox,
 stainless versus ordinary steel, and products containing multiple materials.
 Only groups present in published metadata or already selected are shown.
-Product cards, details and admin forms keep the original material text.
+Product cards and details keep the original material text. Admin forms now also
+support explicit group selections; see `docs/product-filter-attributes.md`.
 
 New selections use repeated `materialGroup` URL parameters, retain other filters
 and reset pagination. Old exact `material` parameters still work and appear as

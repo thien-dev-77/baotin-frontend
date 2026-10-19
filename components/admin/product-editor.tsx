@@ -23,6 +23,7 @@ import { ProductVariantDetach } from "./product-variant-detach";
 import { variantDimension } from "@/lib/product-variants";
 import { PRODUCT_SPECIFICATION_MAX_LENGTH, PRODUCT_TECHNICAL_DETAILS_MAX_LENGTH } from "@/lib/product-content";
 import { ProductFormSection } from "./product-form-section";
+import { ProductFilterAttributes, productFilterDraft } from "./product-filter-attributes";
 const RichTextEditor = dynamic(() => import("./rich-text-editor").then(module => module.RichTextEditor), {
   ssr: false,
   loading: () => <p role="status" className="py-3 text-sm text-text-secondary">Đang tải trình soạn thảo...</p>,
@@ -82,11 +83,15 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
   const [richTechnicalDetails, setRichTechnicalDetails] = useState(source?.technicalDetails || source?.specification || "");
   const [richUsageGuide, setRichUsageGuide] = useState(source?.usageGuide || "");
   const [richShortDescription, setRichShortDescription] = useState(source?.shortDescription || "");
+  const [filterAttributes, setFilterAttributes] = useState(() => {
+    const draft = productFilterDraft(source);
+    return template && variantDimension(template.variantAttributes || [], "color") ? { ...draft, color: "", colorGroups: null } : draft;
+  });
   const listPrice = Number(pricing.listPrice), b2cDiscount = Number(pricing.b2cDiscount), b2bDiscount = Number(pricing.b2bDiscount);
   const validPricing = Number.isSafeInteger(listPrice) && listPrice >= 0 && listPrice <= MAX_PRODUCT_PRICE && [b2cDiscount, b2bDiscount].every(value => Number.isFinite(value) && value >= 0 && value <= MAX_PRODUCT_DISCOUNT && Math.abs(value * 100 - Math.round(value * 100)) < 0.000001);
   const b2cPrice = pricingEdited ? validPricing ? discountedPrice(listPrice, b2cDiscount) : 0 : initialPrices.b2cPrice;
   const b2bPrice = pricingEdited ? validPricing ? discountedPrice(listPrice, b2bDiscount) : 0 : initialPrices.b2bPrice;
-  const { dirty, markSaved, close } = useUnsavedForm(formRef, true, busy || uploading, JSON.stringify([images, richDescription, richTechnicalDetails, richUsageGuide, richShortDescription]));
+  const { dirty, markSaved, close } = useUnsavedForm(formRef, true, busy || uploading, JSON.stringify([images, richDescription, richTechnicalDetails, richUsageGuide, richShortDescription, filterAttributes]));
   const categories = apiCategories || categoryCatalog;
   const stale = product && currentProduct?.revision !== product.revision;
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -98,9 +103,10 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
       name: text("name"), code: text("code"), slug: slug.trim(), category, subcategory,
       brand: text("brand"), unit: text("unit"), price: b2cPrice,
       ...(pricingEdited ? { listPrice, b2cDiscount, b2bDiscount } : product?.oldPrice !== undefined ? { oldPrice: product.oldPrice } : {}),
-      specification: specification.trim(), material: text("material"),
+      specification: specification.trim(), material: filterAttributes.material.trim(),
+      materialGroups: filterAttributes.materialGroups, colorGroups: filterAttributes.colorGroups, originGroups: filterAttributes.originGroups,
       size: variantDimension(variantAttributes, "size")?.value.trim() || text("size"),
-      color: variantDimension(variantAttributes, "color")?.value.trim() || text("color"), origin: text("origin"),
+      color: variantDimension(variantAttributes, "color")?.value.trim() || filterAttributes.color.trim(), origin: filterAttributes.origin.trim(),
       description: richDescription || text("description"), 
       technicalDetails: richTechnicalDetails || text("technicalDetails"),
       usageGuide: richUsageGuide || text("usageGuide"),
@@ -205,10 +211,11 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
                       <RichTextEditor id="product-specification" label="Thông số kỹ thuật" value={richTechnicalDetails} onChange={setRichTechnicalDetails} onPlainTextChange={text => setSpecification(Array.from(text).slice(0, PRODUCT_SPECIFICATION_MAX_LENGTH).join(""))} disabled={busy || uploading} placeholder="Nhập thông số kỹ thuật, danh sách hoặc bảng thông số..." minHeight="250px" />
                     </Field></div>
                     <div className="sm:col-span-2"><Field label="Bảo hành"><input name="warranty" className="bt-input" maxLength={500} defaultValue={source?.warranty} /></Field></div>
-                    {[{ name: "material", label: "Chất liệu" }, { name: "size", label: "Kích thước" }, { name: "color", label: "Màu sắc" }, { name: "origin", label: "Xuất xứ" }].filter(field => field.name === "size" ? !variantDimension(variantAttributes, "size") : field.name === "color" ? !variantDimension(variantAttributes, "color") : true).map(({ name, label }) => <Field key={name} label={label}><input name={name} className="bt-input" maxLength={100} defaultValue={source?.[name as "material" | "size" | "color" | "origin"]} /></Field>)}
+                    {!variantDimension(variantAttributes, "size") && <Field label="Kích thước"><input name="size" className="bt-input" maxLength={100} defaultValue={source?.size} /></Field>}
                   </div>
                 </div>
               </ProductFormSection>
+              <ProductFilterAttributes value={filterAttributes} onChange={setFilterAttributes} variantColor={variantDimension(variantAttributes, "color")?.value} />
             </div>
 
             <div hidden={activeTab !== PRODUCT_EDITOR_TABS.content} className="min-w-0 space-y-6 pt-6">

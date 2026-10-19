@@ -2,11 +2,12 @@ import { getCatalogBrands, normalize, priceFor } from "./catalog";
 import type { CatalogPageResponse } from "./api-types";
 import type { Category, Customer, Product } from "./types";
 import { categoryDescendants } from "./category-tree";
-import { matchesMaterialGroups } from "./material-groups";
+import { matchesProductFacet, productFacetGroups, PRODUCT_FACET_FIELDS, PRODUCT_FACETS } from "./product-filter-attributes";
 
 export type ListingScope = { category?: string; brand?: string; query?: string; promotion?: boolean };
 export type ListingSearchParams = Record<string, string | string[] | undefined>;
-export const catalogFilterFields = ["category", "brand", "material", "materialGroup", "color", "size", "origin", "stock"] as const;
+const rawFilterFields = ["category", "brand", "material", "color", "size", "origin", "stock"] as const;
+export const catalogFilterFields = [...rawFilterFields, "materialGroup", "colorGroup", "originGroup"] as const;
 const scalarFields = ["q", "subcategory", "min", "max", "sort", "page"] as const;
 
 export function listingParams(raw: ListingSearchParams, scope: ListingScope = {}) {
@@ -26,12 +27,12 @@ export function listingParams(raw: ListingSearchParams, scope: ListingScope = {}
 export function previewCatalogPage(products: Product[], categories: Category[], params: URLSearchParams, customer: Customer | null = null): CatalogPageResponse {
   const terms = normalize(params.get("q") || "").trim().split(/\s+/).filter(Boolean);
   const filtered = products.filter(product => terms.every(term => normalize(`${product.name} ${product.code} ${product.brand} ${product.specification}`).includes(term)) &&
-    catalogFilterFields.every(field => {
+    rawFilterFields.every(field => {
       const values = params.getAll(field);
-      if (field === "materialGroup") return matchesMaterialGroups(product.material, values);
       const expanded = field === "category" ? values.flatMap(slug => categoryDescendants(categories, slug)) : values;
       return !values.length || expanded.includes(field === "stock" ? product.stock > 0 ? "in" : "out" : product[field]);
-    }) && (!params.get("subcategory") || product.subcategory === params.get("subcategory")) &&
+    }) && PRODUCT_FACET_FIELDS.every(field => matchesProductFacet(product, field, params.getAll(PRODUCT_FACETS[field].queryField))) &&
+    (!params.get("subcategory") || product.subcategory === params.get("subcategory")) &&
     (!params.has("min") || priceFor(product, customer) >= Number(params.get("min"))) &&
     (!params.has("max") || priceFor(product, customer) <= Number(params.get("max"))) &&
     (!params.has("promotion") || !!product.oldPrice && product.oldPrice > product.price),
@@ -41,5 +42,6 @@ export function previewCatalogPage(products: Product[], categories: Category[], 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const page = Math.min(Math.max(1, Number(params.get("page")) || 1), totalPages);
   const facets = Object.fromEntries((["brand", "material", "color", "size", "origin"] as const).map(field => [field, Array.from(new Set(products.map(product => product[field]).filter(Boolean))).sort()])) as CatalogPageResponse["facets"];
-  return { products: filtered.slice((page - 1) * pageSize, page * pageSize), categories, brands: getCatalogBrands(products), total: filtered.length, page, pageSize, totalPages, facets };
+  const grouped = Object.fromEntries(PRODUCT_FACET_FIELDS.map(field => [PRODUCT_FACETS[field].queryField, Array.from(new Set(products.flatMap(product => productFacetGroups(product, field))))]));
+  return { products: filtered.slice((page - 1) * pageSize, page * pageSize), categories, brands: getCatalogBrands(products), total: filtered.length, page, pageSize, totalPages, facets: { ...facets, ...grouped } };
 }

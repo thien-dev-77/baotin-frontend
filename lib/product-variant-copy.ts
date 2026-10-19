@@ -7,7 +7,7 @@ export const productVariantCopyFields = [
   { key: "warranty", label: "Bảo hành", defaultSelected: true },
   { key: "technicalDetails", label: "Thông số kỹ thuật", defaultSelected: false },
   { key: "gallery", label: "Hình ảnh", defaultSelected: false },
-  { key: "material", label: "Chất liệu", defaultSelected: false },
-  { key: "origin", label: "Xuất xứ", defaultSelected: false },
+  { key: "material", label: "Chất liệu và nhóm lọc", defaultSelected: false },
+  { key: "origin", label: "Xuất xứ và nhóm lọc", defaultSelected: false },
 ] as const;
 export type ProductVariantCopyField = typeof productVariantCopyFields[number]["key"];

@@ -2,6 +2,7 @@ import type { AdminApproval, AdminCustomer, AdminOrder, Category, Order, Product
 import type { WarehouseRecord } from "./admin-warehouse";
 import type { Receipt } from "./admin-accounting";
 import type { CustomerDirectory } from "./customer-management";
+import type { ProductFacetQuery } from "./product-filter-attributes";
 
 export type AdminBrowseResource = "products" | "orders" | "customers" | "approvals" | "receipts" | "warehouse";
 export type AdminPageInfo = { resource: AdminBrowseResource; total: number; page: number; pageSize: number; totalPages: number; ids: string[] };
@@ -21,7 +22,7 @@ export type ApiAdminState = {
 };
 export type ApiSession = { user: SessionUser | null };
 export type CatalogResponse = { products: Product[]; categories: Category[]; brands?: string[] };
-export type CatalogFacets = Record<"brand" | "material" | "color" | "size" | "origin", string[]>;
+export type CatalogFacets = Record<"brand" | "material" | "color" | "size" | "origin", string[]> & Partial<Record<ProductFacetQuery, string[]>>;
 export type CatalogPageResponse = CatalogResponse & { total: number; page: number; pageSize: number; totalPages: number; facets: CatalogFacets };
 export type CheckoutDraft = {
   items: { productId: string; quantity: number }[];

@@ -11,7 +11,7 @@ import type { ProductVariantCopyField } from "../lib/product-variant-copy";
 
 const base = "http://127.0.0.1:3054";
 const staff = { id: "qa-admin", name: "QA Admin", email: "qa@example.test", role: "admin", branches: ["Quy Nhơn"], customer: null };
-const initialProduct = { ...catalog[0], id: "qa-rich-specification", slug: "qa-rich-specification", code: "QA-RICH", published: true, revision: 1, description: "Mô tả cũ", technicalDetails: "Kích thước: 730 × 430\nCông suất < 2800W", shortDescription: "", usageGuide: "", gallery: [catalog[0].image], showAuthenticityLabel: undefined as boolean | undefined };
+const initialProduct = { ...catalog[0], id: "qa-rich-specification", slug: "qa-rich-specification", code: "QA-RICH", published: true, revision: 1, description: "Mô tả cũ", technicalDetails: "Kích thước: 730 × 430\nCông suất < 2800W", shortDescription: "", usageGuide: "", gallery: [catalog[0].image], showAuthenticityLabel: undefined as boolean | undefined, materialGroups: null as string[] | null, colorGroups: null as string[] | null, originGroups: null as string[] | null };
 let product = { ...initialProduct };
 let server: Server;
 let child: ChildProcess;
@@ -142,6 +142,73 @@ test("New products enable the authenticity label by default", async ({ page }) =
   await mockEditor(page);
   await page.goto(`${base}/admin/products/new`);
   await expect(page.getByRole("checkbox", { name: "Hiển thị nhãn phân phối chính hãng", exact: true })).toBeChecked();
+});
+
+for (const width of [1440, 390]) test(`Facet selections save, survive reload, filter products and restore automatic mode at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 1000 });
+  const api = await mockEditor(page, { material: "Inox 304 + nhựa ABS", color: "Đen mờ", origin: "Made in Malaysia" });
+  await page.goto(`${base}/admin/products/${product.id}/edit`);
+  const material = page.locator('[data-product-facet="material"]');
+  const color = page.locator('[data-product-facet="color"]');
+  const origin = page.locator('[data-product-facet="origin"]');
+  await expect(material.getByRole("checkbox", { name: "Inox 304", exact: true })).toBeChecked();
+  await expect(material.getByRole("checkbox", { name: "Nhựa", exact: true })).toBeChecked();
+  await expect(color.getByRole("checkbox", { name: "Đen", exact: true })).toBeChecked();
+  await expect(origin.getByRole("checkbox", { name: "Malaysia", exact: true })).toBeChecked();
+  await material.getByRole("checkbox", { name: "Inox 304", exact: true }).uncheck();
+  await color.getByRole("checkbox", { name: "Trắng", exact: true }).check();
+  await color.getByRole("checkbox", { name: "Đen", exact: true }).uncheck();
+  await origin.getByRole("checkbox", { name: "Đức", exact: true }).check();
+  await expect(page.locator("form[data-unsaved=true]")).toHaveCount(1);
+  await page.getByRole("button", { name: "Lưu sản phẩm", exact: true }).click();
+  await expect.poll(() => api.writes.length).toBe(1);
+  expect(api.writes[0]).toMatchObject({ material: "Inox 304 + nhựa ABS", color: "Đen mờ", origin: "Made in Malaysia", materialGroups: ["plastic"], colorGroups: ["white"], originGroups: ["malaysia", "germany"] });
+  await expect(page.locator("form[data-unsaved=true]")).toHaveCount(0);
+  await page.reload();
+  await expect(color.getByRole("checkbox", { name: "Trắng", exact: true })).toBeChecked();
+  await expect(color.getByRole("checkbox", { name: "Đen", exact: true })).not.toBeChecked();
+  await expect(origin.getByRole("checkbox", { name: "Đức", exact: true })).toBeChecked();
+  await expect(page.getByLabel("Mô tả màu sắc", { exact: true })).toHaveValue("Đen mờ");
+  await page.getByRole("region", { name: "Phân loại bộ lọc", exact: true }).scrollIntoViewIfNeeded();
+  await mkdir("/private/tmp/baotin-product-filter-attributes", { recursive: true });
+  await page.getByRole("region", { name: "Phân loại bộ lọc", exact: true }).screenshot({ path: `/private/tmp/baotin-product-filter-attributes/admin-${width}.png` });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await page.goto(`${base}/search?colorGroup=white&originGroup=germany`);
+  await expect(page.locator(".bt-product-card")).toHaveCount(1);
+  await page.goto(`${base}/search?colorGroup=black`);
+  await expect(page.getByText("Không tìm thấy sản phẩm phù hợp", { exact: true })).toBeVisible();
+  await page.goto(`${base}/admin/products/${product.id}/edit`);
+  for (const field of [material, color, origin]) await field.getByRole("button", { name: "Dùng tự động", exact: true }).click();
+  await page.getByRole("button", { name: "Lưu sản phẩm", exact: true }).click();
+  await expect.poll(() => api.writes.length).toBe(2);
+  expect(api.writes[1]).toMatchObject({ materialGroups: null, colorGroups: null, originGroups: null });
+  await expect(color.getByRole("checkbox", { name: "Đen", exact: true })).toBeChecked();
+  await expect(origin.getByRole("checkbox", { name: "Đức", exact: true })).not.toBeChecked();
+  expect(api.errors).toEqual([]);
+});
+
+test("Empty manual facets persist and a color variant keeps its identity while editing filter groups", async ({ page }) => {
+  const api = await mockEditor(page, { color: "Đen", variantGroupId: "qa-rich-specification", variantAttributes: [{ name: "Màu sắc", value: "Đen" }], colorGroups: ["black"] });
+  await page.goto(`${base}/admin/products/${product.id}/edit`);
+  const color = page.locator('[data-product-facet="color"]');
+  await expect(page.getByLabel("Mô tả màu sắc", { exact: true })).toHaveAttribute("readonly", "");
+  await color.getByRole("checkbox", { name: "Đen", exact: true }).uncheck();
+  await page.getByRole("button", { name: "Lưu sản phẩm", exact: true }).click();
+  await expect.poll(() => api.writes.length).toBe(1);
+  expect(api.writes[0]).toMatchObject({ color: "Đen", colorGroups: [], variantAttributes: [{ name: "Màu sắc", value: "Đen" }] });
+  await page.reload();
+  await expect(color.getByRole("checkbox", { name: "Đen", exact: true })).not.toBeChecked();
+  expect(api.errors).toEqual([]);
+});
+
+test("A new color variant infers from its own value rather than inheriting the template's color selection", async ({ page }) => {
+  await mockEditor(page, { color: "Đen", variantGroupId: "qa-rich-specification", variantAttributes: [{ name: "Màu sắc", value: "Đen" }], colorGroups: ["black"] });
+  await page.goto(`${base}/admin/products/new?variantOf=${product.id}`);
+  const color = page.locator('[data-product-facet="color"]');
+  await expect(color.getByRole("checkbox", { name: "Đen", exact: true })).not.toBeChecked();
+  await page.getByLabel("Giá trị Màu sắc", { exact: true }).fill("Trắng");
+  await expect(color.getByRole("checkbox", { name: "Trắng", exact: true })).toBeChecked();
+  await expect(page.getByLabel("Mô tả màu sắc", { exact: true })).toHaveValue("Trắng");
 });
 
 for (const width of [1440, 390]) test(`Editor tabs retain content and save formatted technical details at ${width}px`, async ({ page }) => {

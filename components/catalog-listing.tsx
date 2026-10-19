@@ -18,7 +18,8 @@ import { SearchBox } from "./search-box";
 import { PromotionCard } from "./promotion-card";
 import { Breadcrumb, Button, EmptyState, Modal, PageHeading, Tabs } from "./ui";
 import { ResourceStatus } from "./admin/admin-resource";
-import { CatalogMaterialFilter } from "./catalog-material-filter";
+import { CatalogAttributeFilter } from "./catalog-attribute-filter";
+import { PRODUCT_FACET_FIELDS, PRODUCT_FACETS } from "@/lib/product-filter-attributes";
 
 type Props = { category?: Category; query?: string; brand?: string; promotion?: boolean; queryString: string; initialPage?: CatalogPageResponse; initialError?: string };
 
@@ -46,7 +47,7 @@ export function CatalogListing({ category, query, brand, promotion = false, quer
   const matchedCategories = categories.filter(item => terms.every(term => normalize(item.name).includes(term)));
   const matchedBrands = brands.filter(name => terms.every(term => normalize(name).includes(term)));
   const selected = (field: string) => params.getAll(field);
-  const filterFields = ["category", "brand", "material", "materialGroup", "color", "size", "origin", "stock", "subcategory", "min", "max"];
+  const filterFields = ["category", "brand", "material", "materialGroup", "color", "colorGroup", "size", "origin", "originGroup", "stock", "subcategory", "min", "max"];
   const count = filterFields.reduce((sum, field) => sum + ((field === "category" && category || field === "brand" && brand) ? 0 : selected(field).length), 0);
   const navigate = (next: URLSearchParams) => startTransition(() => {
     setOptimisticQuery(next.toString());
@@ -55,7 +56,8 @@ export function CatalogListing({ category, query, brand, promotion = false, quer
   const change = (field: string, values: string[]) => {
     const next = new URLSearchParams(queryString);
     next.delete(field);
-    if (field === "materialGroup") next.delete("material");
+    const attribute = PRODUCT_FACET_FIELDS.find(item => PRODUCT_FACETS[item].queryField === field);
+    if (attribute) next.delete(attribute);
     values.filter(Boolean).forEach(value => next.append(field, value));
     if (field !== "page") next.delete("page");
     navigate(next);
@@ -71,15 +73,14 @@ export function CatalogListing({ category, query, brand, promotion = false, quer
   const groups = [
     ...(!category ? [{ key: "category", title: "Danh mục", options: treeCategories.map(item => ({ value: item.slug, label: categoryLabel(treeCategories, item.slug) || item.name })) }] : []),
     ...(!brand ? [{ key: "brand", title: "Thương hiệu", options: (result?.facets.brand || brands).map(value => ({ value, label: value })) }] : []),
-    { key: "materialGroup", title: "Chất liệu", options: [] },
-    ...([["color", "Màu sắc"], ["size", "Kích thước"], ["origin", "Xuất xứ"]] as const).map(([key, title]) => ({ key, title, options: (result?.facets[key] || []).map(value => ({ value, label: value })) })),
+    ...PRODUCT_FACET_FIELDS.map(field => ({ key: PRODUCT_FACETS[field].queryField, title: PRODUCT_FACETS[field].label, options: [], field })),
     { key: "stock", title: "Tình trạng", options: [{ value: "in", label: "Còn hàng" }, { value: "out", label: "Hết hàng" }] },
   ];
   const filterPanel = <fieldset disabled={busy} className="min-w-0 space-y-4">
     <div className="flex items-center justify-between"><h2 className="text-sm font-semibold text-primary">Bộ lọc{count > 0 && ` (${count})`}</h2>{count > 0 && <button type="button" onClick={reset} className="text-xs text-primary">Xóa tất cả</button>}</div>
     <details open className="border-b border-border pb-4"><summary className="text-sm font-semibold text-primary">Khoảng giá</summary><div className="mt-3 grid grid-cols-2 gap-2">{[["min", "Từ", "0đ"], ["max", "Đến", "Tối đa"]].map(([field, label, placeholder]) =>
       <label key={field} className="text-xs text-text-secondary">{label}<input key={queryString + field} aria-label={`Giá ${label.toLowerCase()}`} min="0" type="number" defaultValue={params.get(field) || ""} placeholder={placeholder} className="bt-input mt-1 !px-2 !text-xs" onBlur={event => { if (event.target.value !== (params.get(field) || "")) change(field, [event.target.value]); }} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); } }} /></label>)}</div></details>
-    {groups.map(group => group.key === "materialGroup" ? <CatalogMaterialFilter key={group.key} values={result?.facets.material || []} selected={selected("materialGroup")} legacySelected={selected("material")} onChange={values => change("materialGroup", values)} onRemoveLegacy={value => change("material", selected("material").filter(item => item !== value))} /> : <details key={group.key} open className="border-b border-border pb-4 last:border-0"><summary className="text-sm font-semibold text-primary">{group.title}</summary><div className="mt-3 space-y-2">{group.options.slice(0, expanded.includes(group.key) ? undefined : 4).map(option =>
+    {groups.map(group => "field" in group ? <CatalogAttributeFilter key={group.key} field={group.field} values={result?.facets[group.field] || []} publishedGroups={result?.facets[PRODUCT_FACETS[group.field].queryField]} selected={selected(group.key)} legacySelected={selected(group.field)} onChange={values => change(group.key, values)} onRemoveLegacy={value => change(group.field, selected(group.field).filter(item => item !== value))} /> : <details key={group.key} open className="border-b border-border pb-4 last:border-0"><summary className="text-sm font-semibold text-primary">{group.title}</summary><div className="mt-3 space-y-2">{group.options.slice(0, expanded.includes(group.key) ? undefined : 4).map(option =>
       <label key={option.value} className="flex items-center gap-2 text-xs text-text-secondary"><input type="checkbox" className="h-3.5 w-3.5 accent-brand" checked={selected(group.key).includes(option.value)} onChange={() => change(group.key, selected(group.key).includes(option.value) ? selected(group.key).filter(value => value !== option.value) : [...selected(group.key), option.value])} />{option.label}</label>)}
       {group.options.length > 4 && <button type="button" className="text-xs font-medium text-primary" onClick={() => setExpanded(previous => previous.includes(group.key) ? previous.filter(key => key !== group.key) : [...previous, group.key])}>{expanded.includes(group.key) ? "Thu gọn" : "Xem thêm"}</button>}</div></details>)}
   </fieldset>;

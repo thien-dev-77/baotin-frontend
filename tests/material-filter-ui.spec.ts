@@ -9,7 +9,11 @@ import { previewCatalogPage } from "../lib/catalog-query";
 const frontend = "http://127.0.0.1:3069";
 const backend = "http://127.0.0.1:4097";
 const materials = ["SUS304", "SUS 304", "Inox 304 xước mờ", "Inox SUS304 và nhựa ABS", "Khung thép sơn tĩnh điện + inox 304", "Khung nhôm, ray thép", "Khung sườn nhôm, ray thép không gỉ", "Polyamid", "Thân Zamak", "Đồng mạ crôm và đá granite", "Cửa kính toàn phần, 3 lớp cách nhiệt", "Mặt gốm thủy tinh SCHOTT Ceran", "Nhôm và nhựa", "Ron Silicone", "Nhựa", "Thép", "Gỗ MDF", "Sứ", "Vật liệu chưa công bố", ...Array.from({ length: 20 }, (_, index) => `Inox 304 loại phụ kiện ${index}`)];
-const products = materials.map((material, index) => ({ ...catalog[0], id: `QA-MATERIAL-${index}`, code: `QA-MATERIAL-${index}`, slug: `qa-material-${index}`, name: `Phụ kiện QA ${index}`, image: "/product-placeholder.svg", gallery: ["/product-placeholder.svg"], material, brand: index === materials.length - 1 ? "Fulco" : "HAFELE", price: 100000 + index * 1000, featured: false }));
+const products = materials.map((material, index) => ({ ...catalog[0], id: `QA-MATERIAL-${index}`, code: `QA-MATERIAL-${index}`, slug: `qa-material-${index}`, name: `Phụ kiện QA ${index}`, image: "/product-placeholder.svg", gallery: ["/product-placeholder.svg"], material, brand: index === materials.length - 1 ? "Fulco" : "HAFELE", price: 100000 + index * 1000, featured: false,
+  ...(index === 0 ? { color: "Black", colorGroups: ["white"], origin: "Germany", originGroups: ["malaysia"] } : {}),
+  ...(index === 1 ? { color: "Trắng", origin: "Made in Malaysia" } : {}),
+  ...(index === 2 ? { color: "Black", colorGroups: [], origin: "Germany", originGroups: [] } : {}),
+}));
 let server: Server;
 let child: ChildProcess;
 let logs = "";
@@ -104,5 +108,31 @@ test("Mobile material filtering stays inside the drawer and keeps brand scope", 
   await drawer.getByRole("button", { name: /^Xem \d+ sản phẩm$/ }).click();
   await expect(drawer).not.toBeVisible();
   await expect(page.locator('section[aria-label="Kết quả sản phẩm"] .bt-product-card')).toHaveCount(4);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+});
+
+for (const width of [1440, 390]) test(`Color and origin groups use explicit selections and replace legacy text at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 1000 });
+  await page.goto(`${frontend}/search?brand=HAFELE&color=Black&sort=high&page=2`);
+  await expect(page.locator("header").first()).toHaveAttribute("aria-busy", "false");
+  if (width < 1024) await page.getByRole("button", { name: /^Bộ lọc/ }).click();
+  const panel = width < 1024 ? page.getByRole("dialog", { name: "Lọc sản phẩm", exact: true }) : page.locator("aside");
+  const color = panel.locator('[data-attribute-filter="color"]');
+  const origin = panel.locator('[data-attribute-filter="origin"]');
+  await expect(panel.locator("summary").filter({ hasText: /^Kích thước$/ })).toHaveCount(0);
+  await expect(color.getByRole("button", { name: "Bỏ lọc màu sắc Black", exact: true })).toBeVisible();
+  await color.getByRole("checkbox", { name: "Trắng", exact: true }).check();
+  await expect(page).toHaveURL(url => url.searchParams.get("colorGroup") === "white" && !url.searchParams.has("color") && !url.searchParams.has("page") && url.searchParams.get("brand") === "HAFELE" && url.searchParams.get("sort") === "high");
+  await origin.getByRole("checkbox", { name: "Malaysia", exact: true }).check();
+  await expect(page).toHaveURL(url => url.searchParams.get("colorGroup") === "white" && url.searchParams.get("originGroup") === "malaysia");
+  if (width < 1024) await panel.getByRole("button", { name: /^Xem \d+ sản phẩm$/ }).click();
+  await expect(page.locator('section[aria-label="Kết quả sản phẩm"] .bt-product-card')).toHaveCount(2);
+  await page.reload();
+  await expect(page.locator("header").first()).toHaveAttribute("aria-busy", "false");
+  if (width < 1024) await page.getByRole("button", { name: /^Bộ lọc/ }).click();
+  await expect(color.getByRole("checkbox", { name: "Trắng", exact: true })).toBeChecked();
+  await expect(origin.getByRole("checkbox", { name: "Malaysia", exact: true })).toBeChecked();
+  await color.getByRole("button", { name: "Bỏ chọn", exact: true }).click();
+  await expect(page).toHaveURL(url => !url.searchParams.has("colorGroup") && url.searchParams.get("originGroup") === "malaysia");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
 });
