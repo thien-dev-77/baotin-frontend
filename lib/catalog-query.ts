@@ -2,10 +2,11 @@ import { getCatalogBrands, normalize, priceFor } from "./catalog";
 import type { CatalogPageResponse } from "./api-types";
 import type { Category, Customer, Product } from "./types";
 import { categoryDescendants } from "./category-tree";
+import { matchesMaterialGroups } from "./material-groups";
 
 export type ListingScope = { category?: string; brand?: string; query?: string; promotion?: boolean };
 export type ListingSearchParams = Record<string, string | string[] | undefined>;
-export const catalogFilterFields = ["category", "brand", "material", "color", "size", "origin", "stock"] as const;
+export const catalogFilterFields = ["category", "brand", "material", "materialGroup", "color", "size", "origin", "stock"] as const;
 const scalarFields = ["q", "subcategory", "min", "max", "sort", "page"] as const;
 
 export function listingParams(raw: ListingSearchParams, scope: ListingScope = {}) {
@@ -27,6 +28,7 @@ export function previewCatalogPage(products: Product[], categories: Category[], 
   const filtered = products.filter(product => terms.every(term => normalize(`${product.name} ${product.code} ${product.brand} ${product.specification}`).includes(term)) &&
     catalogFilterFields.every(field => {
       const values = params.getAll(field);
+      if (field === "materialGroup") return matchesMaterialGroups(product.material, values);
       const expanded = field === "category" ? values.flatMap(slug => categoryDescendants(categories, slug)) : values;
       return !values.length || expanded.includes(field === "stock" ? product.stock > 0 ? "in" : "out" : product[field]);
     }) && (!params.get("subcategory") || product.subcategory === params.get("subcategory")) &&

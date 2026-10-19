@@ -7,6 +7,7 @@
     "test:catalog-template": "node --test tests/catalog-template.test.mjs",
     "test:domain": "playwright test tests/domain.spec.ts tests/product-pricing.spec.ts tests/commerce-api.spec.ts tests/backend-proxy.spec.ts tests/auth-state.spec.ts tests/public-cache.spec.ts tests/admin-resources.spec.ts --workers=1",
     "test:pricing": "playwright test tests/product-pricing.spec.ts tests/product-pricing-ui.spec.ts --workers=1",
+    "test:materials": "node --import tsx --test tests/material-groups.test.ts && playwright test tests/material-filter-ui.spec.ts --workers=1",
     "test:variants": "node --import tsx --test tests/product-variant-labels.test.ts && playwright test tests/product-variants.spec.ts --workers=1",
     "test:variant-types": "playwright test tests/product-variant-group-ui.spec.ts tests/product-variant-detach-ui.spec.ts --workers=1",
     "test:auth": "playwright test tests/auth-ui.spec.ts --workers=1",
