@@ -10,7 +10,7 @@ import { useCommerce } from "@/components/commerce-provider";
 import { useAdmin } from "./admin-provider";
 import { AdminHeading, AdminPagination, AdminSearch, AdminStatus, AdminTable, useAdminFilters } from "./admin-ui";
 import { downloadAdminCsv } from "@/lib/admin-preview";
-import { categoryCatalog, money, normalize } from "@/lib/catalog";
+import { categoryCatalog, getCatalogBrands, money, normalize } from "@/lib/catalog";
 import { categoryDescendants, categoryLabel } from "@/lib/category-tree";
 import { api, apiMode } from "@/lib/api-client";
 import { CatalogTemplateDownload } from "./catalog-template-download";
@@ -37,25 +37,28 @@ function ProductsList({ browse }: { browse: AdminBrowseState }) {
   const previewFilters = useAdminFilters();
   const [previewCategory, setPreviewCategory] = useState("all");
   const [previewSubcategory, setPreviewSubcategory] = useState("all");
+  const [previewBrand, setPreviewBrand] = useState("all");
   const [bulkBusy, setBulkBusy] = useState(false);
   const selectionBusy = bulkBusy || browse.loading || browse.query.trim() !== (new URLSearchParams(search).get("q") || "");
-  const selectionScope = JSON.stringify([sessionUser?.id, branch, browse.query, browse.category, browse.subcategory, browse.filter]);
+  const selectionScope = JSON.stringify([sessionUser?.id, branch, browse.query, browse.category, browse.subcategory, browse.brand, browse.filter]);
   const [selection, setSelection] = useState<{ scope: string; items: SelectedProduct[] }>({ scope: selectionScope, items: [] });
   const selected = selection.scope === selectionScope ? selection.items : [];
   const select = (items: SelectedProduct[]) => setSelection({ scope: selectionScope, items });
   const filters = apiMode ? browse : previewFilters;
   const category = apiMode ? browse.category : previewCategory;
   const subcategory = apiMode ? browse.subcategory : previewSubcategory;
+  const brand = apiMode ? browse.brand : previewBrand;
+  const brands = apiMode ? browse.data?.brands || [] : getCatalogBrands(products);
   const setCategory = (value: string) => {
     if (apiMode) { browse.set({ category: value, subcategory: undefined }); return; }
     setPreviewCategory(value); setPreviewSubcategory("all"); previewFilters.setPage(1);
   };
   const categoryScope = new Set(categoryDescendants(categories, category));
   const subcategories = Array.from(new Set(categories.filter(item => category === "all" || categoryScope.has(item.slug)).flatMap(item => item.subcategories))).sort((left, right) => left.localeCompare(right, "vi"));
-  const rows = apiMode ? products : products.filter(item => normalize(`${item.name} ${item.code} ${item.alternateCode || ""} ${item.brand}`).includes(normalize(filters.query)) && (category === "all" || categoryScope.has(item.category)) && (subcategory === "all" || item.subcategory === subcategory) && (filters.filter === "all" || (filters.filter === "published" ? item.published : !item.published)));
+  const rows = apiMode ? products : products.filter(item => normalize(`${item.name} ${item.code} ${item.alternateCode || ""} ${item.brand}`).includes(normalize(filters.query)) && (category === "all" || categoryScope.has(item.category)) && (subcategory === "all" || item.subcategory === subcategory) && (brand === "all" || item.brand.trim().normalize("NFC").toLocaleLowerCase("vi") === brand.trim().normalize("NFC").toLocaleLowerCase("vi")) && (filters.filter === "all" || (filters.filter === "published" ? item.published : !item.published)));
   const clearFilters = () => {
-    if (apiMode) { browse.setQuery(""); browse.set({ q: undefined, category: undefined, subcategory: undefined, status: undefined }); return; }
-    previewFilters.setQuery(""); previewFilters.setFilter("all"); previewFilters.setPage(1); setPreviewCategory("all"); setPreviewSubcategory("all");
+    if (apiMode) { browse.setQuery(""); browse.set({ q: undefined, category: undefined, subcategory: undefined, brand: undefined, status: undefined }); return; }
+    previewFilters.setQuery(""); previewFilters.setFilter("all"); previewFilters.setPage(1); setPreviewCategory("all"); setPreviewSubcategory("all"); setPreviewBrand("all");
   };
   const count = apiMode ? browse.data?.pagination.total || 0 : rows.length;
   const page = apiMode ? browse.data?.pagination.page || browse.page : Math.min(filters.page, Math.max(1, Math.ceil(rows.length / 10)));
@@ -89,10 +92,11 @@ function ProductsList({ browse }: { browse: AdminBrowseState }) {
     <fieldset disabled={bulkBusy} className="mb-4 flex min-w-0 flex-wrap items-end gap-3 rounded-md border border-border bg-white p-4">
       <legend className="px-2 text-sm font-semibold text-primary">Tìm kiếm & lọc sản phẩm</legend>
       <AdminSearch value={filters.query} onChange={filters.setQuery} placeholder="Tìm sản phẩm, mã hàng, thương hiệu..." />
+      <Field label="Thương hiệu" htmlFor="admin-products-brand"><select id="admin-products-brand" aria-label="Thương hiệu sản phẩm" value={brand} disabled={apiMode && !browse.data && browse.loading} onChange={event => { if (apiMode) browse.set({ brand: event.target.value }); else { setPreviewBrand(event.target.value); previewFilters.setPage(1); } }} className="bt-input !w-auto max-w-full"><option value="all">Tất cả thương hiệu</option>{brand !== "all" && !brands.includes(brand) && <option value={brand}>{brand}</option>}{brands.map(name => <option key={name} value={name}>{name}</option>)}</select></Field>
       <Field label="Danh mục" htmlFor="admin-products-category"><select id="admin-products-category" aria-label="Danh mục sản phẩm" value={category} onChange={event => setCategory(event.target.value)} className="bt-input !w-auto max-w-full"><option value="all">Tất cả danh mục</option>{categories.map(item => <option key={item.slug} value={item.slug}>{categoryLabel(categories, item.slug) || item.name}</option>)}</select></Field>
       <Field label="Nhóm sản phẩm" htmlFor="admin-products-subcategory"><select id="admin-products-subcategory" aria-label="Nhóm sản phẩm" value={subcategory} onChange={event => { if (apiMode) browse.set({ subcategory: event.target.value }); else { setPreviewSubcategory(event.target.value); previewFilters.setPage(1); } }} className="bt-input !w-auto max-w-full"><option value="all">Tất cả nhóm</option>{subcategories.map(name => <option key={name} value={name}>{name}</option>)}</select></Field>
       <Field label="Hiển thị" htmlFor="admin-products-status"><select id="admin-products-status" aria-label="Trạng thái sản phẩm" value={filters.filter} onChange={event => filters.setFilter(event.target.value)} className="bt-input !w-auto max-w-full"><option value="all">Tất cả trạng thái</option><option value="published">Công khai</option><option value="hidden">Riêng tư</option></select></Field>
-      {(filters.query || category !== "all" || subcategory !== "all" || filters.filter !== "all") && <Button variant="secondary" type="button" onClick={clearFilters}><X size={16} />Xóa bộ lọc</Button>}
+      {(filters.query || brand !== "all" || category !== "all" || subcategory !== "all" || filters.filter !== "all") && <Button variant="secondary" type="button" onClick={clearFilters}><X size={16} />Xóa bộ lọc</Button>}
     </fieldset>
     {apiMode && <ResourceStatus {...browse} />}
     {canEdit && apiMode && <ProductBulkActions selected={selected} total={count} busy={selectionBusy} setBusy={setBulkBusy} clear={() => select([])} selectAll={selectAll} onUpdated={async result => {

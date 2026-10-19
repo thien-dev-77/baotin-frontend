@@ -6,6 +6,7 @@ import { useCommerce } from "@/components/commerce-provider";
 import { api } from "./api-client";
 import { readAdminBrowse } from "./admin-browse";
 import type { AdminBrowsePage, AdminBrowseResource } from "./api-types";
+import { ADMIN_BROWSE_FILTERS } from "./admin-browse-query";
 
 export function useAdminExport(resource: AdminBrowseResource) {
   const { branch } = useAdmin();
@@ -19,7 +20,7 @@ export function useAdminExport(resource: AdminBrowseResource) {
     active.current = controller; setLoading(true);
     const params = new URLSearchParams(location.search);
     params.delete("returnTo"); params.delete("order");
-    const allowed = ["q", "status", "category", "group", "sales", "pilot", "from", "to"];
+    const allowed: string[] = ["q", ...ADMIN_BROWSE_FILTERS];
     for (const key of Array.from(params.keys())) if (!allowed.includes(key)) params.delete(key);
     params.set("resource", resource); params.set("branch", branch); params.set("pageSize", "50");
     try {

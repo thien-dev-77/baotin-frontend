@@ -17,6 +17,7 @@ export function readAdminBrowse(value: unknown): AdminBrowsePage {
   const page = data.pagination;
   const resource = page?.resource === "warehouse" ? "orders" : page?.resource;
   if (!page || !["products", "orders", "customers", "approvals", "receipts"].includes(resource) || !Number.isSafeInteger(page.total) || page.total < 0 || !Number.isSafeInteger(page.page) || page.page < 1 || !ADMIN_PAGE_SIZES.includes(page.pageSize as 10 | 25 | 50) || page.totalPages !== Math.max(1, Math.ceil(page.total / page.pageSize)) || !Array.isArray(page.ids) || !Array.isArray(data[resource]) || page.ids.length > page.pageSize) throw new Error("Danh sách quản trị không hợp lệ.");
+  if (data.brands !== undefined && (!Array.isArray(data.brands) || data.brands.some(brand => typeof brand !== "string" || !brand.trim()))) throw new Error("Danh sách thương hiệu không hợp lệ.");
   return data;
 }
 export function updateAdminQuery(values: Record<string, string | number | undefined>, push = false) {
@@ -47,6 +48,7 @@ export function useAdminBrowse(resource: AdminBrowseResource) {
     ...response, query, setQuery, page: Number(params.get("page")), pageSize: Number(params.get("pageSize")),
     filter: search.get("status") || "all", category: search.get("category") || "all",
     subcategory: search.get("subcategory") || "all",
+    brand: search.get("brand") || "all",
     group: search.get("group") || "", sales: search.get("sales") || "", pilot: search.get("pilot") || "", from: search.get("from") || "", to: search.get("to") || "",
     setPage: (page: number) => updateAdminQuery({ page }, true),
     setFilter: (status: string) => set({ status }),

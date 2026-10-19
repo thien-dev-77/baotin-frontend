@@ -2,7 +2,7 @@ import type { AdminBrowseResource } from "./api-types";
 import type { Branch } from "./types";
 
 export const ADMIN_PAGE_SIZES = [10, 25, 50] as const;
-export const ADMIN_BROWSE_FILTERS = ["status", "category", "subcategory", "group", "sales", "pilot", "from", "to"] as const;
+export const ADMIN_BROWSE_FILTERS = ["status", "category", "subcategory", "brand", "group", "sales", "pilot", "from", "to"] as const;
 
 export function adminBrowsePath(resource: AdminBrowseResource, branch: Branch, search: Pick<URLSearchParams, "get"> = new URLSearchParams()) {
   const params = new URLSearchParams({ branch, resource,
