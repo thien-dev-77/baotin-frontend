@@ -12,7 +12,6 @@ import { useState } from "react";
 import { NotificationBell } from "./notifications";
 import { CategoryLinks } from "./category-links";
 import { ZaloIcon } from "./zalo-icon";
-import { slugify } from "@/lib/catalog";
 import { storeContact } from "@/lib/store-contact";
 import { usePathname } from "next/navigation";
 
@@ -73,7 +72,7 @@ function HeaderServiceLink({
 }
 
 export function SiteHeader() {
-  const { cart, customer, ready, brands } = useCommerce();
+  const { cart, customer, ready } = useCommerce();
   const pathname = usePathname();
   const [mobile, setMobile] = useState(false);
   const count = cart.reduce((sum, line) => sum + line.quantity, 0);
@@ -94,7 +93,7 @@ export function SiteHeader() {
   const navigation = [
     { label: "Sản phẩm", href: "/catalog" },
     { label: "Đặt hàng B2B", href: "/account/products" },
-    { label: "Thương hiệu", href: brands.length ? `/brand/${slugify(brands[0])}` : "/catalog" },
+    { label: "Thương hiệu", href: "/brand/fulco" },
     { label: "Khuyến mãi", href: "/promotions" },
     { label: "Tài liệu kỹ thuật", href: "/guides" },
     { label: "Liên hệ", href: "/contact" },
