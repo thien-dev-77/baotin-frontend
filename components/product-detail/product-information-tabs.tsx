@@ -75,9 +75,12 @@ function ProductDocuments({ code, usageGuide, specifications }: { code: string; 
 
   return (
     <div className="space-y-4">
-      {usageGuide && <SafeHtml html={productContentHtml(usageGuide)} className="bt-product-rich-text break-words text-sm leading-7 text-text-secondary" />}
+      {usageGuide && <section aria-label="Hướng dẫn sử dụng" className="min-w-0 space-y-3">
+        <h2 className="text-base font-semibold text-primary">Hướng dẫn sử dụng</h2>
+        <SafeHtml html={productContentHtml(usageGuide)} autoLink linksInNewTab className="bt-product-rich-text break-words text-sm leading-7 text-text-secondary [&_a]:text-blue-700 [&_a]:[overflow-wrap:anywhere] hover:[&_a]:text-blue-900" />
+      </section>}
       {specifications.length > 0 && <Button variant="secondary" onClick={downloadSpecifications}><Download size={17} />Tải bảng thông số</Button>}
-      <Link href="/guides" className="block text-sm text-primary">Xem hướng dẫn chọn và lắp phụ kiện →</Link>
+      <Link href="/guides" target="_blank" rel="noopener noreferrer" className="block text-sm text-primary">Xem hướng dẫn chọn và lắp phụ kiện →</Link>
       <p className="text-sm text-text-secondary">Liên hệ Bảo Tín để nhận tài liệu lắp đặt của nhà sản xuất theo đúng mã hàng.</p>
     </div>
   );

@@ -288,6 +288,50 @@ test("Storefront technical content becomes rows without executable markup", asyn
   await expect(details.locator("script, img, [onerror], [href^='javascript:']")).toHaveCount(0);
 });
 
+for (const width of [1440, 390]) test(`Usage guide links detect imported URLs and open a new tab at ${width}px`, async ({ page, context }) => {
+  const pdf = "https://www.hafele.com.vn/hap-live/static/WFS/Haefele-HVN-Site/-/Hafele/vi_VN/pim/documents/mf_info-04986451.pdf";
+  const catalogUrl = "https://www.hafele.com.vn/hap-live/web/WFS/Haefele-HVN-Site/vi_VN/-/VND/Static-View/pdfcatalog/vi_VN/catalogs/index.php?catalog=Door_Hardware2022&startpage=176";
+  const usageGuide = `${pdf}\nDoor_Hardware2022 Trang sản phẩm176: ${catalogUrl}`;
+  const api = await mockEditor(page, { slug: `qa-guide-links-${width}`, usageGuide });
+  await page.setViewportSize({ width, height: 1000 });
+  // Verify popup navigation locally without requesting the manufacturer's website.
+  await context.route("https://www.hafele.com.vn/**", route => route.fulfill({ contentType: "text/html", body: "<title>QA hướng dẫn</title>Tài liệu thử nghiệm" }));
+  await page.goto(`${base}/products/${product.slug}`);
+  await page.getByRole("tab", { name: "Tài liệu / Hướng dẫn", exact: true }).click();
+  const guide = page.getByRole("region", { name: "Hướng dẫn sử dụng", exact: true });
+  const links = guide.getByRole("link");
+  await expect(links).toHaveCount(2);
+  await expect(links.nth(0)).toHaveAttribute("href", pdf);
+  await expect(links.nth(1)).toHaveAttribute("href", catalogUrl);
+  for (const link of await links.all()) {
+    await expect(link).toHaveAttribute("target", "_blank"); await expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  }
+  await expect(page.getByRole("link", { name: "Xem hướng dẫn chọn và lắp phụ kiện →", exact: true })).toHaveAttribute("target", "_blank");
+  await guide.scrollIntoViewIfNeeded();
+  expect(await guide.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await mkdir("/private/tmp/baotin-product-guides", { recursive: true });
+  await page.screenshot({ path: `/private/tmp/baotin-product-guides/${width}.png` });
+  const originalUrl = page.url();
+  const popupPromise = page.waitForEvent("popup");
+  await links.nth(1).click();
+  const popup = await popupPromise; await popup.waitForLoadState("domcontentloaded");
+  expect(popup.url()).toBe(catalogUrl); expect(page.url()).toBe(originalUrl); await popup.close();
+  expect(product.usageGuide).toBe(usageGuide); expect(api.writes).toEqual([]); expect(api.errors).toEqual([]);
+});
+
+test("Usage guide links preserve CKEditor anchors and formatting while rejecting executable content", async ({ page }) => {
+  const api = await mockEditor(page, { slug: "qa-guide-rich-links", usageGuide: '<p><strong>Lắp đặt:</strong> <a href="https://example.test/install.pdf" target="_self">Hướng dẫn lắp đặt</a></p><ul><li>Xem https://example.test/video?a=1&amp;b=2.</li></ul><a href="javascript:alert(1)">Lỗi</a><img src=x onerror="window.qaInjected=true"><script>window.qaInjected=true</script>' });
+  await page.goto(`${base}/products/${product.slug}`);
+  await page.getByRole("tab", { name: "Tài liệu / Hướng dẫn", exact: true }).click();
+  const guide = page.getByRole("region", { name: "Hướng dẫn sử dụng", exact: true });
+  await expect(guide.getByRole("link")).toHaveCount(2);
+  await expect(guide.getByRole("link", { name: "Hướng dẫn lắp đặt", exact: true })).toHaveAttribute("target", "_blank");
+  await expect(guide.locator("strong")).toHaveText("Lắp đặt:"); await expect(guide.getByRole("listitem")).toHaveCount(1);
+  await expect(guide.locator("script, img, [onerror], [href^='javascript:'], a a")).toHaveCount(0);
+  expect(await page.evaluate(() => "qaInjected" in window)).toBe(false); expect(api.errors).toEqual([]);
+});
+
 const technicalRows = [
   ["Model", "FULCO FC-ML338i"], ["Loại sản phẩm", "Bếp từ đôi âm"], ["Xuất xứ", "Made in Malaysia"],
   ["Số vùng nấu", "2 vùng nấu từ"], ["Mặt kính", "KANGER cao cấp vát 4 cạnh"],

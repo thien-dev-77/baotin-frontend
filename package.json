@@ -12,6 +12,7 @@
     "test:variants": "node --import tsx --test tests/product-variant-labels.test.ts && playwright test tests/product-variants.spec.ts --workers=1",
     "test:variant-types": "playwright test tests/product-variant-group-ui.spec.ts tests/product-variant-detach-ui.spec.ts --workers=1",
     "test:variant-attach": "playwright test tests/product-variant-attach-ui.spec.ts --workers=1",
+    "test:product-guides": "node --import tsx --test tests/product-guide-links.test.ts && playwright test tests/product-editor-content-ui.spec.ts --grep 'Usage guide links' --workers=1",
     "test:auth": "playwright test tests/auth-ui.spec.ts --workers=1",
     "test:experience": "playwright test tests/experience-ui.spec.ts --workers=1",
     "test:customers": "playwright test tests/customers-ui.spec.ts --workers=1",

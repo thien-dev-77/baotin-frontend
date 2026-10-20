@@ -1,41 +1,16 @@
 "use client";
 
-import DOMPurify from "isomorphic-dompurify";
+import { safeHtml } from "@/lib/safe-html";
 
 interface SafeHtmlProps {
   html: string;
   className?: string;
+  autoLink?: boolean;
+  linksInNewTab?: boolean;
 }
 
-export function SafeHtml({ html, className = "" }: SafeHtmlProps) {
-  const sanitized = DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: [
-      "p",
-      "br",
-      "strong",
-      "em",
-      "u",
-      "h1",
-      "h2",
-      "h3",
-      "h4",
-      "h5",
-      "h6",
-      "ul",
-      "ol",
-      "li",
-      "blockquote",
-      "a",
-      "table",
-      "thead",
-      "tbody",
-      "tr",
-      "th",
-      "td",
-    ],
-    ALLOWED_ATTR: ["href", "target", "rel", "class", "colspan", "rowspan"],
-    ALLOW_DATA_ATTR: false,
-  });
+export function SafeHtml({ html, className = "", autoLink, linksInNewTab }: SafeHtmlProps) {
+  const sanitized = safeHtml(html, { autoLink, linksInNewTab });
 
   return (
     <div
