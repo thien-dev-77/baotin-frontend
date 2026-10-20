@@ -674,3 +674,14 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
 .product-carousel .splide__arrow--prev { left: -12px; }
 .product-carousel .splide__arrow--next { right: -12px; }
 @media (max-width: 1023px) { .product-carousel .splide__arrows { display: none; } }
+
+.bt-category-carousel.splide { visibility: visible; }
+.bt-category-carousel .splide__track { padding-block: 4px; }
+.bt-category-carousel .splide__slide { width: calc((100% - 2rem) / 5); margin-right: 0.5rem; }
+.bt-category-carousel .splide__arrow--prev { left: 6px; }
+.bt-category-carousel .splide__arrow--next { right: 6px; }
+.bt-category-carousel:not(.is-initialized) .splide__track { overflow-x: auto; }
+.bt-category-carousel:not(.is-initialized) .splide__arrows { display: none; }
+@media (max-width: 1023px) { .bt-category-carousel .splide__slide { width: calc((100% - 1.5rem) / 4); } }
+@media (max-width: 767px) { .bt-category-carousel .splide__slide { width: calc((100% - 1rem) / 3); } }
+@media (max-width: 639px) { .bt-category-carousel .splide__slide { width: calc((100% - 0.5rem) / 2); } }
