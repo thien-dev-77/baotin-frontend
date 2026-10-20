@@ -42,7 +42,7 @@ async function mockAdmin(page: Page) {
   const resources: Record<string, unknown> = {
     "/admin/pricing": { policies: [] },
     "/admin/users": { users: [{ ...staff, id: "qa-sales", role: "sales", disabled: false, revision: 1 }] },
-    "/admin/ledger": { inventory: state.products.slice(0, 2).map(product => ({ ...product, onHand: 500, reserved: 0 })), customers: state.customers, entries: [] },
+    "/admin/ledger/page": { inventory: state.products.slice(0, 2).map(product => ({ ...product, onHand: 500, reserved: 0 })), customers: state.customers, entries: [], pagination: { total: 2, page: 1, pageSize: 10, totalPages: 1 } },
     "/admin/integrations/kiotviet": integration,
   };
   // Intercept every client API call so no mutation can reach the real database.
@@ -139,12 +139,12 @@ test("Admin loads only the screen's resources, reuses cache and does not refresh
   const api = await mockAdmin(page);
   await api.visit("/admin/products");
   await expect(page.locator("#admin-content table")).toBeVisible();
-  expect(api.resourceReads).toEqual([{ branch: "Quy Nhơn", include: ["categories"] }]);
+  expect(api.resourceReads).toEqual([]);
   expect(api.readPaths.filter(path => path.includes("/admin/browse?"))).toHaveLength(1);
   await page.evaluate(() => { for (let count = 0; count < 3; count++) window.dispatchEvent(new Event("focus")); });
   await page.locator('nav[aria-label="Quản trị nội bộ"] a[href="/admin/users"]').first().click();
   await expect(page.getByRole("heading", { name: "Tài khoản & phân quyền", exact: true })).toBeVisible();
-  expect(api.resourceReads).toHaveLength(1);
+  expect(api.resourceReads).toHaveLength(0);
   await page.locator('nav[aria-label="Quản trị nội bộ"] a[href="/admin/products"]').first().click();
   await expect(page.locator("#admin-content table")).toBeVisible();
   expect(api.readPaths.filter(path => path.includes("/admin/browse?"))).toHaveLength(1);
@@ -528,7 +528,7 @@ test("an older background response cannot undo a confirmed status update", async
   api.check();
 });
 
-for (const [path, resourcePath] of [["/admin/pricing", "/admin/pricing"], ["/admin/users", "/admin/users"], ["/admin/ledger", "/admin/ledger"], ["/admin/integrations", "/admin/integrations/kiotviet"]]) {
+for (const [path, resourcePath] of [["/admin/pricing", "/admin/pricing"], ["/admin/users", "/admin/users"], ["/admin/ledger", "/admin/ledger/page"], ["/admin/integrations", "/admin/integrations/kiotviet"]]) {
   test(`failed background refresh keeps ${path} visible and retryable`, async ({ page }) => {
     const api = await mockAdmin(page);
     await api.visit(path);

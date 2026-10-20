@@ -106,6 +106,9 @@ export function ApiAdminProvider({ children }: { children: React.ReactNode }) {
       await Promise.all([ensureResources(toRefresh).catch(() => undefined), readCache.refresh(path => {
         if (path.startsWith("/admin/browse?")) return affected.includes(new URLSearchParams(path.split("?")[1]).get("resource") as AdminResource) || (new URLSearchParams(path.split("?")[1]).get("resource") === "warehouse" && affected.includes("orders"));
         if (path.startsWith("/admin/orders/")) return affected.some(resource => ["orders", "products", "customers", "approvals", "receipts"].includes(resource));
+        if (path.startsWith("/admin/order-editor")) return affected.some(resource => ["orders", "products", "customers", "approvals", "receipts"].includes(resource));
+        if (path.startsWith("/admin/product-metadata")) return affected.includes("products");
+        if (path.startsWith("/admin/ledger/page")) return affected.some(resource => ["orders", "products", "customers", "receipts"].includes(resource));
         if (path.startsWith("/admin/dashboard")) return affected.some(resource => ["orders", "customers", "approvals"].includes(resource));
         return affected.some(resource => path.startsWith(`/admin/${resource}`));
       })]);

@@ -166,6 +166,7 @@ for (const width of [1440, 390]) test(`Authenticity checkbox persists visibility
   await page.goto(`${base}/admin/products/${product.id}/edit`);
   const checkbox = page.getByRole("checkbox", { name: "Hiển thị nhãn phân phối chính hãng", exact: true });
   await expect(checkbox).toBeChecked();
+  await page.locator('[data-rich-text-field="product-specification"]').scrollIntoViewIfNeeded();
   await expect(page.getByRole("textbox", { name: /Thông số kỹ thuật/ })).toBeVisible();
   await checkbox.uncheck();
   await expect(page.locator("form[data-unsaved=true]")).toHaveCount(1);
@@ -189,6 +190,7 @@ for (const width of [1440, 390]) test(`Authenticity checkbox persists visibility
   await page.keyboard.press("Escape");
   await page.goto(`${base}/admin/products/${product.id}/edit`);
   await expect(checkbox).not.toBeChecked();
+  await page.locator('[data-rich-text-field="product-specification"]').scrollIntoViewIfNeeded();
   await expect(page.getByRole("textbox", { name: /Thông số kỹ thuật/ })).toBeVisible();
   await checkbox.check();
   await page.getByRole("button", { name: "Lưu sản phẩm", exact: true }).click();
@@ -287,6 +289,7 @@ for (const width of [1440, 390]) test(`Editor tabs retain content and save forma
   const content = page.getByRole("tab", { name: "Nội dung chi tiết", exact: true });
   const media = page.getByRole("tab", { name: "Hình ảnh", exact: true });
   await expect(basic).toHaveAttribute("aria-selected", "true"); await expect(basic).toHaveCSS("background-color", "rgb(26, 26, 26)");
+  await page.locator('[data-rich-text-field="product-specification"]').scrollIntoViewIfNeeded();
   const editor = page.getByRole("textbox", { name: /Thông số kỹ thuật/ });
   await expect(editor).toBeVisible(); await expect(editor).toContainText("Công suất < 2800W"); await expect(editor.locator("br")).toHaveCount(1);
   await expect(page.locator("form[data-unsaved=true]")).toHaveCount(0);
@@ -302,6 +305,8 @@ for (const width of [1440, 390]) test(`Editor tabs retain content and save forma
   await content.click(); await page.getByRole("button", { name: "Lưu sản phẩm", exact: true }).click();
   await expect.poll(() => api.writes.length).toBe(1);
   expect(api.writes[0]).toMatchObject({ name: "Bếp từ giữ nội dung qua tab", brand: initialProduct.brand, code: initialProduct.code, technicalDetails: "<p><strong>Công suất 2800W</strong></p><p>Kích thước 730 × 430mm</p>", specification: "Công suất 2800W Kích thước 730 × 430mm" });
+  await expect(basic).toHaveAttribute("aria-selected", "true");
+  await page.locator('[data-rich-text-field="product-specification"]').scrollIntoViewIfNeeded();
   await expect(page.getByRole("textbox", { name: /Thông số kỹ thuật/ })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await mkdir("/private/tmp/baotin-product-editor-content", { recursive: true });
@@ -318,6 +323,7 @@ for (const width of [1440, 390]) test(`Editor tabs retain content and save forma
 test("Legacy specifications remain editable and clearing a draft saves empty content", async ({ page }) => {
   const api = await mockEditor(page, { technicalDetails: "", specification: "Inox 304 · Dài 600mm", published: false });
   await page.goto(`${base}/admin/products/${product.id}/edit`);
+  await page.locator('[data-rich-text-field="product-specification"]').scrollIntoViewIfNeeded();
   const editor = page.getByRole("textbox", { name: /Thông số kỹ thuật/ });
   await expect(editor).toHaveText("Inox 304 · Dài 600mm");
   await editor.click(); await page.keyboard.press("ControlOrMeta+A"); await page.keyboard.press("Backspace");
@@ -331,6 +337,7 @@ test("Legacy specifications remain editable and clearing a draft saves empty con
 test("A published product requires meaningful technical text", async ({ page }) => {
   const api = await mockEditor(page);
   await page.goto(`${base}/admin/products/${product.id}/edit`);
+  await page.locator('[data-rich-text-field="product-specification"]').scrollIntoViewIfNeeded();
   const editor = page.getByRole("textbox", { name: /Thông số kỹ thuật/ });
   await editor.click(); await page.keyboard.press("ControlOrMeta+A"); await page.keyboard.press("Backspace");
   await page.getByRole("button", { name: "Lưu sản phẩm", exact: true }).click();
@@ -453,6 +460,7 @@ test("Empty technical details hide the legacy table and its download", async ({ 
 test("Long technical content saves in full with a bounded plain-text listing summary", async ({ page }) => {
   const api = await mockEditor(page);
   await page.goto(`${base}/admin/products/${product.id}/edit`);
+  await page.locator('[data-rich-text-field="product-specification"]').scrollIntoViewIfNeeded();
   const editor = page.getByRole("textbox", { name: /Thông số kỹ thuật/ });
   await editor.click(); await page.keyboard.press("ControlOrMeta+A");
   const text = "Thông số kỹ thuật 🔧 ".repeat(40).trim();
@@ -468,6 +476,7 @@ test("Long technical content saves in full with a bounded plain-text listing sum
 test("Oversized technical content shows a validation message before sending a write", async ({ page }) => {
   const api = await mockEditor(page);
   await page.goto(`${base}/admin/products/${product.id}/edit`);
+  await page.locator('[data-rich-text-field="product-specification"]').scrollIntoViewIfNeeded();
   const editor = page.getByRole("textbox", { name: /Thông số kỹ thuật/ });
   await editor.click(); await page.keyboard.press("ControlOrMeta+A"); await page.keyboard.insertText("A".repeat(10001));
   await page.getByRole("button", { name: "Lưu sản phẩm", exact: true }).click();

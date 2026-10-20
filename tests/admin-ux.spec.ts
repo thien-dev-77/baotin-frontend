@@ -104,6 +104,7 @@ for (const width of [320, 390, 768, 1440]) {
     const table = page.locator("#admin-content table"); await expect(table).toContainText("QA-0");
     const action = table.getByRole("link", { name: "Sửa sản phẩm QA-0", exact: true });
     if (width < 768) {
+      await action.scrollIntoViewIfNeeded();
       await expect(action).toBeInViewport();
       await table.evaluate(element => { element.parentElement!.scrollLeft = 1000; });
       await expect(action).toBeInViewport(); await expect(table.getByRole("link", { name: "Sản phẩm 0", exact: true })).toBeInViewport();

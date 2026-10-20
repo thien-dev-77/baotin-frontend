@@ -16,16 +16,21 @@ import { api, apiMode } from "@/lib/api-client";
 import { CatalogTemplateDownload } from "./catalog-template-download";
 import { useAdminBrowse, type AdminBrowseState } from "@/lib/admin-browse";
 import { AdminReadModel } from "./admin-read-model";
-import { ResourceStatus } from "./admin-resource";
+import { ResourceStatus, useAdminResource } from "./admin-resource";
+import type { Category } from "@/lib/types";
 import { useAdminExport } from "@/lib/admin-export";
 import { productPrices, formatDiscount } from "@/lib/product-pricing";
 import { ProductBulkActions, ProductSelectionCheckbox, MAX_BULK_PRODUCTS, type SelectedProduct } from "./product-bulk-actions";
 
 export function AdminProducts() {
+  const { branch } = useAdmin();
   const browse = useAdminBrowse("products");
-  return <AdminReadModel data={browse.data}><ProductsList browse={browse} /></AdminReadModel>;
+  const metadata = useAdminResource<{ categories: Category[]; brands: string[] }>(`/admin/product-metadata?${new URLSearchParams({ branch })}`, apiMode);
+  const combined = { ...browse, data: browse.data ? { ...browse.data, ...metadata.data } : undefined };
+  if (!apiMode) return <ProductsList browse={browse} />;
+  return <AdminReadModel data={combined.data || { products: [], categories: metadata.data?.categories || [] }}>{apiMode && <ResourceStatus {...metadata} />}<ProductsList browse={combined} metadataBrands={metadata.data?.brands} /></AdminReadModel>;
 }
-function ProductsList({ browse }: { browse: AdminBrowseState }) {
+function ProductsList({ browse, metadataBrands }: { browse: AdminBrowseState; metadataBrands?: string[] }) {
   const { products, categories: apiCategories, branch, readCache } = useAdmin();
   const { sessionUser, notice, reloadCatalog } = useCommerce();
   const search = useSearchParams().toString();
@@ -33,7 +38,7 @@ function ProductsList({ browse }: { browse: AdminBrowseState }) {
   const exporting = useAdminExport("products");
   const canEdit = !apiMode || ["admin", "boss", "sales"].includes(sessionUser?.role || "");
   const showPrices = !apiMode || sessionUser?.role !== "warehouse";
-  const categories = apiCategories || categoryCatalog;
+  const categories = apiCategories || (apiMode ? [] : categoryCatalog);
   const previewFilters = useAdminFilters();
   const [previewCategory, setPreviewCategory] = useState("all");
   const [previewSubcategory, setPreviewSubcategory] = useState("all");
@@ -48,7 +53,7 @@ function ProductsList({ browse }: { browse: AdminBrowseState }) {
   const category = apiMode ? browse.category : previewCategory;
   const subcategory = apiMode ? browse.subcategory : previewSubcategory;
   const brand = apiMode ? browse.brand : previewBrand;
-  const brands = apiMode ? browse.data?.brands || [] : getCatalogBrands(products);
+  const brands = apiMode ? metadataBrands || browse.data?.brands || [] : getCatalogBrands(products);
   const setCategory = (value: string) => {
     if (apiMode) { browse.set({ category: value, subcategory: undefined }); return; }
     setPreviewCategory(value); setPreviewSubcategory("all"); previewFilters.setPage(1);

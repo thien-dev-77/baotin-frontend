@@ -2,7 +2,7 @@
 
 import { ProductImage as Image } from "@/components/product-image";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Plus } from "lucide-react";
 import { Button, Modal } from "@/components/ui";
 import { AdminPagination, AdminSearch } from "@/components/admin/admin-ui";
@@ -11,28 +11,45 @@ import { categoryDescendants, categoryLabel } from "@/lib/category-tree";
 import { salesUnitPrice } from "@/lib/admin-sales";
 import type { AdminCustomer } from "@/lib/admin-preview";
 import { useAdmin } from "./admin-provider";
+import { ResourceStatus, useAdminResource } from "./admin-resource";
+import { apiMode } from "@/lib/api-client";
+import type { AdminBrowsePage } from "@/lib/api-types";
+import { readAdminBrowse } from "@/lib/admin-browse";
 
-export function AdminSalesProducts({ open, onClose, products, customer, selected, onAdd }: { open: boolean; onClose: () => void; products: Product[]; customer?: AdminCustomer; selected: string[]; onAdd: (id: string) => void }) {
-  const { categories: apiCategories } = useAdmin();
+export function AdminSalesProducts({ open, onClose, products, customer, selected, onAdd }: { open: boolean; onClose: () => void; products: Product[]; customer?: AdminCustomer; selected: string[]; onAdd: (product: Product) => void }) {
+  const { categories: apiCategories, branch } = useAdmin();
   const categories = apiCategories || categoryCatalog;
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [category, setCategory] = useState("all");
   const [page, setPage] = useState(1);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+  const params = new URLSearchParams({ branch, resource: "products", metadata: "false", status: "published", page: String(page), pageSize: "10" });
+  if (debouncedQuery) params.set("q", debouncedQuery);
+  if (category !== "all") params.set("category", category);
+  const resource = useAdminResource<AdminBrowsePage>(`/admin/browse?${params}`, apiMode && open, readAdminBrowse);
   const categoryScope = new Set(categoryDescendants(categories, category));
   const rows = products.filter((item) => (category === "all" || categoryScope.has(item.category)) && normalize(`${item.name} ${item.code} ${item.brand}`).includes(normalize(query)));
-  const current = Math.min(page, Math.max(1, Math.ceil(rows.length / 10)));
+  const current = apiMode ? resource.data?.pagination.page || page : Math.min(page, Math.max(1, Math.ceil(rows.length / 10)));
+  const visible = apiMode ? resource.data?.products || [] : rows.slice((current - 1) * 10, current * 10);
+  const count = apiMode ? resource.data?.pagination.total || 0 : rows.length;
+  const loading = apiMode && (resource.loading || query.trim() !== debouncedQuery);
   return <Modal open={open} onClose={onClose} title="Thêm sản phẩm" trackChanges={false}>
     <div onKeyDownCapture={(event) => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); onClose(); } }}>
     <div className="mb-3 flex flex-wrap gap-2"><AdminSearch value={query} onChange={(value) => { setQuery(value); setPage(1); }} placeholder="Tìm tên, SKU, thương hiệu..." /><select aria-label="Danh mục chọn sản phẩm" className="bt-input" value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }}><option value="all">Tất cả danh mục</option>{categories.map((item) => <option key={item.slug} value={item.slug}>{categoryLabel(categories, item.slug) || item.name}</option>)}</select></div>
-    <ul className="divide-y divide-border">
-      {rows.slice((current - 1) * 10, current * 10).map((product) => <li key={product.id} className="flex items-center gap-3 py-3">
+    {apiMode && <ResourceStatus {...resource} />}
+    <ul className="divide-y divide-border" aria-busy={loading || undefined}>
+      {visible.map((product) => <li key={product.id} className="flex items-center gap-3 py-3">
         <Image src={product.image} alt={product.name} width={48} height={48} className="h-12 w-12 shrink-0 rounded object-contain" quality={85} sizes="48px" data-image-src={product.image} />
         <div className="min-w-0 flex-1"><p className="text-sm font-medium leading-5 text-primary">{product.name}</p><p className="mt-1 text-xs text-text-muted">{product.code} · Tồn {product.stock} {product.unit}</p><p className="mt-1 text-xs font-semibold text-primary">{money(salesUnitPrice(product, customer))}/{product.unit}</p></div>
-        <button type="button" className="bt-icon-button shrink-0 !border !border-border" aria-label={`Thêm ${product.code}`} title={selected.includes(product.id) ? "Đã thêm" : `Thêm ${product.code}`} disabled={selected.includes(product.id)} onClick={() => onAdd(product.id)}>{selected.includes(product.id) ? <Check size={18} /> : <Plus size={18} />}</button>
+        <button type="button" className="bt-icon-button shrink-0 !border !border-border" aria-label={`Thêm ${product.code}`} title={selected.includes(product.id) ? "Đã thêm" : `Thêm ${product.code}`} disabled={loading || selected.includes(product.id)} onClick={() => onAdd(product)}>{selected.includes(product.id) ? <Check size={18} /> : <Plus size={18} />}</button>
       </li>)}
     </ul>
-    {!rows.length && <p className="py-10 text-center text-sm text-text-muted">Không tìm thấy sản phẩm.</p>}
-    <AdminPagination count={rows.length} page={current} onChange={setPage} />
+    {!loading && !resource.error && !visible.length && <p className="py-10 text-center text-sm text-text-muted">Không tìm thấy sản phẩm.</p>}
+    <AdminPagination count={count} page={current} onChange={setPage} />
     <div className="mt-4 flex justify-end border-t border-border pt-4"><Button onClick={onClose}><Check size={16} />Xong ({selected.length})</Button></div>
     </div>
   </Modal>;

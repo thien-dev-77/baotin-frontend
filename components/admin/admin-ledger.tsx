@@ -1,18 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pencil, Save } from "lucide-react";
 import { api } from "@/lib/api-client";
 import type { AdminCustomer, Product } from "@/lib/types";
 import { money } from "@/lib/catalog";
 import { useCommerce } from "../commerce-provider";
 import { Button, Field, Modal, Tabs } from "../ui";
-import { AdminHeading, AdminSearch } from "./admin-ui";
+import { AdminHeading, AdminPagination, AdminSearch } from "./admin-ui";
 import { useAdmin } from "./admin-provider";
 import { useAdminResource, ResourceStatus } from "./admin-resource";
 
 type LedgerData = {
-  inventory: (Product & { onHand: number; reserved: number })[];
+  inventory: (Pick<Product, "id" | "code" | "name" | "unit" | "stock"> & { onHand: number; reserved: number })[];
+  pagination: { total: number; page: number; pageSize: number; totalPages: number };
   customers: AdminCustomer[];
   entries: {
     id: string;
@@ -40,18 +41,23 @@ type Edit = {
 export function AdminLedger() {
   const { branch, reset } = useAdmin();
   const { sessionUser, notice, reloadCatalog } = useCommerce();
-  const resource = useAdminResource<LedgerData>(
-    `/admin/ledger?branch=${encodeURIComponent(branch)}`,
-  );
   const [tab, setTab] = useState("Tồn kho");
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+  const params = new URLSearchParams({ branch, tab: tab === "Tồn kho" ? "stock" : tab === "Công nợ" ? "credit" : "entries", page: String(page), pageSize: String(pageSize) });
+  if (debouncedQuery) params.set("q", debouncedQuery);
+  const resource = useAdminResource<LedgerData>(`/admin/ledger/page?${params}`);
   const [edit, setEdit] = useState<Edit | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const writable = ["admin", "boss"].includes(sessionUser?.role || "");
   const warehouse = sessionUser?.role === "warehouse";
-  const match = (text: string) =>
-    text.toLocaleLowerCase("vi").includes(query.toLocaleLowerCase("vi"));
   const open = (value: Edit) => {
     setEdit(value);
     setError("");
@@ -66,12 +72,12 @@ export function AdminLedger() {
             : ["Tồn kho", "Công nợ", "Phát sinh"]
         }
         value={tab}
-        onChange={setTab}
+        onChange={value => { setTab(value); setPage(1); }}
       />
       <div className="my-4 flex">
         <AdminSearch
           value={query}
-          onChange={setQuery}
+          onChange={value => { setQuery(value); setPage(1); }}
           placeholder="Tìm mã hàng, khách hàng"
         />
       </div>
@@ -92,7 +98,6 @@ export function AdminLedger() {
               </thead>
               <tbody>
                 {resource.data.inventory
-                  .filter((p) => match(`${p.code} ${p.name}`))
                   .map((p) => (
                     <tr key={p.id}>
                       <td>{p.code}</td>
@@ -145,7 +150,6 @@ export function AdminLedger() {
               </thead>
               <tbody>
                 {resource.data.customers
-                  .filter((c) => match(`${c.id} ${c.name}`))
                   .map((c) => (
                     <tr key={c.id}>
                       <td>
@@ -229,7 +233,6 @@ export function AdminLedger() {
               </thead>
               <tbody>
                 {resource.data.entries
-                  .filter((e) => match(`${e.resourceId} ${e.reason}`))
                   .map((e) => (
                     <tr key={e.id}>
                       <td className="whitespace-nowrap">
@@ -253,6 +256,7 @@ export function AdminLedger() {
           )}
         </div>
       )}
+      {resource.data && <AdminPagination count={resource.data.pagination.total} page={resource.data.pagination.page} pageSize={resource.data.pagination.pageSize} onChange={setPage} onPageSize={value => { setPageSize(value); setPage(1); }} />}
       <Modal
         open={!!edit}
         busy={busy}
@@ -302,7 +306,6 @@ export function AdminLedger() {
                 );
                 setEdit(null);
                 notice("Đã ghi nhận điều chỉnh.");
-                await resource.reload();
                 await reset();
                 await reloadCatalog().catch((cause) => notice(cause.message));
               } catch (cause) {

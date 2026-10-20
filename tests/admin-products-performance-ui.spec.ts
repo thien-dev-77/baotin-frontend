@@ -38,6 +38,7 @@ async function mockProducts(page: Page, delayFirst = false, withBrands = false) 
     const responses: Record<string, unknown> = {
       "/auth/session": { user: { id: "qa-staff", role: "admin", name: "QA Admin", email: "qa@example.test", branches: ["Quy Nhơn", "Tuy Hòa"], customer: null } },
       "/admin/resources": { categories, today: state.today }, "/admin/users": { users: [] },
+      "/admin/product-metadata": { categories, brands: Array.from(new Set(state.products.map(product => product.brand))).sort() },
       "/notifications/count": { unreadCount: 0 }, "/catalog/bootstrap": { products: [], categories },
     };
     if (!(path in responses)) errors.push(`Unexpected read: ${path}`);
@@ -52,7 +53,7 @@ test("Categories load independently of a delayed product list", async ({ page })
     await page.goto(`${base}/admin/products`);
     await expect(page.getByRole("heading", { name: "Sản phẩm", exact: true })).toBeVisible();
     await expect(page.getByRole("combobox", { name: "Danh mục sản phẩm", exact: true }).locator('option[value="qa-parent"]')).toHaveText("Phụ kiện QA");
-    expect(api.resourceReads).toEqual(["categories"]);
+    expect(api.resourceReads).toEqual([]);
     await expect(page.getByRole("combobox", { name: "Danh mục sản phẩm", exact: true })).toBeEnabled();
     expect(api.reads).toHaveLength(1);
   } finally { api.release(); }
@@ -114,7 +115,7 @@ test("Menu intent preloads one bounded page and navigation reuses that request",
   await users.click(); await expect(page.getByRole("heading", { name: "Tài khoản & phân quyền", exact: true })).toBeVisible();
   await page.locator('nav[aria-label="Quản trị nội bộ"] a[href="/admin/products"]').first().click();
   await expect(page.locator(".bt-admin-products-table tbody tr")).toHaveCount(10);
-  expect(api.reads).toHaveLength(1); expect(api.resourceReads).toEqual(["categories"]);
+  expect(api.reads).toHaveLength(1); expect(api.resourceReads).toEqual([]);
   api.check();
 });
 

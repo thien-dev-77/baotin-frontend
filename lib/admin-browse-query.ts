@@ -8,6 +8,7 @@ export function adminBrowsePath(resource: AdminBrowseResource, branch: Branch, s
   const params = new URLSearchParams({ branch, resource,
     page: String(Math.max(1, Number.parseInt(search.get("page") || "1", 10) || 1)),
     pageSize: String(ADMIN_PAGE_SIZES.find(size => size === Number(search.get("pageSize"))) || 10) });
+  if (resource === "products") params.set("metadata", "false");
   const query = search.get("q");
   if (query) params.set("q", query);
   for (const field of ADMIN_BROWSE_FILTERS) if (search.get(field)) params.set(field, search.get(field)!);

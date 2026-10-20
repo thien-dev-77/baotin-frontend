@@ -9,6 +9,11 @@ export function adminReadFixture(url: URL, state: Fixture, directory?: CustomerD
   const path = url.pathname.slice("/api/backend".length);
   const query = url.searchParams;
   const branch = query.get("branch") || "Quy Nhơn";
+  if (path === "/admin/product-metadata") return { categories: state.categories || [], brands: Array.from(new Set((state.products || []).map(product => product.brand).filter(Boolean))).sort() };
+  if (path === "/admin/order-editor") {
+    const order = (state.orders || []).find(row => row.id === query.get("id") && row.branch === branch);
+    return { ...state, orders: order ? [order] : [], products: (state.products || []).filter(product => order?.items.some(item => item.productId === product.id)), customers: (state.customers || []).filter(customer => customer.branch === branch) };
+  }
   if (/^\/admin\/products\/[^/]+\/editor$/.test(path)) {
     const selected = state.products?.find(product => product.id === decodeURIComponent(path.split("/")[3]));
     if (!selected) return undefined;
@@ -43,5 +48,7 @@ export function adminReadFixture(url: URL, state: Fixture, directory?: CustomerD
   const page = Math.min(Math.max(1, Number(query.get("page") || 1)), totalPages);
   const items = rows.slice((page - 1) * size, page * size);
   const key = resource === "warehouse" ? "orders" : resource;
-  return { ...state, [key]: items, pagination: { resource, total, page, pageSize: size, totalPages, ids: items.map(row => row.id) }, ...(resource === "products" ? { brands: Array.from(new Set((state.products || []).map(product => product.brand).filter(Boolean))).sort() } : {}), ...(resource === "customers" ? { directory: { items, groups: directory?.groups || Array.from(new Set(customers.map(row => row.group))), assignees: directory?.assignees || [] } } : {}) };
+  const result = { ...state, [key]: items, pagination: { resource, total, page, pageSize: size, totalPages, ids: items.map(row => row.id) }, ...(resource === "products" ? { brands: Array.from(new Set((state.products || []).map(product => product.brand).filter(Boolean))).sort() } : {}), ...(resource === "customers" ? { directory: { items, groups: directory?.groups || Array.from(new Set(customers.map(row => row.group))), assignees: directory?.assignees || [] } } : {}) };
+  if (resource === "products" && query.get("metadata") === "false") { delete result.categories; delete result.brands; }
+  return result;
 }

@@ -15,19 +15,40 @@ import { blankSalesDraft, draftItems, salesDeliveries, salesPayments, salesSourc
 import { money } from "@/lib/catalog";
 import { api, apiMode } from "@/lib/api-client";
 import { useUnsavedForm } from "@/lib/unsaved-form";
+import type { Product } from "@/lib/types";
+import type { ApiAdminState } from "@/lib/api-types";
+import { AdminReadModel } from "./admin-read-model";
+import { ResourceStatus, useAdminResource } from "./admin-resource";
 
 export function AdminSalesOrder({ id }: { id?: string }) {
+  const { branch } = useAdmin();
+  const [version, setVersion] = useState(0);
+  const params = new URLSearchParams({ branch });
+  if (id) params.set("id", id);
+  const resource = useAdminResource<ApiAdminState>(`/admin/order-editor?${params}`, apiMode);
+  if (!apiMode) return <SalesOrderContent key={`${branch}-${id || "new"}`} id={id} readBlocked={false} onReload={() => setVersion(value => value + 1)} />;
+  return <AdminReadModel data={resource.data}>
+    {apiMode && <ResourceStatus {...resource} />}
+    {(!apiMode || resource.data) && <SalesOrderContent key={`${branch}-${id || "new"}-${version}`} id={id} readBlocked={apiMode && (resource.loading || Boolean(resource.error))} onReload={() => setVersion(value => value + 1)} />}
+  </AdminReadModel>;
+}
+
+function SalesOrderContent({ id, readBlocked, onReload }: { id?: string; readBlocked: boolean; onReload: () => void }) {
   const { orders, branch } = useAdmin();
   const order = orders.find((item) => item.id === id);
   if (id && (!order || order.branch !== branch || order.status !== "Chờ xác nhận" || order.approvalId)) return <>
     <AdminHeading title="Không thể sửa đơn" /><p role="status" className="mb-5 text-sm text-text-secondary">Chỉ sửa đơn chờ xác nhận tại chi nhánh đang chọn, chưa gắn yêu cầu duyệt.</p><Link href="/admin/orders" className="bt-button-secondary"><ArrowLeft size={16} />Về đơn hàng</Link>
   </>;
-  return <SalesOrderForm key={`${branch}-${id || "new"}`} order={order} />;
+  return <SalesOrderForm key={`${branch}-${id || "new"}`} order={order} readBlocked={readBlocked} onReload={onReload} />;
 }
 
-function SalesOrderForm({ order }: { order?: AdminOrder }) {
+function SalesOrderForm({ order: latestOrder, readBlocked, onReload }: { order?: AdminOrder; readBlocked: boolean; onReload: () => void }) {
+  const [order] = useState(latestOrder);
+  const stale = apiMode && order?.revision !== latestOrder?.revision;
   const router = useRouter();
-  const { customers, scopedCustomers, branch, products, approvals, saveSalesOrder } = useAdmin();
+  const { customers, scopedCustomers, branch, products: initialProducts, approvals, saveSalesOrder } = useAdmin();
+  const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
+  const products = Array.from(new Map([...initialProducts, ...selectedProducts].map(product => [product.id, product])).values());
   const [draft, setDraft] = useState(() => {
     const data = blankSalesDraft(order);
     const customer = customers.find((item) => item.id === order?.customerId);
@@ -40,7 +61,7 @@ function SalesOrderForm({ order }: { order?: AdminOrder }) {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
-  const { markSaved } = useUnsavedForm(formRef, true, saving, JSON.stringify([draft, reason]));
+  const { markSaved, close } = useUnsavedForm(formRef, true, saving, JSON.stringify([draft, reason]));
   const [quote, setQuote] = useState<{ key: string; items: AdminOrder["items"]; subtotal: number; shipping: number; discount: number; total: number } | null>(null);
   const [quoteError, setQuoteError] = useState("");
   const quoteKey = JSON.stringify({ customerId: draft.customerId, source: draft.source, items: draft.items, details: { delivery: draft.details.delivery, payment: draft.details.payment }, branch, id: order?.id });
@@ -71,7 +92,7 @@ function SalesOrderForm({ order }: { order?: AdminOrder }) {
   }
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (saving) return;
+    if (saving || readBlocked || stale) return;
     if (apiMode && !currentQuote) return;
     setSaving(true);
     try { const result = await saveSalesOrder(draft, order?.id, reason, currentQuote?.total); if (result.error) setError(result.error); else { markSaved(); router.push(`/admin/orders?order=${result.id}`); } }
@@ -79,8 +100,9 @@ function SalesOrderForm({ order }: { order?: AdminOrder }) {
   }
   return <>
     <AdminHeading title={order ? `Sửa đơn ${order.id}` : "Tạo đơn hộ khách"} subtitle={`${branch} · Inside Sales`}><Link href="/admin/orders" className="bt-button-secondary"><ArrowLeft size={16} />Về đơn hàng</Link></AdminHeading>
+    {stale && <div role="alert" className="mb-4 space-y-2 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><p>Đơn hàng đã được cập nhật ở phiên khác. Nội dung bạn đang nhập vẫn được giữ lại. Tải lại đơn trước khi lưu.</p><Button variant="secondary" onClick={() => close(onReload)}>Tải lại đơn</Button></div>}
     <form ref={formRef} onSubmit={submit} className="grid min-w-0 bg-white xl:grid-cols-[minmax(0,1fr)_320px]">
-      <fieldset disabled={saving} className="min-w-0 px-4 sm:px-5">
+      <fieldset disabled={saving || readBlocked || stale} className="min-w-0 px-4 sm:px-5">
         <section aria-labelledby="sales-customer" className="border-b border-border py-5">
           <h2 id="sales-customer" className="mb-4 text-base font-semibold text-primary">Khách hàng & nguồn đơn</h2>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -123,8 +145,11 @@ function SalesOrderForm({ order }: { order?: AdminOrder }) {
           <div className="mt-5"><AdminStatus value="Chờ xác nhận" /></div>
         </div>
       </aside>
-      <div className="bt-admin-save-bar xl:col-span-2"><Button type="submit" loading={saving} disabled={!hasItems || (apiMode && !currentQuote)}><Check size={16} />{order ? "Lưu thay đổi" : "Tạo đơn chờ xác nhận"}</Button></div>
+      <div className="bt-admin-save-bar xl:col-span-2"><Button type="submit" loading={saving} disabled={readBlocked || stale || !hasItems || (apiMode && !currentQuote)}><Check size={16} />{order ? "Lưu thay đổi" : "Tạo đơn chờ xác nhận"}</Button></div>
     </form>
-    <AdminSalesProducts open={picker} onClose={() => { setPicker(false); requestAnimationFrame(() => pickerTrigger.current?.focus()); }} products={products} customer={customer} selected={items.map((item) => item.productId)} onAdd={(productId) => setDraft((state) => ({ ...state, items: [...state.items, { productId, quantity: 1 }] }))} />
+    <AdminSalesProducts open={picker} onClose={() => { setPicker(false); requestAnimationFrame(() => pickerTrigger.current?.focus()); }} products={products} customer={customer} selected={items.map((item) => item.productId)} onAdd={(product) => {
+      setSelectedProducts(state => [...state.filter(item => item.id !== product.id), product]);
+      setDraft(state => state.items.some(item => item.productId === product.id) ? state : ({ ...state, items: [...state.items, { productId: product.id, quantity: 1 }] }));
+    }} />
   </>;
 }

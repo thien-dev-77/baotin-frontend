@@ -330,7 +330,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           className="bt-admin-content"
           aria-busy={!ready}
         >
-          {ready ? (
+          {ready || path.startsWith("/admin/products") ? (
             apiMode &&
             ((rolesFor[path] &&
               !rolesFor[path].includes(sessionUser?.role || "")) ||

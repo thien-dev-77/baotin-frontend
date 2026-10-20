@@ -21,7 +21,7 @@ import {
 import "ckeditor5/ckeditor5.css";
 import { productContentHtml } from "@/lib/product-content";
 
-interface RichTextEditorProps {
+export interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
   onPlainTextChange?: (value: string) => void;

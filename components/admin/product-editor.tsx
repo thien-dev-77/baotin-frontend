@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState } from "react";
 import { ArrowLeft, ExternalLink, Eye, FileText, Globe, ListChecks, LockKeyhole, Package, RefreshCw, Save, Warehouse } from "lucide-react";
@@ -25,29 +24,26 @@ import { variantDimension } from "@/lib/product-variants";
 import { PRODUCT_SPECIFICATION_MAX_LENGTH, PRODUCT_TECHNICAL_DETAILS_MAX_LENGTH } from "@/lib/product-content";
 import { ProductFormSection } from "./product-form-section";
 import { ProductFilterAttributes, productFilterDraft } from "./product-filter-attributes";
-import { useApiResource } from "@/lib/use-api-resource";
-import { ResourceStatus } from "./admin-resource";
-const RichTextEditor = dynamic(() => import("./rich-text-editor").then(module => module.RichTextEditor), {
-  ssr: false,
-  loading: () => <p role="status" className="py-3 text-sm text-text-secondary">Đang tải trình soạn thảo...</p>,
-});
+import { ResourceStatus, useAdminResource } from "./admin-resource";
+import { LazyRichTextEditor as RichTextEditor } from "./lazy-rich-text-editor";
 
 type AdminProduct = ApiAdminState["products"][number];
 const PRODUCT_EDITOR_TABS = { basic: "Thông tin cơ bản", content: "Nội dung chi tiết", media: "Hình ảnh" };
 
 export function ProductEditorPage({ id }: { id?: string }) {
-  const { products: previewProducts, reset: reload, branch } = useAdmin();
+  const { products: previewProducts, reset: reload, branch, ready } = useAdmin();
   const { sessionUser } = useCommerce();
   const [version, setVersion] = useState(0);
   const variantOf = useSearchParams().get("variantOf");
   const targetId = id || variantOf;
   const authorized = ["admin", "boss", "sales"].includes(sessionUser?.role || "");
-  const resource = useApiResource<{ products: AdminProduct[] }>(`/admin/products/${encodeURIComponent(targetId || "")}/editor?${new URLSearchParams({ branch })}`, apiMode && authorized && Boolean(targetId));
+  const resource = useAdminResource<{ products: AdminProduct[] }>(`/admin/products/${encodeURIComponent(targetId || "")}/editor?${new URLSearchParams({ branch })}`, apiMode && authorized && Boolean(targetId));
   const products = apiMode ? resource.data?.products || [] : previewProducts;
   const template = !id && variantOf ? products.find(item => item.id === variantOf) : undefined;
   const product = id ? products.find(item => item.id === id) : undefined;
-  const refresh = async () => { await Promise.all([reload(), resource.reload()]); };
+  const refresh = async () => { await reload(); };
   if (apiMode && !authorized) return <p role="alert" className="text-sm text-danger">Tài khoản không có quyền quản lý sản phẩm.</p>;
+  if (apiMode && !ready) return <ResourceStatus loading reload={refresh} />;
   if (apiMode && targetId && !resource.data) return <ResourceStatus loading={resource.loading} error={resource.error} reload={resource.reload} />;
   if (variantOf && !template) return <EmptyState title="Không tìm thấy sản phẩm gốc" href="/admin/products" action="Về danh sách" />;
   if (template && !template.variantGroupId) return <EmptyState title="Sản phẩm gốc chưa có thuộc tính biến thể" href={`/admin/products/${encodeURIComponent(template.id)}/edit`} action="Sửa sản phẩm gốc" />;

@@ -28,6 +28,7 @@
     "test:operations": "node scripts/operations-ui-qa.mjs",
     "test:products": "node scripts/products-ui-qa.mjs",
     "test:admin-loading": "playwright test tests/admin-loading.spec.ts --workers=1",
+    "test:admin-performance": "playwright test tests/admin-performance-ui.spec.ts --workers=1",
     "dev": "next dev",
     "build": "node scripts/build.mjs",
     "start": "next start",
