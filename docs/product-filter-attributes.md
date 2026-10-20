@@ -22,6 +22,12 @@ Existing exact-text links remain removable. New grouped choices clear only the
 corresponding legacy text constraint, retain other filters, and reset pagination.
 The size facet is no longer shown in the listing filter panel.
 
+While a listing navigation or personalized API request is pending, product cards
+become skeletons in the current grid/list layout. The previous card count and
+disabled pagination keep the layout stable. Placeholders have no product links
+or actions, are hidden from screen readers, and respect reduced-motion settings.
+The loading state ends on success, an empty result, or an API failure.
+
 Deploy the compatible backend before this frontend, because new saves include
 the three nullable selection arrays and public filters include `colorGroup` and
 `originGroup`. Product text and SKU variant identity are preserved.

@@ -73,7 +73,24 @@ export function ProductCard({ product, list = false, imageSizes }: { product: Pr
     </div>
   </article>;
 }
-export function ProductGrid({ products, list = false, desktopColumns = 5 }: { products: Product[]; list?: boolean; desktopColumns?: 4 | 5 }) {
+function ProductCardSkeleton({ list = false }: { list?: boolean }) {
+  return <div aria-hidden="true" data-product-skeleton className={`bt-product-card pointer-events-none select-none motion-safe:animate-pulse ${list ? "bt-product-card--list" : ""}`}>
+    <div className="bt-product-card-media"><div className="absolute inset-0 bg-border" /></div>
+    <div className="bt-product-card-content">
+      <div className="bt-product-card-title space-y-2 py-1"><div className="h-3.5 w-full rounded bg-border" /><div className="h-3.5 w-3/4 rounded bg-border" /></div>
+      <div className="mt-1.5 space-y-2"><div className="h-6 w-3/4 rounded bg-border" /><div className="h-2.5 w-4/5 rounded bg-border" /></div>
+      <div className="mt-3 h-3 w-3/5 rounded bg-border" />
+      <div className="mt-3 flex gap-1"><div className="h-6 w-14 rounded bg-border" /><div className="h-6 w-16 rounded bg-border" /></div>
+      <div className="bt-product-card-meta"><div className="h-2.5 w-1/2 rounded bg-border" /><div className="h-2.5 w-6 rounded bg-border" /></div>
+    </div>
+  </div>;
+}
+
+const DEFAULT_SKELETON_COUNT = 12;
+
+export function ProductGrid({ products, list = false, desktopColumns = 5, loading = false }: { products: Product[]; list?: boolean; desktopColumns?: 4 | 5; loading?: boolean }) {
   const imageSizes = desktopColumns === 4 ? "(min-width: 1440px) 248px, (min-width: 1280px) 238px, (min-width: 1024px) calc((100vw - 339px) / 4), (min-width: 640px) 33vw, 50vw" : undefined;
-  return <div data-product-grid data-desktop-columns={desktopColumns} className={list ? "grid gap-3" : `grid grid-cols-2 gap-3 sm:grid-cols-3 ${desktopColumns === 4 ? "lg:grid-cols-4" : "lg:grid-cols-5"}`}>{products.map((product) => <ProductCard key={product.id} product={product} list={list} imageSizes={imageSizes} />)}</div>;
+  return <div data-product-grid data-desktop-columns={desktopColumns} aria-hidden={loading || undefined} className={list ? "grid gap-3" : `grid grid-cols-2 gap-3 sm:grid-cols-3 ${desktopColumns === 4 ? "lg:grid-cols-4" : "lg:grid-cols-5"}`}>
+    {loading ? Array.from({ length: products.length || DEFAULT_SKELETON_COUNT }, (_, index) => <ProductCardSkeleton key={index} list={list} />) : products.map((product) => <ProductCard key={product.id} product={product} list={list} imageSizes={imageSizes} />)}
+  </div>;
 }
