@@ -312,16 +312,14 @@ for (const width of [1440, 320]) test(`Admin sign-in keeps the supplied logo and
   await page.screenshot({ path: `/private/tmp/baotin-branding/admin-login-${width}.png`, animations: "disabled" });
 });
 
-for (const width of [1440, 1280, 1024]) test(`Sidebar previews fill the hero without changing its height at ${width}px`, async ({ page }) => {
+for (const width of [1440, 1280, 1024]) test(`Compact sidebar keeps all categories within the hero at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 1000 });
   const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
   await page.goto(frontend);
   const sidebar = page.locator(".bt-home-category-sidebar");
   const navigation = sidebar.getByRole("navigation");
-  const previews = navigation.locator(".bt-home-category-preview");
-  await expect(previews).toHaveCount(5);
-  await expect(previews.first()).toHaveText("Vòi rửa · Chậu rửa");
-  await expect(previews.nth(1)).toHaveAttribute("title", groups[1].children.join(", "));
+  await expect(navigation.locator(".bt-home-category-preview")).toHaveCount(0);
+  await expect(navigation.getByRole("link")).toHaveCount(roots.length);
   await expect(navigation.getByRole("link", { name: roots[0].name, exact: true }).locator("span")).toHaveCSS("font-size", "14px");
   const hero = page.locator(".bt-home-hero-banner");
   await expect.poll(() => hero.locator("img[data-active=true]").evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
@@ -334,7 +332,7 @@ for (const width of [1440, 1280, 1024]) test(`Sidebar previews fill the hero wit
   const footer = (await all.boundingBox())!;
   expect(panel.y + panel.height - footer.y - footer.height).toBeLessThanOrEqual(10);
   const list = (await navigation.boundingBox())!;
-  const last = (await previews.last().boundingBox())!;
+  const last = (await navigation.getByRole("link").last().boundingBox())!;
   expect(last.y + last.height).toBeLessThanOrEqual(list.y + list.height + 1);
   expect(await navigation.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
@@ -343,12 +341,13 @@ for (const width of [1440, 1280, 1024]) test(`Sidebar previews fill the hero wit
   expect(errors).toEqual([]);
 });
 
-test("Sidebar previews are server-rendered and the footer navigates to all categories", async ({ browser }) => {
+test("Sidebar categories render without previews on the server and the footer navigates to all categories", async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1440, height: 1000 } });
   try {
     const page = await context.newPage(); await page.goto(frontend);
     const sidebar = page.locator(".bt-home-category-sidebar");
-    await expect(sidebar.locator(".bt-home-category-preview")).toHaveCount(5);
+    await expect(sidebar.locator(".bt-home-category-preview")).toHaveCount(0);
+    await expect(sidebar.getByRole("navigation").getByRole("link")).toHaveCount(roots.length);
     await sidebar.getByRole("link", { name: "Xem tất cả danh mục", exact: true }).click();
     await expect(page).toHaveURL(`${frontend}/categories`);
     await expect(page.getByRole("heading", { name: "Danh mục sản phẩm", exact: true })).toBeVisible();
@@ -362,7 +361,7 @@ test("Opening nested branches keeps the footer fixed and dropdown previews disab
   const all = sidebar.getByRole("link", { name: "Xem tất cả danh mục", exact: true });
   const before = await all.boundingBox();
   await navigation.getByRole("link", { name: "Phụ kiện tủ bếp", exact: true }).press("ArrowRight");
-  await expect(navigation.locator(".bt-home-category-preview")).toHaveCount(5);
+  await expect(navigation.locator(".bt-home-category-preview")).toHaveCount(0);
   const flyout = page.getByRole("navigation", { name: "Danh mục con Phụ kiện tủ bếp", exact: true });
   await flyout.getByRole("button", { name: "Mở danh mục con Phụ kiện tủ bếp trên", exact: true }).click();
   const childLink = page.getByRole("navigation", { name: "Danh mục con Phụ kiện tủ bếp trên", exact: true }).getByRole("link", { name: "Giá bát cố định", exact: true });
@@ -370,7 +369,7 @@ test("Opening nested branches keeps the footer fixed and dropdown previews disab
   await childLink.focus(); await expect(childLink).toBeFocused();
   expect(await all.boundingBox()).toEqual(before);
   await navigation.getByRole("link", { name: "Phụ kiện tủ bếp", exact: true }).press("ArrowLeft");
-  await expect(navigation.locator(".bt-home-category-preview")).toHaveCount(5);
+  await expect(navigation.locator(".bt-home-category-preview")).toHaveCount(0);
   await page.getByRole("button", { name: "Danh mục sản phẩm", exact: true }).click();
   const menu = page.getByRole("menu");
   await expect(menu.locator(".bt-home-category-preview")).toHaveCount(0);
@@ -461,12 +460,12 @@ test("Touch-only desktop does not open on hover, but the category arrow opens on
   } finally { await context.close(); }
 });
 
-test("Legacy category groups get previews without inventing child links", async ({ page }) => {
+test("Legacy category groups stay compact without preview rows or inline child links", async ({ page }) => {
   categories = structuredClone(roots);
   await page.setViewportSize({ width: 1440, height: 1000 }); await page.goto(frontend);
   const navigation = page.getByRole("navigation", { name: "Danh mục bên cạnh banner", exact: true });
-  await expect(navigation.locator(".bt-home-category-preview")).toHaveCount(5);
-  await expect(navigation.locator(".bt-home-category-preview").first()).toHaveText("Vòi rửa · Chậu rửa");
+  await expect(navigation.locator(".bt-home-category-preview")).toHaveCount(0);
+  await expect(navigation.getByRole("link")).toHaveText(roots.map(root => root.name));
   await expect(navigation.getByRole("link", { name: "Vòi rửa", exact: true })).toHaveCount(0);
 });
 
