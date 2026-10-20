@@ -92,15 +92,17 @@ for (const [width, columns] of [[1440, 5], [1024, 5], [768, 3], [390, 2], [320, 
       await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
       await expect(media.locator(".bt-product-card-discount")).toHaveCount(0);
       await expect(card.locator(".bt-product-card-price .bt-product-card-discount")).toHaveText("-20%");
-      await expect(card.locator(".bt-product-card-discount")).toHaveCSS("background-color", "rgb(255, 196, 0)");
-      await expect(card.locator(".bt-product-card-discount")).toHaveCSS("color", "rgb(23, 23, 23)");
+      await expect(card.locator(".bt-product-card-discount")).toHaveCSS("background-color", "rgb(255, 244, 204)");
+      await expect(card.locator(".bt-product-card-discount")).toHaveCSS("color", "rgb(138, 90, 0)");
       await expect(card.locator("del")).toHaveText(money(16000000));
       await expect(card.locator(".bt-price-amount")).toHaveText(money(12800000));
       await expect(card.locator(".bt-price-amount")).toHaveCSS("color", "rgb(23, 23, 23)");
-      await expect(card.locator(".bt-product-card-reviews")).toContainText("2 đánh giá");
-      await expect(card.locator(".bt-product-card-star").last().locator("span")).toHaveAttribute("style", "width: 50%;");
-      await expect(card.getByRole("list", { name: "Thuộc tính sản phẩm" })).toContainText("Vân tay");
-      await expect(card.getByRole("list", { name: "Thuộc tính sản phẩm" })).toContainText("Ứng dụng");
+      await expect(card.locator(".bt-product-card-reviews, .bt-product-card-star, .bt-product-card-tags, .bt-product-card-meta")).toHaveCount(0);
+      await expect(card).not.toContainText(`Mã: ${products[0].code}`);
+      await expect(card).not.toContainText("Đăng nhập B2B để xem giá");
+      await expect(card.locator(".bt-product-card-unit")).toHaveText(`/${products[0].unit}`);
+      const savings = card.locator(".bt-product-card-price-savings");
+      expect((await savings.boundingBox())!.y).toBeGreaterThan((await card.locator(".bt-product-card-price-current").boundingBox())!.y);
       await expect(card.getByRole("button", { name: /Thêm.*giỏ/ })).toHaveCount(0);
       const details = card.locator(".bt-product-card-details");
       await expect(details).toHaveText("Xem chi tiết");
@@ -170,7 +172,7 @@ for (const [width, columns] of [[1440, 4], [1024, 4], [768, 3], [390, 2], [320, 
   api.check();
 });
 
-for (const width of [1440, 390, 320]) test(`A single-tag card stays compact without blank attribute space at ${width}px`, async ({ page }) => {
+for (const width of [1440, 390, 320]) test(`Cards omit attributes and stay compact at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 1000 });
   const sparse: Product = { ...products[5], name: "Vòi rửa inox SUS304 cao cấp", listPrice: 2940000, price: 2940000, customerPrice: 2940000, oldPrice: undefined, b2cDiscount: 0, size: "", color: "", material: "", variantAttributes: [{ name: "Trọng lượng", value: "1.1 kg" }], reviewSummary: { rating: 0, count: 0 } };
   const api = await mockCards(page, buyer, [sparse]);
@@ -180,16 +182,11 @@ for (const width of [1440, 390, 320]) test(`A single-tag card stays compact with
   await card.scrollIntoViewIfNeeded();
   const media = (await card.locator(".bt-product-card-media").boundingBox())!;
   expect(Math.abs(media.width / media.height - 4 / 3)).toBeLessThan(0.01);
-  const tags = card.getByRole("list", { name: "Thuộc tính sản phẩm" });
-  await expect(tags).toHaveText("1.1 kg");
-  const tagRect = (await tags.boundingBox())!;
-  expect(tagRect.height).toBeLessThanOrEqual(26);
-  const meta = (await card.locator(".bt-product-card-meta").boundingBox())!;
-  expect(meta.y - tagRect.y - tagRect.height).toBeLessThanOrEqual(12);
+  await expect(card.locator(".bt-product-card-tags, .bt-product-card-meta, .bt-product-card-reviews")).toHaveCount(0);
   await card.locator(".bt-product-card-title").hover();
   await expect(card.locator(".bt-product-card-title")).toHaveCSS("text-decoration-line", "none");
   await expect.poll(() => card.locator("img").evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
-  expect((await card.boundingBox())!.height - media.height).toBeLessThan(220);
+  expect((await card.boundingBox())!.height - media.height).toBeLessThan(130);
   await mkdir("/private/tmp/baotin-compact-cards", { recursive: true });
   await card.screenshot({ path: `/private/tmp/baotin-compact-cards/single-tag-${width}.png`, animations: "disabled", style: "header { visibility: hidden; }" });
   api.check();
@@ -218,7 +215,7 @@ for (const [width, columns] of [[1440, 4], [390, 2]]) test(`Real API category us
 test("The same product card layout is used in catalog grid and list views", async ({ page }) => {
   const api = await mockCards(page);
   await page.goto(`${base}/search`);
-  const card = page.locator(".bt-product-card").filter({ hasText: products[0].code });
+  const card = page.locator(".bt-product-card").filter({ has: page.locator(`.bt-product-card-title[href="/products/${products[0].slug}"]`) });
   await expect(card.locator(".bt-product-card-title")).toHaveText(products[0].name);
   await expect(card.locator(".bt-product-card-image-link img")).toHaveCSS("object-fit", "contain");
   await page.getByRole("button", { name: "Dạng danh sách", exact: true }).click();
@@ -242,7 +239,7 @@ test("Product card hover respects reduced motion", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   const api = await mockCards(page);
   await page.goto(`${base}/search`);
-  const card = page.locator(".bt-product-card").filter({ hasText: products[0].code });
+  const card = page.locator(".bt-product-card").filter({ has: page.locator(`.bt-product-card-title[href="/products/${products[0].slug}"]`) });
   await card.locator(".bt-product-card-media").hover();
   await expect(card.locator(".bt-product-card-details")).toHaveCSS("opacity", "1");
   await expect(card.locator(".bt-product-card-details")).toHaveCSS("transition-property", "none");
@@ -258,7 +255,10 @@ test("Hover link opens real API product details without adding a cart line", asy
   const product = result.products.find(product => product.featured)!;
   expect(product).toBeTruthy();
   await page.goto(base);
-  const card = page.locator("[data-product-showcase] .bt-product-card").filter({ hasText: `Mã: ${product.code}` });
+  await expect(page.locator("header[aria-busy]")).toHaveAttribute("aria-busy", "false");
+  await page.evaluate(() => document.fonts.ready);
+  const card = page.locator("[data-product-showcase] .bt-product-card").filter({ has: page.locator(`.bt-product-card-title[href="/products/${product.slug}"]`) });
+  await card.scrollIntoViewIfNeeded();
   await card.locator(".bt-product-card-media").hover();
   const details = card.getByRole("link", { name: `Xem chi tiết - ${product.name}`, exact: true });
   await expect(details).toHaveCSS("opacity", "1");

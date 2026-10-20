@@ -281,7 +281,7 @@ for (const price of [55000, 110000]) {
   test(`Product cards show discounts from the actual customer price ${price}`, async ({ page }) => {
     const api = await mockPricing(page, buyer, price);
     await page.goto(`${base}/search`);
-    const card = page.locator(".bt-product-card").filter({ hasText: configured.code });
+    const card = page.locator(".bt-product-card").filter({ has: page.locator(`.bt-product-card-title[href="/products/${configured.slug}"]`) });
     await expect(card).toContainText(money(price));
     if (price === 55000) await expect(card.locator(".bt-product-card-discount")).toContainText("-45%");
     else { await expect(card.locator(".bt-product-card-discount")).toHaveCount(0); await expect(card.locator("del")).toHaveCount(0); }
@@ -295,7 +295,7 @@ for (const width of [1440, 390]) {
     const noRetailDiscount = { ...configured, b2cDiscount: 0, b2bDiscount: 60, price: configured.listPrice, oldPrice: undefined };
     const api = await mockPricing(page, null, 40000, noRetailDiscount);
     await page.goto(`${base}/search`);
-    const card = page.locator(".bt-product-card").filter({ hasText: configured.code });
+    const card = page.locator(".bt-product-card").filter({ has: page.locator(`.bt-product-card-title[href="/products/${configured.slug}"]`) });
     await expect(card.locator(".bt-price-amount")).toHaveText(money(noRetailDiscount.listPrice));
     await expect(card.locator(".bt-product-card-discount")).toHaveCount(0);
     await expect(card.locator("del")).toHaveCount(0);

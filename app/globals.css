@@ -108,24 +108,17 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
 .bt-product-card-content { display: flex; min-width: 0; flex: 1; flex-direction: column; padding: 10px; }
 .bt-product-card-title { min-height: 44px; color: var(--color-text); font-size: 15px; font-weight: 400; line-height: 22px; letter-spacing: 0; overflow-wrap: anywhere; }
 .bt-product-card-title:hover { color: var(--color-primary); text-decoration: none; }
-.bt-product-card-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; line-height: 26px; }
+.bt-product-card-price { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; line-height: 26px; }
+.bt-product-card-price-current { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 5px; max-width: 100%; }
+.bt-product-card-unit { color: var(--color-text-muted); font-size: 11px; line-height: 16px; }
+.bt-product-card-price-savings { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; max-width: 100%; line-height: 18px; }
 .bt-product-card-price .bt-price-amount { color: var(--color-primary); font-size: 20px; font-weight: 700; white-space: nowrap; }
-.bt-product-card-price del { color: var(--color-text-muted); font-size: 13px; font-weight: 400; white-space: nowrap; }
+.bt-product-card-price del { color: var(--color-text-muted); font-size: 12px; font-weight: 400; white-space: nowrap; }
 .bt-product-card-price--compact .bt-price-amount { font-size: 16px; }
 .bt-product-card-account { margin-top: 2px; color: var(--color-text-secondary); font-size: 11px; line-height: 16px; }
-.bt-product-card-reviews { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; color: var(--color-text-secondary); font-size: 12px; line-height: 18px; }
-.bt-product-card-reviews:hover { color: var(--color-primary); text-decoration: underline; text-underline-offset: 3px; }
-.bt-product-card-star { position: relative; display: inline-flex; width: 15px; height: 15px; }
-.bt-product-card-star > span { position: absolute; inset: 0 auto 0 0; overflow: hidden; }
-.bt-product-card-star svg { min-width: 15px; }
-.bt-product-card-tags { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 4px; margin-top: 8px; }
-.bt-product-card-tags li { max-width: 100%; border: 1px solid var(--color-border); border-radius: 3px; padding: 3px 6px; color: var(--color-text-secondary); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
-.bt-product-card-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: auto; padding-top: 10px; color: var(--color-text-muted); font-size: 11px; line-height: 16px; }
-.bt-product-card-meta span:first-child { min-width: 0; overflow-wrap: anywhere; }
-.bt-product-card-meta span:last-child { flex-shrink: 0; }
 .bt-product-card-favorite { position: absolute; top: 4px; left: 4px; display: flex; width: 40px; height: 40px; align-items: center; justify-content: center; border-radius: 50%; background: rgba(255, 255, 255, .94); transition: color 160ms ease; }
 .bt-product-card-favorite:hover:not([aria-pressed="true"]) { color: var(--color-primary); }
-.bt-product-card-discount { display: inline-flex; flex-shrink: 0; align-self: center; align-items: center; border-radius: 4px; background: var(--color-brand); padding: 2px 6px; color: var(--color-primary); font-size: 11px; font-weight: 600; line-height: 16px; white-space: nowrap; }
+.bt-product-card-discount { display: inline-flex; flex-shrink: 0; align-items: center; border: 1px solid #ffe49b; border-radius: 999px; background: #fff4cc; padding: 1px 6px; color: #8a5a00; font-size: 11px; font-weight: 600; line-height: 16px; white-space: nowrap; }
 .bt-product-card--list { flex-direction: row; }
 .bt-product-card--list .bt-product-card-media { width: 180px; align-self: flex-start; }
 @container product-card (max-width: 210px) {
@@ -137,10 +130,7 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
   .bt-product-card-content { padding: 8px; }
   .bt-product-card-price .bt-price-amount { font-size: 14px; }
   .bt-product-card-price del { font-size: 11px; }
-  .bt-product-card-reviews { gap: 4px; font-size: 11px; }
-  .bt-product-card-star { width: 13px; height: 13px; }
-  .bt-product-card-star svg { min-width: 13px; width: 13px; height: 13px; }
-  .bt-product-card-tags li { padding: 2px 4px; font-size: 11px; }
+  .bt-product-card-discount { padding-inline: 5px; font-size: 10px; }
 }
 @media (max-width: 639px) {
   .bt-product-card--list .bt-product-card-media { width: 112px; }

@@ -1,7 +1,7 @@
 "use client";
 
 import { Product, money, priceFor } from "@/lib/catalog";
-import { Eye, Heart, Star } from "lucide-react";
+import { Eye, Heart } from "lucide-react";
 import Link from "next/link";
 import { ProductImage as Image } from "@/components/product-image";
 import { ProductAuthenticityLabel } from "@/components/product-authenticity-label";
@@ -18,38 +18,16 @@ export function PriceDisplay({ product, compact = false }: { product: Product; c
   const discount = referencePrice ? Math.max(0, Math.round((1 - price / referencePrice) * 100)) : 0;
   return <div className="min-w-0">
     <div className={`bt-product-card-price ${compact ? "bt-product-card-price--compact" : ""}`}>
-      <span className="bt-price-amount">{money(price)}</span>
-      {referencePrice !== undefined && referencePrice > price && <del>{money(referencePrice)}</del>}
-      {discount > 0 && <span className="bt-product-card-discount" aria-label={`Giảm ${discount}%`}>-{discount}%</span>}
+      <div className="bt-product-card-price-current"><span className="bt-price-amount">{money(price)}</span><span className="bt-product-card-unit">/{product.unit}</span></div>
+      {referencePrice !== undefined && referencePrice > price && <div className="bt-product-card-price-savings"><del>{money(referencePrice)}</del>{discount > 0 && <span className="bt-product-card-discount" aria-label={`Giảm ${discount}%`}>-{discount}%</span>}</div>}
     </div>
-    <div className="bt-product-card-account">
-      {isB2b ? <span className="font-medium text-primary">Giá B2B</span> : customer ? <span>Chờ kích hoạt B2B</span> : <Link href="/login" className="hover:underline">Đăng nhập B2B để xem giá</Link>}
-    </div>
+    {isB2b && <div className="bt-product-card-account"><span className="font-medium text-primary">Giá B2B</span></div>}
   </div>;
-}
-
-function productTags(product: Product) {
-  const placeholders = new Set(["chưa cập nhật", "theo phiên bản", "theo mã hàng", "theo nhãn sản phẩm"]);
-  const attributes = [
-    ...(product.variantAttributes || []),
-    { name: "Kích thước", value: product.size },
-    { name: "Chất liệu", value: product.material },
-    { name: "Màu sắc", value: product.color },
-  ];
-  const seen = new Set<string>();
-  return attributes.filter(attribute => {
-    const value = attribute.value?.trim();
-    if (!value || placeholders.has(value.toLocaleLowerCase("vi")) || seen.has(value.toLocaleLowerCase("vi"))) return false;
-    seen.add(value.toLocaleLowerCase("vi"));
-    return true;
-  }).slice(0, 4);
 }
 
 export function ProductCard({ product, list = false, imageSizes }: { product: Product; list?: boolean; imageSizes?: string }) {
   const { favorites, toggleFavorite } = useCommerce();
   const liked = favorites.includes(product.id);
-  const tags = productTags(product);
-  const summary = product.reviewSummary;
   return <article className={`bt-product-card group ${list ? "bt-product-card--list" : ""}`}>
     <div className="bt-product-card-media">
       <Link href={`/products/${product.slug}`} prefetch={false} className="bt-product-card-image-link"><Image src={product.image} data-image-src={product.image} alt={product.name} fill loading="lazy" quality={85} sizes={list ? "(min-width: 640px) 180px, 112px" : imageSizes || "(min-width: 1440px) 246px, (min-width: 1280px) 238px, (min-width: 1024px) 20vw, (min-width: 640px) 33vw, 50vw"} className="object-contain transition duration-200 group-hover:scale-[1.02]" /></Link>
@@ -60,15 +38,6 @@ export function ProductCard({ product, list = false, imageSizes }: { product: Pr
     <div className="bt-product-card-content">
       <Link href={`/products/${product.slug}`} prefetch={false} className="bt-product-card-title line-clamp-2" title={product.name}>{product.name}</Link>
       <div className="mt-1.5"><PriceDisplay product={product} /></div>
-      {summary && <Link href={`/products/${product.slug}`} prefetch={false} className="bt-product-card-reviews" aria-label={summary.count ? `${summary.rating.toFixed(1)} trên 5 sao, ${summary.count} đánh giá` : "Chưa có đánh giá"}>
-        <span className="inline-flex shrink-0 text-brand" aria-hidden="true">{Array.from({ length: 5 }, (_, index) => <span key={index} className="bt-product-card-star">
-          <Star size={15} strokeWidth={1.6} />
-          <span style={{ width: `${summary.count > 0 ? Math.max(0, Math.min(1, summary.rating - index)) * 100 : 0}%` }}><Star size={15} strokeWidth={1.6} fill="currentColor" /></span>
-        </span>)}</span>
-        <span>{summary.count} đánh giá</span>
-      </Link>}
-      {tags.length > 0 && <ul className="bt-product-card-tags" aria-label="Thuộc tính sản phẩm">{tags.map(attribute => <li key={attribute.value.toLocaleLowerCase("vi")} title={`${attribute.name}: ${attribute.value}`}>{attribute.value}</li>)}</ul>}
-      <div className="bt-product-card-meta"><span title={`Mã: ${product.code}`}>Mã: {product.code}</span><span>/{product.unit}</span></div>
       {product.stock === 0 && <span className="mt-1 text-xs text-text-muted">Tạm hết hàng</span>}
     </div>
   </article>;
@@ -79,9 +48,6 @@ function ProductCardSkeleton({ list = false }: { list?: boolean }) {
     <div className="bt-product-card-content">
       <div className="bt-product-card-title space-y-2 py-1"><div className="h-3.5 w-full rounded bg-border" /><div className="h-3.5 w-3/4 rounded bg-border" /></div>
       <div className="mt-1.5 space-y-2"><div className="h-6 w-3/4 rounded bg-border" /><div className="h-2.5 w-4/5 rounded bg-border" /></div>
-      <div className="mt-3 h-3 w-3/5 rounded bg-border" />
-      <div className="mt-3 flex gap-1"><div className="h-6 w-14 rounded bg-border" /><div className="h-6 w-16 rounded bg-border" /></div>
-      <div className="bt-product-card-meta"><div className="h-2.5 w-1/2 rounded bg-border" /><div className="h-2.5 w-6 rounded bg-border" /></div>
     </div>
   </div>;
 }
