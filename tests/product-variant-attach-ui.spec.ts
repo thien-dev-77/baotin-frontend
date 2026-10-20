@@ -70,6 +70,9 @@ async function mockAttach(page: Page, standalone = false) {
       await route.fulfill({ status: 201, json: { groupId: body.groupId, products } }); return;
     }
     if (request.method() !== "GET") { errors.push(`Unexpected write ${path}`); await route.fulfill({ status: 405, json: {} }); return; }
+    if (/^\/admin\/products\/[^/]+\/editor$/.test(path)) {
+      await route.fulfill({ json: adminReadFixture(url, state) }); return;
+    }
     if (path === "/admin/browse") {
       searches.push(url.searchParams);
       await route.fulfill({ json: adminReadFixture(url, { ...state, products }) }); return;

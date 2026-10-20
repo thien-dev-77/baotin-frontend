@@ -25,6 +25,8 @@ import { variantDimension } from "@/lib/product-variants";
 import { PRODUCT_SPECIFICATION_MAX_LENGTH, PRODUCT_TECHNICAL_DETAILS_MAX_LENGTH } from "@/lib/product-content";
 import { ProductFormSection } from "./product-form-section";
 import { ProductFilterAttributes, productFilterDraft } from "./product-filter-attributes";
+import { useApiResource } from "@/lib/use-api-resource";
+import { ResourceStatus } from "./admin-resource";
 const RichTextEditor = dynamic(() => import("./rich-text-editor").then(module => module.RichTextEditor), {
   ssr: false,
   loading: () => <p role="status" className="py-3 text-sm text-text-secondary">Đang tải trình soạn thảo...</p>,
@@ -34,25 +36,32 @@ type AdminProduct = ApiAdminState["products"][number];
 const PRODUCT_EDITOR_TABS = { basic: "Thông tin cơ bản", content: "Nội dung chi tiết", media: "Hình ảnh" };
 
 export function ProductEditorPage({ id }: { id?: string }) {
-  const { products, reset: reload, loadedResources } = useAdmin();
+  const { products: previewProducts, reset: reload, branch } = useAdmin();
   const { sessionUser } = useCommerce();
   const [version, setVersion] = useState(0);
   const variantOf = useSearchParams().get("variantOf");
+  const targetId = id || variantOf;
+  const authorized = ["admin", "boss", "sales"].includes(sessionUser?.role || "");
+  const resource = useApiResource<{ products: AdminProduct[] }>(`/admin/products/${encodeURIComponent(targetId || "")}/editor?${new URLSearchParams({ branch })}`, apiMode && authorized && Boolean(targetId));
+  const products = apiMode ? resource.data?.products || [] : previewProducts;
   const template = !id && variantOf ? products.find(item => item.id === variantOf) : undefined;
   const product = id ? products.find(item => item.id === id) : undefined;
-  if (apiMode && !["admin", "boss", "sales"].includes(sessionUser?.role || "")) return <p role="alert" className="text-sm text-danger">Tài khoản không có quyền quản lý sản phẩm.</p>;
-  if (id && !product && !loadedResources?.includes("products")) return <p role="status" className="text-sm text-text-secondary">Đang tải sản phẩm...</p>;
-  if (variantOf && !template && !loadedResources?.includes("products")) return <p role="status" className="text-sm text-text-secondary">Đang tải sản phẩm gốc...</p>;
+  const refresh = async () => { await Promise.all([reload(), resource.reload()]); };
+  if (apiMode && !authorized) return <p role="alert" className="text-sm text-danger">Tài khoản không có quyền quản lý sản phẩm.</p>;
+  if (apiMode && targetId && !resource.data) return <ResourceStatus loading={resource.loading} error={resource.error} reload={resource.reload} />;
   if (variantOf && !template) return <EmptyState title="Không tìm thấy sản phẩm gốc" href="/admin/products" action="Về danh sách" />;
   if (template && !template.variantGroupId) return <EmptyState title="Sản phẩm gốc chưa có thuộc tính biến thể" href={`/admin/products/${encodeURIComponent(template.id)}/edit`} action="Sửa sản phẩm gốc" />;
   if (id && !product) return <EmptyState title="Không tìm thấy sản phẩm" href="/admin/products" action="Về danh sách" />;
-  return <ProductEditor key={`${id || variantOf || "new"}-${version}`} product={product} template={template} onReload={async () => { await reload(); setVersion(value => value + 1); }} />;
+  return <>
+    {targetId && <ResourceStatus data={resource.data} loading={resource.loading} error={resource.error} reload={resource.reload} />}
+    <ProductEditor key={`${id || variantOf || "new"}-${branch}-${version}`} product={product} template={template} products={products} readBlocked={resource.loading || Boolean(resource.error)} onRefresh={refresh} onReload={async () => { await refresh(); setVersion(value => value + 1); }} />
+  </>;
 }
 
-function ProductEditor({ product: currentProduct, template, onReload }: { product?: AdminProduct; template?: AdminProduct; onReload: () => Promise<void> }) {
+function ProductEditor({ product: currentProduct, template, products, readBlocked, onRefresh, onReload }: { product?: AdminProduct; template?: AdminProduct; products: AdminProduct[]; readBlocked: boolean; onRefresh: () => Promise<void>; onReload: () => Promise<void> }) {
   const [product] = useState(currentProduct);
   const source = product || template;
-  const { products, categories: apiCategories, reset: reload, refreshing } = useAdmin();
+  const { categories: apiCategories, refreshing } = useAdmin();
   const { notice, reloadCatalog } = useCommerce();
   const router = useRouter();
   const returnTo = useSearchParams().get("returnTo");
@@ -98,7 +107,7 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
   const stale = product && currentProduct?.revision !== product.revision;
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (busy || uploading || !apiMode) return;
+    if (busy || uploading || readBlocked || !apiMode) return;
     const form = new FormData(event.currentTarget);
     const text = (name: string) => String(form.get(name) || "").trim();
     const payload = {
@@ -133,7 +142,6 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
     setBusy(true); setError("");
     try {
       const response = await api<{ id: string; product: AdminProduct }>(product ? `/admin/products/${encodeURIComponent(product.id)}` : "/admin/products", { method: product ? "PATCH" : "POST", body: JSON.stringify(payload) });
-      await reload();
       await reloadCatalog().catch(cause => notice(cause instanceof Error ? cause.message : "Không thể tải catalog."));
       notice(product ? "Đã lưu sản phẩm." : "Đã thêm sản phẩm.");
       markSaved();
@@ -143,10 +151,11 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
         await onReload();
       } else {
         // Nếu tạo mới, chuyển sang trang edit của sản phẩm vừa tạo
+        await onRefresh();
         router.push(`/admin/products/${encodeURIComponent(response.id)}/edit?returnTo=${encodeURIComponent(listUrl)}`);
       }
       router.refresh();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Không thể lưu sản phẩm."); await reload(); }
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Không thể lưu sản phẩm."); await onRefresh(); }
     finally { setBusy(false); }
   };
   return <>
@@ -174,7 +183,7 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
       {error && <p role="alert" className="mb-5 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-danger">{error}</p>}
       {stale && <div role="alert" className="mb-5 flex flex-wrap items-center justify-between gap-3 border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Sản phẩm đã được cập nhật ở phiên khác.<Button type="button" variant="secondary" loading={refreshing} disabled={busy || uploading} onClick={() => close(() => void onReload())}><RefreshCw size={16} />Tải lại sản phẩm</Button></div>}
       {!apiMode && <p role="alert" className="mb-5 text-sm text-text-secondary">Chưa kết nối API. Không thể lưu sản phẩm.</p>}
-      <fieldset disabled={busy || uploading} className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
+      <fieldset disabled={busy || uploading || readBlocked} className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0">
           <Tabs options={Object.values(PRODUCT_EDITOR_TABS)} value={activeTab} onChange={value => {
             setActiveTab(value);
@@ -284,7 +293,7 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
           {product?.published && <Link href={`/products/${product.slug}`} target="_blank" rel="noopener noreferrer" className="bt-button-secondary w-full"><ExternalLink size={16} />Xem sản phẩm</Link>}
         </aside>
       </fieldset>
-      <div className="bt-admin-save-bar"><Button type="button" variant="secondary" disabled={busy || uploading} onClick={() => close(() => router.push(listUrl))}>Hủy</Button><Button type="submit" loading={busy} disabled={uploading || !apiMode || Boolean(stale)}><Save size={17} />Lưu sản phẩm</Button></div>
+      <div className="bt-admin-save-bar"><Button type="button" variant="secondary" disabled={busy || uploading} onClick={() => close(() => router.push(listUrl))}>Hủy</Button><Button type="submit" loading={busy} disabled={uploading || readBlocked || !apiMode || Boolean(stale)}><Save size={17} />Lưu sản phẩm</Button></div>
     </form>
   </>;
 }

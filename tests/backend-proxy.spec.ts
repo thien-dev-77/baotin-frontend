@@ -1,15 +1,59 @@
 import { expect, test } from "@playwright/test";
 import { proxyBackend } from "../lib/backend-proxy";
+import { proxyClientIpHeaders } from "../lib/proxy-client-ip";
+import { createHmac } from "node:crypto";
 
 const originalFetch = globalThis.fetch;
 const originalBackend = process.env.BACKEND_URL;
-test.beforeEach(() => { process.env.BACKEND_URL = "http://127.0.0.1:4002"; });
+const proxyEnvironmentKeys = ["PROXY_CLIENT_IP_SECRET", "PROXY_CLIENT_IP_HEADER", "PROXY_CLIENT_IP_FROM_RIGHT"] as const;
+const originalProxyEnvironment = Object.fromEntries(proxyEnvironmentKeys.map(key => [key, process.env[key]]));
+test.beforeEach(() => { process.env.BACKEND_URL = "http://127.0.0.1:4002"; proxyEnvironmentKeys.forEach(key => delete process.env[key]); });
 test.afterEach(() => {
   globalThis.fetch = originalFetch;
   if (originalBackend === undefined) delete process.env.BACKEND_URL;
   else process.env.BACKEND_URL = originalBackend;
+  for (const key of proxyEnvironmentKeys) {
+    if (originalProxyEnvironment[key] === undefined) delete process.env[key];
+    else process.env[key] = originalProxyEnvironment[key];
+  }
 });
 const request = (path: string, options?: RequestInit) => new Request(`http://localhost:3041${path}`, options);
+
+test("Forwarded client IP is disabled by default and browser-supplied signatures are not relayed", async () => {
+  const forged = { "x-forwarded-for": "192.0.2.1", "x-baotin-client-ip": "192.0.2.2", "x-baotin-proxy-signature": "forged", "x-baotin-proxy-timestamp": "1792454400" };
+  expect(proxyClientIpHeaders(new Headers(forged), "POST", "/api/auth/login")).toEqual({});
+  globalThis.fetch = async (_target, options) => {
+    const headers = new Headers(options?.headers);
+    for (const name of Object.keys(forged)) expect(headers.has(name)).toBe(false);
+    return Response.json({ user: null });
+  };
+  expect((await proxyBackend(request("/api/backend/auth/session", { headers: forged }), ["auth", "session"], "api")).status).toBe(200);
+});
+
+test("Trusted hosting header selects the configured rightmost IP and signs the method and exact target", async () => {
+  const secret = "QA-proxy-key-32-characters-required-only-for-tests";
+  process.env.PROXY_CLIENT_IP_SECRET = secret; process.env.PROXY_CLIENT_IP_HEADER = "x-forwarded-for";
+  const incoming = new Headers({ "x-forwarded-for": "192.0.2.1, 2001:db8::12" });
+  const signed = proxyClientIpHeaders(incoming, "POST", "/api/auth/login?qa=1", 1792454400000);
+  expect(signed["x-baotin-client-ip"]).toBe("2001:db8::12");
+  expect(signed["x-baotin-proxy-signature"]).toBe(createHmac("sha256", secret).update("v1\n1792454400\nPOST\n/api/auth/login?qa=1\n2001:db8::12").digest("hex"));
+  process.env.PROXY_CLIENT_IP_FROM_RIGHT = "2";
+  expect(proxyClientIpHeaders(incoming, "POST", "/api/auth/login")["x-baotin-client-ip"]).toBe("192.0.2.1");
+  for (const position of ["0", "-1", "1.5", "11", "invalid", "3"]) {
+    process.env.PROXY_CLIENT_IP_FROM_RIGHT = position;
+    expect(proxyClientIpHeaders(incoming, "POST", "/api/auth/login")).toEqual({});
+  }
+  process.env.PROXY_CLIENT_IP_FROM_RIGHT = "1";
+  expect(proxyClientIpHeaders(new Headers({ "x-forwarded-for": "not-an-ip" }), "POST", "/api/auth/login")).toEqual({});
+  globalThis.fetch = async (target, options) => {
+    const headers = new Headers(options?.headers), timestamp = headers.get("x-baotin-proxy-timestamp");
+    expect(headers.get("x-baotin-client-ip")).toBe("2001:db8::12");
+    expect(headers.get("x-baotin-proxy-signature")).toBe(createHmac("sha256", secret).update(["v1", timestamp, "POST", new URL(String(target)).pathname + new URL(String(target)).search, "2001:db8::12"].join("\n")).digest("hex"));
+    return Response.json({ user: null });
+  };
+  const response = await proxyBackend(request("/api/backend/auth/login?qa=1", { method: "POST", headers: { "x-forwarded-for": "192.0.2.1, 2001:db8::12" }, body: "{}" }), ["auth", "login"], "api");
+  expect(response.status).toBe(200);
+});
 
 test("Only document routes can proxy valid private PDF responses", async () => {
   const bytes = new TextEncoder().encode("%PDF-1.7\nQA document");

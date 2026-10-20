@@ -3,7 +3,7 @@ import { AdminResourceCache, emptyAdminState, resourcesChangedBy, resourcesForAd
 
 test("Admin page dependencies never default to the entire state", () => {
   expect(resourcesForAdminPage("/admin/products")).toEqual(["categories"]);
-  expect(resourcesForAdminPage("/admin/products/new")).toEqual(["products", "categories"]);
+  for (const path of ["/admin/products/new", "/admin/products/qa/edit", "/admin/products/qa/variants"]) expect(resourcesForAdminPage(path)).toEqual(["categories"]);
   expect(resourcesForAdminPage("/admin/orders")).toEqual([]);
   for (const path of ["/admin/users", "/admin/settings", "/admin/notifications", "/admin/reports", "/admin/categories"]) expect(resourcesForAdminPage(path)).toEqual([]);
   expect(resourcesChangedBy("pick-item")).toEqual(["orders"]);

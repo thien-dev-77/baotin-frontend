@@ -8,10 +8,11 @@ import type { ApiAdminState } from "../lib/api-types";
 import { previewCatalogPage } from "../lib/catalog-query";
 import { adminReadFixture } from "./admin-read-fixtures";
 import type { ProductVariantCopyField } from "../lib/product-variant-copy";
+import type { SessionUser } from "../lib/types";
 
 const base = "http://127.0.0.1:3054";
 const staff = { id: "qa-admin", name: "QA Admin", email: "qa@example.test", role: "admin", branches: ["Quy Nhơn"], customer: null };
-const initialProduct = { ...catalog[0], id: "qa-rich-specification", slug: "qa-rich-specification", code: "QA-RICH", published: true, revision: 1, description: "Mô tả cũ", technicalDetails: "Kích thước: 730 × 430\nCông suất < 2800W", shortDescription: "", usageGuide: "", gallery: [catalog[0].image], showAuthenticityLabel: undefined as boolean | undefined, materialGroups: null as string[] | null, colorGroups: null as string[] | null, originGroups: null as string[] | null };
+const initialProduct = { ...catalog[0], id: "qa-rich-specification", slug: "qa-rich-specification", code: "QA-RICH", published: true, revision: 1, description: "Mô tả cũ", technicalDetails: "Kích thước: 730 × 430\nCông suất < 2800W", shortDescription: "", usageGuide: "", gallery: [catalog[0].image], showAuthenticityLabel: undefined as boolean | undefined, materialGroups: null as string[] | null, colorGroups: null as string[] | null, originGroups: null as string[] | null, variants: undefined as ApiAdminState["products"] | undefined };
 let product = { ...initialProduct };
 let server: Server;
 let child: ChildProcess;
@@ -49,18 +50,21 @@ test.afterAll(async () => {
   if (server?.listening) { server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); }
 });
 
-async function mockEditor(page: Page, overrides: Partial<typeof initialProduct> = {}, options: { siblings?: ApiAdminState["products"]; copyError?: string; copyGate?: Promise<void> } = {}) {
+type SelectionControl = { error?: string; wait?: Promise<void>; customerPrice?: number; omitPrice?: boolean; requests?: string[][] };
+async function mockEditor(page: Page, overrides: Partial<typeof initialProduct> = {}, options: { siblings?: ApiAdminState["products"]; copyError?: string; copyGate?: Promise<void>; user?: SessionUser | null; selection?: SelectionControl } = {}) {
   product = { ...initialProduct, ...overrides };
   const state: ApiAdminState = { products: [product, ...options.siblings || []], categories: categoryCatalog, orders: [], customers: [], approvals: [], receipts: [], warehouse: {}, paymentDueDates: {}, today: "2026-10-15" };
   const writes: Record<string, unknown>[] = [];
   const copies: { revision: number; fields: ProductVariantCopyField[]; products: { id: string; revision: number }[] }[] = [];
   const errors: string[] = [];
+  const reads: URL[] = [];
   page.on("pageerror", error => errors.push(error.message));
   const imageFixture = await readFile("public/product-placeholder.svg");
   await page.route("**/_next/image?**", route => route.fulfill({ contentType: "image/svg+xml", body: imageFixture }));
   await page.route("**/api/backend/**", async route => {
     const request = route.request(), url = new URL(request.url());
     const path = url.pathname.slice("/api/backend".length);
+    if (request.method() === "GET") reads.push(url);
     if (request.method() === "PATCH" && path === `/admin/products/${product.id}`) {
       const payload = request.postDataJSON() as Record<string, unknown>;
       writes.push(payload);
@@ -79,8 +83,15 @@ async function mockEditor(page: Page, overrides: Partial<typeof initialProduct> 
       await route.fulfill({ json: { updated: payload.products.length } }); return;
     }
     if (request.method() !== "GET") { errors.push(`Unexpected write: ${path}`); await route.fulfill({ status: 405, json: {} }); return; }
+    if (path === "/catalog/selection") {
+      const ids = url.searchParams.getAll("ids");
+      options.selection?.requests?.push(ids);
+      if (options.selection?.wait) await options.selection.wait;
+      if (options.selection?.error) { await route.fulfill({ status: 503, json: { message: options.selection.error } }); return; }
+      await route.fulfill({ json: { products: state.products.filter(item => ids.includes(item.id)).map(item => options.user?.customer?.status === "active" && !options.selection?.omitPrice ? { ...item, customerPrice: options.selection?.customerPrice ?? 65000 } : item) } }); return;
+    }
     const responses: Record<string, unknown> = {
-      "/auth/session": { user: staff }, "/admin/resources": state, "/admin/users": { users: [] },
+      "/auth/session": { user: options.user === undefined ? staff : options.user }, "/admin/resources": state, "/admin/users": { users: [] },
       "/catalog/bootstrap": { products: [product], categories: categoryCatalog }, "/catalog/selection": { products: [product] },
       "/catalog/search": previewCatalogPage([product], categoryCatalog, url.searchParams),
       "/orders": [], "/account": { favorites: [] }, "/notifications/count": { unreadCount: 0 },
@@ -89,8 +100,65 @@ async function mockEditor(page: Page, overrides: Partial<typeof initialProduct> 
     if (!body) errors.push(`Unexpected read: ${path}`);
     await route.fulfill({ status: body ? 200 : 404, json: body || {} });
   });
-  return { writes, copies, errors, state };
+  return { writes, copies, errors, state, reads };
 }
+
+test("Scoped product editor fetches only its group and category resources, including private sibling SKUs", async ({ page }) => {
+  const root = { ...initialProduct, variantGroupId: initialProduct.id, variantAttributes: [{ name: "Kích thước", value: "600mm" }] };
+  const sibling = { ...root, id: "scoped-child", code: "SCOPED-CHILD", slug: "scoped-child", published: false, variantAttributes: [{ name: "Kích thước", value: "700mm" }] };
+  const unrelated = { ...initialProduct, id: "unrelated-product", code: "UNRELATED-PRODUCT", slug: "unrelated-product" };
+  const fixture = await mockEditor(page, root, { siblings: [sibling, unrelated] });
+  await page.goto(`${base}/admin/products/${root.id}/edit`);
+  await expect(page.getByLabel("Tên sản phẩm", { exact: false })).toHaveValue(root.name);
+  const list = page.getByRole("list", { name: "Các SKU trong nhóm", exact: true });
+  await expect(list.getByRole("link")).toHaveCount(2);
+  await expect(list).toContainText("SCOPED-CHILD"); await expect(list).not.toContainText("UNRELATED-PRODUCT");
+  expect(fixture.reads.some(url => url.pathname.endsWith(`/${root.id}/editor`) && url.searchParams.get("branch") === "Quy Nhơn")).toBe(true);
+  const resources = fixture.reads.filter(url => url.pathname.endsWith("/admin/resources"));
+  expect(resources.length).toBeGreaterThan(0); expect(resources.every(url => url.searchParams.get("include") === "categories")).toBe(true);
+  expect(fixture.errors).toEqual([]);
+});
+
+const guideBuyer: SessionUser = { id: "qa-buyer", name: "QA Buyer", email: "buyer@example.test", role: "b2b", branches: ["Quy Nhơn"], customer: { id: "qa-customer", name: "QA Buyer", company: "QA", email: "buyer@example.test", phone: "0901234567", role: "b2b", status: "active", creditLimit: 0, debt: 0 } };
+for (const width of [1440, 390]) test(`Product B2B availability exposes a retry and blocks stale pricing until success at ${width}px`, async ({ page }) => {
+  const selection: SelectionControl = { error: "Không thể tải giá B2B mới nhất.", customerPrice: 65000, requests: [] };
+  const fixture = await mockEditor(page, { slug: `qa-price-retry-${width}`, listPrice: 100000, b2cDiscount: 20, price: 80000 }, { user: guideBuyer, selection });
+  await page.setViewportSize({ width, height: 1000 });
+  await page.goto(`${base}/products/${product.slug}`);
+  const panel = page.getByRole("complementary", { name: "Mua sản phẩm", exact: true });
+  const add = panel.getByRole("button", { name: "Thêm vào giỏ hàng", exact: true });
+  await expect(panel.getByRole("alert")).toContainText("Không thể tải giá B2B mới nhất");
+  await expect(add).toBeDisabled(); await expect(panel.getByRole("group", { name: "Giá sản phẩm", exact: true })).toHaveCount(0);
+  selection.error = "";
+  let release!: () => void; selection.wait = new Promise<void>(resolve => { release = resolve; });
+  try {
+    await panel.getByRole("button", { name: "Thử lại giá và tồn kho", exact: true }).click();
+    await expect(panel.getByRole("status")).toHaveText("Đang tải giá B2B và tồn kho...");
+    await expect(add).toBeDisabled(); await expect(panel.getByRole("group", { name: "Giá sản phẩm", exact: true })).toHaveCount(0);
+    await mkdir("/private/tmp/baotin-product-optimizations", { recursive: true });
+    await panel.screenshot({ path: `/private/tmp/baotin-product-optimizations/b2b-loading-${width}.png` });
+  } finally { release(); }
+  await expect(panel.getByRole("group", { name: "Giá sản phẩm", exact: true })).toContainText("65.000"); await expect(add).toBeEnabled();
+  await expect(panel.getByRole("alert")).toHaveCount(0);
+  expect(selection.requests?.every(ids => ids.length === 1 && ids[0] === product.id)).toBe(true);
+  expect(selection.requests).toHaveLength(2); expect(fixture.errors).toEqual([]);
+});
+
+test("Product B2B availability rejects a successful response without its private price and merges duplicate SKU reads", async ({ page }) => {
+  const selection: SelectionControl = { omitPrice: true, requests: [] };
+  const current = { ...initialProduct, slug: "qa-price-required", variantGroupId: initialProduct.id, variantAttributes: [{ name: "Kích thước", value: "600mm" }] };
+  const child = { ...current, id: "private-price-child", code: "PRICE-CHILD", slug: "private-price-child", variantAttributes: [{ name: "Kích thước", value: "700mm" }] };
+  const fixture = await mockEditor(page, { ...current, variants: [current, child] }, { user: guideBuyer, siblings: [child], selection });
+  await page.goto(`${base}/products/${product.slug}`);
+  const panel = page.getByRole("complementary", { name: "Mua sản phẩm", exact: true });
+  await expect(panel.getByRole("alert")).toContainText("Chưa tải được giá B2B");
+  await expect(panel.getByRole("button", { name: "Thêm vào giỏ hàng", exact: true })).toBeDisabled();
+  expect(selection.requests).toHaveLength(1);
+  expect(new Set(selection.requests?.[0])).toEqual(new Set([current.id, child.id]));
+  selection.omitPrice = false;
+  await panel.getByRole("button", { name: "Thử lại giá và tồn kho", exact: true }).click();
+  await expect(panel.getByRole("group", { name: "Giá sản phẩm", exact: true })).toContainText("65.000"); expect(fixture.errors).toEqual([]);
+});
 
 for (const width of [1440, 390]) test(`Authenticity checkbox persists visibility on cards, gallery and zoom at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 1000 });

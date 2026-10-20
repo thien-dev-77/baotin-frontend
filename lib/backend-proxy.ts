@@ -1,3 +1,5 @@
+import { proxyClientIpHeaders } from "./proxy-client-ip";
+
 const requestHeaders = ["accept", "content-type", "cookie", "origin", "x-baotin-client", "idempotency-key", "if-none-match", "if-modified-since", "range", "if-range"];
 const responseHeaders = ["content-type", "etag", "last-modified", "content-disposition", "content-range", "accept-ranges", "retry-after", "vary"];
 
@@ -17,6 +19,7 @@ export async function proxyBackend(request: Request, path: string[], kind: "api"
       const value = request.headers.get(key);
       if (value !== null) headers.set(key, value);
     }
+    if (kind === "api") for (const [name, value] of Object.entries(proxyClientIpHeaders(request.headers, request.method, target.pathname + target.search))) headers.set(name, value);
     // Fetch decodes upstream bodies; do not forward compressed content-length/encoding.
     headers.set("accept-encoding", "identity");
     const upstream = await fetch(target, {

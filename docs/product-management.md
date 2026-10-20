@@ -13,6 +13,16 @@ Admin, boss and sales can edit. Other roles cannot use write controls or APIs.
 Forms write actual API/database data in API mode; disconnected preview mode
 does not fake a successful save. Existing preview records remain readable.
 
+Product editors load categories plus `/admin/products/:id/editor?branch=...`
+for the selected product/template and related SKUs only, including private
+members and current branch stock. They no longer request all product resources.
+Save/attach/detach refresh this scoped snapshot. Failed refreshes preserve the
+form, show a retry and block saving; changed revisions still prevent overwrites.
+Deploy the backend editor endpoint before this frontend.
+Run `npm run test:product-optimizations` for scoped editor requests, private
+siblings, existing edit/variant flows, proxy identity and B2B error/retry states
+at desktop/mobile widths, using only local mock servers.
+
 ## Components
 
 - `components/admin/admin-products.tsx`: product list only.
@@ -107,6 +117,13 @@ remain available for editing and retrying.
 The customer detail page renders the options above the purchase panel, and
 switching options navigates to the matching SKU with its own image, price and
 inventory. Multi-attribute selection picks an existing compatible SKU.
+The detail page refreshes the current SKU and all variants in one deduplicated
+selection request. The purchase panel shows price/stock loading and retry states,
+with purchase controls disabled until fresh data is available. An active B2B
+account requires its own price in a successful response; a failed/missing B2B
+price never silently falls back to retail in this panel. Source content remains
+visible while prices load. Unrelated favorites/history selections retain their
+existing handling of missing products.
 The catalog displays one representative per group; filters can select another
 matching SKU. The admin list and CSV keep all SKUs visible.
 

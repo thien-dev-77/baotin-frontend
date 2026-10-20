@@ -9,6 +9,12 @@ export function adminReadFixture(url: URL, state: Fixture, directory?: CustomerD
   const path = url.pathname.slice("/api/backend".length);
   const query = url.searchParams;
   const branch = query.get("branch") || "Quy Nhơn";
+  if (/^\/admin\/products\/[^/]+\/editor$/.test(path)) {
+    const selected = state.products?.find(product => product.id === decodeURIComponent(path.split("/")[3]));
+    if (!selected) return undefined;
+    const groupId = selected.variantGroupId || selected.id;
+    return { products: state.products?.filter(product => product.id === groupId || product.variantGroupId === groupId).map(product => ({ ...product, stock: state.stockByBranch?.[branch]?.[product.id] ?? product.stock })) };
+  }
   const allOrders = (state.orders || []).filter(row => row.branch === branch);
   if (path.startsWith("/admin/orders/") && path !== "/admin/orders/quote") {
     const order = allOrders.find(row => row.id === decodeURIComponent(path.split("/")[3]));

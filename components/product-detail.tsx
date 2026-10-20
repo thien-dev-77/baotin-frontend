@@ -23,10 +23,10 @@ import { categoryTrail } from "@/lib/category-tree";
 
 export function ProductDetail({ product: initialProduct }: { product: Product & { variants?: Product[] } }) {
   const { products, categories } = useCommerce();
-  useProductSelection([initialProduct.id]);
-  useProductSelection(initialProduct.variants?.map(item => item.id) || []);
-  const product = products.find((item) => item.id === initialProduct.id) || initialProduct;
-  const variants = initialProduct.variants?.map(item => products.find(loaded => loaded.id === item.id) || item) || (!apiMode && product.variantGroupId ? products.filter(item => item.variantGroupId === product.variantGroupId) : []);
+  const selection = useProductSelection([initialProduct.id, ...initialProduct.variants?.map(item => item.id) || []], [initialProduct.id]);
+  const loadedProducts = selection.products || products;
+  const product = loadedProducts.find((item) => item.id === initialProduct.id) || initialProduct;
+  const variants = initialProduct.variants?.map(item => loadedProducts.find(loaded => loaded.id === item.id) || item) || (!apiMode && product.variantGroupId ? products.filter(item => item.variantGroupId === product.variantGroupId) : []);
   const detailRef = useRef<HTMLElement>(null);
   const [tab, setTab] = useState("Mô tả sản phẩm");
   const [reviews, setReviews] = useState<ProductReview[]>(initialProductReviews);
@@ -66,7 +66,7 @@ export function ProductDetail({ product: initialProduct }: { product: Product & 
           <ProductGallery product={product} />
           <div><ProductOverview product={product} reviewCount={visibleReviews.length} rating={rating} onShowReviews={showReviews} /><ProductVariantSelector product={product} variants={variants} /></div>
         </div>
-        <ProductPurchasePanel product={product} />
+        <ProductPurchasePanel product={product} availability={apiMode ? selection : undefined} />
         <section className="bt-product-detail-information">
           <ProductSpecifications specifications={specifications} />
           <ProductInformationTabs

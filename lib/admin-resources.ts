@@ -12,7 +12,7 @@ export const emptyAdminState = (): ApiAdminState => ({ products: [], categories:
 
 export function resourcesForAdminPage(path: string): readonly AdminResource[] {
   if (path === "/admin/products") return ["categories"];
-  if (path.startsWith("/admin/products")) return ["products", "categories"];
+  if (path.startsWith("/admin/products")) return ["categories"];
   if (path.startsWith("/admin/orders/")) return ["orders", "customers", "approvals", "products", "categories"];
   if (path === "/admin/orders" || path === "/admin/warehouse") return [];
   if (path.startsWith("/admin/approvals")) return ["orders", "customers", "approvals", "products"];
