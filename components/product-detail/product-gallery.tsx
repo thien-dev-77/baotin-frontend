@@ -20,8 +20,6 @@ function Gallery({ product, images }: { product: Product; images: string[] }) {
   const [photo, setPhoto] = useState(0);
   const [zoom, setZoom] = useState(false);
   const showAuthenticityLabel = product.showAuthenticityLabel !== false && photo === 0;
-  const [imageRatios, setImageRatios] = useState<Record<string, number>>({});
-  const activeRatio = imageRatios[images[photo]] ?? 1;
   const mainSplideRef = useRef<InstanceType<typeof Splide>>(null);
   const thumbsSplideRef = useRef<InstanceType<typeof Splide>>(null);
 
@@ -66,7 +64,6 @@ function Gallery({ product, images }: { product: Product; images: string[] }) {
                 <SplideSlide key={image}>
                   <div
                     className="bt-product-gallery-frame relative w-full overflow-hidden bg-section"
-                    style={{ aspectRatio: activeRatio }}
                   >
                     <Image
                       src={image}
@@ -76,11 +73,6 @@ function Gallery({ product, images }: { product: Product; images: string[] }) {
                       quality={90}
                       priority={index === 0}
                       className="h-full w-full object-contain"
-                      onLoad={({ currentTarget }) => {
-                        if (!currentTarget.naturalWidth || !currentTarget.naturalHeight) return;
-                        const ratio = currentTarget.naturalWidth / currentTarget.naturalHeight;
-                        setImageRatios(current => current[image] === ratio ? current : { ...current, [image]: ratio });
-                      }}
                     />
                   </div>
                 </SplideSlide>

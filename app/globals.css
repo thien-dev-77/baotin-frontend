@@ -674,6 +674,7 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
 .bt-home-hero-controls button { width: 8px; height: 8px; }
 .bt-product-gallery .bt-product-gallery-main { visibility: visible; }
 .bt-product-gallery-main .splide__slide { width: 100%; }
+.bt-product-gallery-frame { aspect-ratio: 1; max-height: 560px; }
 .product-carousel .splide__arrow--prev { left: -12px; }
 .product-carousel .splide__arrow--next { right: -12px; }
 @media (max-width: 1023px) { .product-carousel .splide__arrows { display: none; } }
