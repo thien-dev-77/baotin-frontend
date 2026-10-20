@@ -6,10 +6,10 @@ import { SearchBox } from "@/components/search-box";
 import { Modal } from "@/components/ui";
 import { useCommerce } from "@/components/commerce-provider";
 import { heroActions } from "@/lib/home-data";
-import { BadgeCheck, FileText, Headset, Heart, Menu, Phone, ShieldCheck, ShoppingCart, UserRound } from "lucide-react";
+import { BadgeCheck, FileText, Headset, Heart, Menu, Phone, Search, ShieldCheck, ShoppingCart, UserRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NotificationBell } from "./notifications";
 import { CategoryLinks } from "./category-links";
 import { ZaloIcon } from "./zalo-icon";
@@ -38,6 +38,63 @@ const utilityLinks = [
   { label: "Tài liệu kỹ thuật", href: "/guides", icon: FileText },
   { label: "Chính sách B2B", href: "/policies/cong-no", icon: BadgeCheck },
 ];
+
+const COMPACT_SCROLL_START = 120;
+const COMPACT_SCROLL_RESTORE = 48;
+
+function useCompactHeader() {
+  const headerRef = useRef<HTMLElement>(null);
+  const [compact, setCompact] = useState(false);
+  const [expandedHeight, setExpandedHeight] = useState(0);
+
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+    let isCompact = header.dataset.compact === "true";
+    let frame = 0;
+    const measure = () => {
+      if (header.dataset.compact !== "true") setExpandedHeight(header.getBoundingClientRect().height);
+    };
+    const update = () => {
+      frame = 0;
+      const next = window.scrollY > (isCompact ? COMPACT_SCROLL_RESTORE : COMPACT_SCROLL_START);
+      if (next === isCompact) return;
+      // Keep an active search available while someone is typing.
+      if (header.querySelector(".bt-header-desktop-search:focus-within, .bt-header-mobile-search:focus-within")) return;
+      isCompact = next;
+      setCompact(next);
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    measure();
+    update();
+    const observer = new ResizeObserver(measure);
+    observer.observe(header);
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("pageshow", schedule);
+    window.addEventListener("resize", schedule);
+    header.addEventListener("focusout", schedule);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("pageshow", schedule);
+      window.removeEventListener("resize", schedule);
+      header.removeEventListener("focusout", schedule);
+    };
+  }, []);
+
+  return { headerRef, compact, expandedHeight };
+}
+
+function CompactSearchLink() {
+  return (
+    <Link href="/search#product-search" prefetch={false} aria-label="Tìm kiếm sản phẩm" title="Tìm kiếm sản phẩm" className="bt-header-compact-search bt-icon-button">
+      <Search size={21} strokeWidth={1.8} aria-hidden="true" />
+    </Link>
+  );
+}
 
 function CartBadge({ count }: { count: number }) {
   return <span aria-hidden="true" className="bt-header-cart-badge">{count > 99 ? "99+" : count}</span>;
@@ -78,6 +135,7 @@ export function SiteHeader() {
   const { cart, customer, ready } = useCommerce();
   const pathname = usePathname();
   const [mobile, setMobile] = useState(false);
+  const { headerRef, compact, expandedHeight } = useCompactHeader();
   const count = cart.reduce((sum, line) => sum + line.quantity, 0);
   const services = heroActions.map((action) =>
     action.primary
@@ -121,6 +179,8 @@ export function SiteHeader() {
         Đến nội dung chính
       </a>
       <header
+        ref={headerRef}
+        data-compact={compact}
         aria-busy={!ready}
         className="bt-site-header sticky top-0 z-40 border-b border-border bg-white"
       >
@@ -133,7 +193,7 @@ export function SiteHeader() {
             </nav>
           </div>
         </div>
-        <div className="border-b border-border">
+        <div className="bt-header-main border-b border-border">
           <div className="bt-container bt-header-main-row">
             <Link
               href="/"
@@ -149,6 +209,7 @@ export function SiteHeader() {
               aria-label="Tài khoản và hỗ trợ"
               className="bt-header-account-nav"
             >
+              <CompactSearchLink />
               {actions.map(({ label, accessibleName, href, icon: Icon }) => (
                 <Link
                   key={href}
@@ -165,7 +226,8 @@ export function SiteHeader() {
               ))}
               <NotificationBell withLabel />
             </nav>
-            <div className="ml-auto flex items-center gap-3 lg:hidden">
+            <div className="bt-header-mobile-actions ml-auto flex items-center gap-3 lg:hidden">
+              <CompactSearchLink />
               <NotificationBell />
               <Link
                 href="/cart"
@@ -185,21 +247,21 @@ export function SiteHeader() {
               </button>
             </div>
           </div>
-          <div className="bt-container lg:hidden">
+          <div className="bt-header-mobile-search bt-container lg:hidden">
             <SearchBox compactButton iconButton />
             <nav
               aria-label="Liên kết nhanh"
               className="bt-header-mobile-services"
             >
               {quickServices.map((action) => (
-                <HeaderServiceLink key={action.href} action={action} compact textLink={action === quoteAction} />
+                <HeaderServiceLink key={`${action.href}#${action.title}`} action={action} compact textLink={action === quoteAction} />
               ))}
             </nav>
           </div>
         </div>
-        <div className="hidden lg:block">
+        <div className="bt-header-navigation-section hidden lg:block">
           <div className="bt-container bt-header-navigation-row">
-            <CategoryMenu />
+            <CategoryMenu key={compact ? "compact" : "expanded"} />
             <nav
               aria-label="Điều hướng chính"
               className="bt-header-navigation scrollbar-hide"
@@ -221,6 +283,8 @@ export function SiteHeader() {
           </div>
         </div>
       </header>
+      {/* Preserve the page position when the sticky header changes height. */}
+      <div aria-hidden="true" className="bt-header-scroll-space print-hidden" style={{ height: compact ? `max(0px, calc(${expandedHeight}px - var(--bt-header-compact-height)))` : 0 }} />
       <Modal
         open={mobile}
         onClose={() => setMobile(false)}
@@ -231,7 +295,7 @@ export function SiteHeader() {
           <CategoryLinks onNavigate={() => setMobile(false)} />
           {drawerLinks.map((item) => "href" in item ? (
             <Link
-              key={item.href}
+              key={`${item.href}#${item.label}`}
               href={item.href}
               prefetch={false}
               onClick={() => setMobile(false)}

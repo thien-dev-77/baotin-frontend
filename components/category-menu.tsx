@@ -100,12 +100,13 @@ export function CategoryMenu() {
           }
         }}
         className="bt-category-trigger"
+        title="Danh mục sản phẩm"
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={(event) => { if (open) closeMenu(); else openMenu(event.detail === 0 ? "first" : null); }}
       >
         <Menu size={16} strokeWidth={1.8} aria-hidden="true" />
-        Danh mục sản phẩm
+        <span className="bt-category-trigger-label">Danh mục sản phẩm</span>
         <ChevronDown size={14} strokeWidth={1.8} className="bt-category-trigger-chevron" aria-hidden="true" />
       </button>
 

@@ -21,7 +21,7 @@ export const revalidate = 0;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="vi">
+    <html lang="vi" data-scroll-behavior="smooth">
       <body className="font-sans antialiased"><NavigationProgress><StoreProvider><UnsavedChangesProvider>{children}</UnsavedChangesProvider></StoreProvider></NavigationProgress></body>
     </html>
   );
