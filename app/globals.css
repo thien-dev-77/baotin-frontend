@@ -534,12 +534,15 @@ textarea.bt-input { height: 88px; padding-top: 10px; resize: vertical; }
   .bt-home-category-sidebar { display: flex; min-width: 0; min-height: 0; height: 100%; flex-direction: column; overflow: hidden; border: 1px solid var(--color-border); border-radius: 8px; background: white; padding: 8px; }
   .bt-home-category-heading { display: flex; min-height: 36px; flex-shrink: 0; align-items: center; gap: 8px; border-bottom: 1px solid var(--color-border); padding: 0 8px 8px; color: var(--color-primary); }
   .bt-home-category-heading h2 { font-size: 14px; font-weight: 600; line-height: 20px; }
-  .bt-home-category-links { display: flex; min-height: 0; flex: 1; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; padding-block: 4px; }
+  .bt-home-category-links { display: flex; min-height: 0; flex: 1; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; padding-block: 3px; }
   .bt-home-category-links > .bt-category-branch { flex-shrink: 0; }
-  .bt-home-category-links > .bt-category-branch > div:first-child .bt-category-item, .bt-home-category-links .bt-category-flyout-row .bt-category-item { min-height: 40px; gap: 8px; padding: 3px 8px; }
+  .bt-home-category-links > .bt-category-branch > div:first-child .bt-category-item, .bt-home-category-links .bt-category-flyout-row .bt-category-item { min-height: 36px; gap: 8px; padding: 3px 8px; }
   .bt-home-category-links .bt-category-item { flex-shrink: 0; }
   .bt-home-category-links .bt-category-item span { font-size: 14px; line-height: 20px; }
   .bt-home-category-preview { overflow: hidden; padding: 0 8px 4px 37px; color: var(--color-text-secondary); font-size: 12px; font-weight: 400; line-height: 16px; text-overflow: ellipsis; white-space: nowrap; }
+  .bt-home-category-shortcuts { flex-shrink: 0; border-top: 1px solid var(--color-border); padding-block: 4px; }
+  .bt-home-category-shortcuts .bt-category-item { min-height: 36px; gap: 8px; padding: 6px 8px; }
+  .bt-home-category-shortcuts .bt-category-item span { font-size: 14px; line-height: 20px; }
   .bt-home-category-all { display: flex; min-height: 40px; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid var(--color-border); padding: 8px; color: var(--color-primary); font-size: 13px; font-weight: 500; line-height: 20px; transition: background-color 140ms ease; }
   .bt-home-category-all:hover { background: var(--color-section); }
   .bt-home-category-all svg { flex-shrink: 0; }
