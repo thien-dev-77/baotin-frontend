@@ -40,6 +40,21 @@ Open that product again and select **Tạo biến thể**. The next form copies 
 group's content, photos, price and attribute names; enter a unique value
 combination, SKU and slug, adjust its own pricing/photos, then save. Repeat for
 other combinations. Each SKU's stock is managed separately in the ledger.
+To add a product that already exists, open the saved product's **Biến thể sản phẩm**
+card and choose **Liên kết sản phẩm có sẵn**. Search by name or SKU, select the
+product, fill its values for the group's existing types, then choose **Liên kết
+vào nhóm**. Search uses server-side pagination and includes private products,
+restricted to the same brand and category; the unit must also match. Save any
+unsaved edits first. An existing populated group cannot be merged: detach the
+chosen SKU from its old group first. A standalone or isolated SKU can be linked
+directly. With no configured types, the group is selected by SKU until types
+are added later. Only membership, variant attributes and their derived size/color
+change; all other saved fields, prices, photos, inventory and visibility remain
+separate. Conflicts show the affected SKU codes and require refreshed snapshots.
+Deploy the backend attach endpoint first. `npm run test:variant-attach` owns local
+mock API/Next servers and covers desktop/mobile, pagination, unloaded/private
+products, empty schemas, unsaved edits, cancellation, errors and submit locking.
+
 Set **Nhãn hiển thị biến thể** on each SKU to customize its option label (for
 example, `FCL303-R` can display `Phải`). Leave it blank to display the SKU code.
 The label is used in the admin group's links and single-attribute choices;

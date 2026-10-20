@@ -20,6 +20,7 @@ import { ProductPricingFields, type ProductPricingDraft } from "./product-pricin
 import { ProductVariantFields } from "./product-variant-fields";
 import { ProductVariantCopy } from "./product-variant-copy";
 import { ProductVariantDetach } from "./product-variant-detach";
+import { ProductVariantAttach } from "./product-variant-attach";
 import { variantDimension } from "@/lib/product-variants";
 import { PRODUCT_SPECIFICATION_MAX_LENGTH, PRODUCT_TECHNICAL_DETAILS_MAX_LENGTH } from "@/lib/product-content";
 import { ProductFormSection } from "./product-form-section";
@@ -72,6 +73,7 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
   const variantGroupId = product?.variantGroupId || template?.variantGroupId || template?.id;
   const siblings = variantGroupId ? products.filter(item => item.variantGroupId === variantGroupId) : [];
   const [detachId, setDetachId] = useState<string>();
+  const [attaching, setAttaching] = useState(false);
   const detachTarget = siblings.find(item => item.id === detachId);
   const [pricing, setPricing] = useState<ProductPricingDraft>(() => ({ listPrice: String(initialPrices.listPrice), b2cDiscount: String(Math.min(MAX_PRODUCT_DISCOUNT, initialPrices.b2cDiscount)), b2bDiscount: String(initialPrices.b2bDiscount ?? 0) }));
   const [pricingEdited, setPricingEdited] = useState(!product || initialPrices.configured);
@@ -158,6 +160,10 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
       await reloadCatalog().catch(cause => notice(cause instanceof Error ? cause.message : "Không thể tải catalog."));
       await onReload(); router.refresh();
     }} />}
+    {attaching && product && <ProductVariantAttach product={product} onClose={() => setAttaching(false)} onUpdated={async () => {
+      await reloadCatalog().catch(cause => notice(cause instanceof Error ? cause.message : "Không thể tải catalog."));
+      await onReload(); router.refresh();
+    }} />}
     <form ref={formRef} onSubmit={save} onInvalidCapture={event => {
       const input = event.target as HTMLInputElement;
       if (!input.closest("[hidden]")) return;
@@ -189,7 +195,7 @@ function ProductEditor({ product: currentProduct, template, onReload }: { produc
                   <div className="sm:col-span-2"><Field label="Link sản phẩm nhà cung cấp"><input className="bt-input" name="sourceUrl" type="url" maxLength={300} defaultValue={source?.sourceUrl} /></Field></div>
                 </div>
               </ProductFormSection>
-              <ProductVariantFields attributes={variantAttributes} onChange={setVariantAttributes} label={variantLabel} onLabelChange={setVariantLabel} groupId={product?.variantGroupId} siblings={siblings} currentId={product?.id} returnTo={listUrl} schemaLocked={Boolean(template || product?.variantGroupId && (product.id !== product.variantGroupId || siblings.length > 1))} onDetach={product ? setDetachId : undefined} detachDisabled={busy || uploading || Boolean(stale) || !apiMode} unsaved={dirty} />
+              <ProductVariantFields attributes={variantAttributes} onChange={setVariantAttributes} label={variantLabel} onLabelChange={setVariantLabel} groupId={product?.variantGroupId} siblings={siblings} currentId={product?.id} returnTo={listUrl} schemaLocked={Boolean(template || product?.variantGroupId && (product.id !== product.variantGroupId || siblings.length > 1))} onDetach={product ? setDetachId : undefined} detachDisabled={busy || uploading || Boolean(stale) || !apiMode} onAttach={product ? () => setAttaching(true) : undefined} attachDisabled={busy || uploading || Boolean(stale) || !apiMode} unsaved={dirty} />
               <ProductPricingFields value={pricing} onChange={value => { setPricing(value); setPricingEdited(true); setError(""); }} b2cPrice={b2cPrice} b2bPrice={b2bPrice} legacy={!pricingEdited} />
               <ProductFormSection id="product-attributes" title="Thuộc tính bổ sung" icon={ListChecks} description="Nội dung ngắn, thông số kỹ thuật, chất liệu và chính sách bảo hành.">
                 <div className="space-y-5">

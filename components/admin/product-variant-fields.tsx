@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Layers3, Plus, Trash2, Unlink2 } from "lucide-react";
+import { Layers3, Link2, Plus, Trash2, Unlink2 } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { Button, Field } from "@/components/ui";
 import { MAX_VARIANT_LABEL_LENGTH, variantLabel } from "@/lib/product-variants";
@@ -9,7 +9,7 @@ import { ProductFormSection } from "./product-form-section";
 
 type Attribute = NonNullable<Product["variantAttributes"]>[number];
 
-export function ProductVariantFields({ attributes, onChange, label, onLabelChange, groupId, siblings, currentId, returnTo, schemaLocked, onDetach, detachDisabled, unsaved }: {
+export function ProductVariantFields({ attributes, onChange, label, onLabelChange, groupId, siblings, currentId, returnTo, schemaLocked, onDetach, detachDisabled, onAttach, attachDisabled, unsaved }: {
   attributes: Attribute[];
   onChange: (attributes: Attribute[]) => void;
   label: string;
@@ -21,13 +21,17 @@ export function ProductVariantFields({ attributes, onChange, label, onLabelChang
   schemaLocked: boolean;
   onDetach?: (id: string) => void;
   detachDisabled?: boolean;
+  onAttach?: () => void;
+  attachDisabled?: boolean;
   unsaved?: boolean;
 }) {
   const edit = (index: number, field: keyof Attribute, value: string) => onChange(attributes.map((item, position) => position === index ? { ...item, [field]: value } : item));
   return <ProductFormSection id="product-variants" title="Biến thể sản phẩm" icon={Layers3} description="Tách riêng các loại như Màu sắc, Hướng, Kích thước. Mỗi tổ hợp là một SKU." actions={<>
+      {onAttach && <Button type="button" variant="secondary" disabled={attachDisabled || unsaved} onClick={onAttach}><Link2 size={16} />Liên kết sản phẩm có sẵn</Button>}
       {currentId && <Link className="bt-button-secondary" href={`/admin/products/${encodeURIComponent(currentId)}/variants`}><Plus size={16} />Thiết lập loại biến thể</Link>}
       {!schemaLocked && attributes.length < 6 && <Button type="button" variant="secondary" onClick={() => onChange([...attributes, { name: "", value: "" }])}><Plus size={16} />Thêm thuộc tính</Button>}
     </>}>
+    {onAttach && unsaved && <p className="mb-4 text-xs text-text-secondary">Lưu các thay đổi trước khi liên kết sản phẩm có sẵn.</p>}
     {!schemaLocked && <div className="mb-4 flex flex-wrap gap-2">{["Màu sắc", "Hướng", "Kích thước"].map(name => <Button key={name} type="button" variant="secondary" disabled={attributes.length >= 6 || attributes.some(attribute => attribute.name.trim().toLocaleLowerCase("vi") === name.toLocaleLowerCase("vi"))} onClick={() => onChange([...attributes, { name, value: "" }])}><Plus size={16} />Thêm {name}</Button>)}</div>}
     {schemaLocked && currentId && <p className="mb-4 text-sm text-text-secondary">Để thêm, đổi tên hoặc xóa loại cho cả nhóm, chọn “Thiết lập loại biến thể”. Giá trị bên dưới chỉ áp dụng cho SKU đang sửa.</p>}
     {attributes.map((attribute, index) => <div key={index} className="mb-3 grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_40px]">
