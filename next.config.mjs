@@ -6,6 +6,8 @@ const root = dirname(fileURLToPath(import.meta.url));
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Chat preview clients must receive product metadata in the initial <head>.
+  htmlLimitedBots: /.*/,
   outputFileTracingRoot: root,
   turbopack: { root },
   // Shared hosting may expose more CPUs than its process/thread quota allows.

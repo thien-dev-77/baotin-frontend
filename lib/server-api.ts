@@ -68,10 +68,11 @@ export const serverCatalog = cache(async (): Promise<CatalogResponse> => {
   return apiMode ? cachedCatalog(backendURL()) : { products: catalog, categories: categoryCatalog };
 });
 
-export async function serverProduct(slug: string): Promise<Product | undefined> {
+// The page and its sharing metadata use the same public read within one request.
+export const serverProduct = cache(async (slug: string): Promise<Product | undefined> => {
   if (!apiMode) return findProduct(slug);
   const response = await fetch(`${backendURL()}/api/catalog/product/${encodeURIComponent(slug)}`, publicFetchOptions());
   if (response.status === 404) return undefined;
   if (!response.ok) throw new Error("Không thể tải sản phẩm.");
   return response.json();
-}
+});
