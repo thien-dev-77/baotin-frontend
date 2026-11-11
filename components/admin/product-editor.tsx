@@ -22,6 +22,7 @@ import { ProductVariantDetach } from "./product-variant-detach";
 import { ProductVariantAttach } from "./product-variant-attach";
 import { variantDimension } from "@/lib/product-variants";
 import { PRODUCT_SPECIFICATION_MAX_LENGTH, PRODUCT_TECHNICAL_DETAILS_MAX_LENGTH } from "@/lib/product-content";
+import { productSpecificationSummary } from "@/lib/product-specification-summary";
 import { ProductFormSection } from "./product-form-section";
 import { ProductFilterAttributes, productFilterDraft } from "./product-filter-attributes";
 import { ResourceStatus, useAdminResource } from "./admin-resource";
@@ -106,11 +107,12 @@ function ProductEditor({ product: currentProduct, template, products, readBlocke
     if (busy || uploading || readBlocked || !apiMode) return;
     const form = new FormData(event.currentTarget);
     const text = (name: string) => String(form.get(name) || "").trim();
+    const technicalSummary = productSpecificationSummary(richTechnicalDetails);
     const payload = {
       name: text("name"), code: text("code"), slug: slug.trim(), category, subcategory,
       brand: text("brand"), unit: text("unit"), price: b2cPrice,
       ...(pricingEdited ? { listPrice, b2cDiscount, b2bDiscount } : product?.oldPrice !== undefined ? { oldPrice: product.oldPrice } : {}),
-      specification: specification.trim(), material: filterAttributes.material.trim(),
+      specification: technicalSummary ? specification.trim() || technicalSummary : "", material: filterAttributes.material.trim(),
       materialGroups: filterAttributes.materialGroups, colorGroups: filterAttributes.colorGroups, originGroups: filterAttributes.originGroups,
       size: variantDimension(variantAttributes, "size")?.value.trim() || text("size"),
       color: variantDimension(variantAttributes, "color")?.value.trim() || filterAttributes.color.trim(), origin: filterAttributes.origin.trim(),
@@ -132,8 +134,13 @@ function ProductEditor({ product: currentProduct, template, products, readBlocke
       setError(`Thông số kỹ thuật quá dài. Vui lòng rút gọn còn tối đa ${PRODUCT_TECHNICAL_DETAILS_MAX_LENGTH.toLocaleString("vi-VN")} ký tự, bao gồm định dạng.`);
       return;
     }
-    if (published && (!images.length || !payload.specification || payload.price <= 0)) {
-      setError("Sản phẩm công khai cần ít nhất một ảnh, thông số và giá bán lớn hơn 0."); return;
+    const missingPublicationFields = [
+      ...(!images.length ? ["ít nhất một ảnh sản phẩm"] : []),
+      ...(!payload.specification ? ["thông số kỹ thuật"] : []),
+      ...(payload.price <= 0 ? ["giá bán lớn hơn 0"] : []),
+    ];
+    if (published && missingPublicationFields.length) {
+      setError(`Để công khai sản phẩm, cần bổ sung: ${missingPublicationFields.join(", ")}.`); return;
     }
     setBusy(true); setError("");
     try {

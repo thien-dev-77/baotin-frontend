@@ -135,6 +135,11 @@ unattached until the product is saved. Maximum 10 photos, 5 MB per photo;
 JPEG/PNG/WebP. First gallery photo is the cover. Thumbnails use next/image.
 Rich descriptions render on the storefront with HTML filtering; legacy plain
 text retains line breaks.
+When imported technical details are populated but the listing summary is blank,
+the editor derives the bounded plain-text summary at save time. This works before
+the lazy rich-text editor mounts and does not require changing the imported text.
+Empty markup still fails publication validation. The validation message lists
+only the missing photo, technical details or positive selling price.
 In **Tài liệu / Hướng dẫn**, **Hướng dẫn sử dụng** automatically links HTTP,
 HTTPS and `www.` addresses in plain imported text and CKEditor content. Existing
 link labels and formatting remain intact. Guide links open a new tab with

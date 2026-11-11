@@ -344,6 +344,38 @@ test("A published product requires meaningful technical text", async ({ page }) 
   await expect(page.getByRole("alert").filter({ hasText: "thông số" })).toBeVisible(); expect(api.writes).toEqual([]);
 });
 
+for (const technicalDetails of [
+  "Chất liệu: Inox 304\nC/C: 72 mm\nĐộ dày cửa: 38 - 50 mm",
+  "<p>Chất liệu: <strong>Inox 304</strong></p><table><tbody><tr><td>C/C</td><td>72 mm</td></tr></tbody></table>",
+]) test(`Imported technical content publishes without editing the ${technicalDetails.startsWith("<") ? "formatted" : "plain-text"} editor`, async ({ page }) => {
+  const api = await mockEditor(page, { specification: "", technicalDetails, published: false });
+  await page.goto(`${base}/admin/products/${product.id}/edit`);
+  await page.getByRole("radio", { name: "Công khai", exact: true }).check();
+  await page.getByRole("button", { name: "Lưu sản phẩm", exact: true }).click();
+  await expect.poll(() => api.writes.length).toBe(1);
+  expect(api.writes[0]).toMatchObject({ published: true, technicalDetails });
+  expect(api.writes[0].specification).toBe(technicalDetails.startsWith("<") ? "Chất liệu: Inox 304 C/C 72 mm" : "Chất liệu: Inox 304 C/C: 72 mm Độ dày cửa: 38 - 50 mm");
+  expect(api.errors).toEqual([]);
+});
+
+test("An empty technical editor reports only missing specifications", async ({ page }) => {
+  const api = await mockEditor(page, { specification: "", technicalDetails: "<p>&nbsp;\u200b</p>", published: false });
+  await page.goto(`${base}/admin/products/${product.id}/edit`);
+  await page.getByRole("radio", { name: "Công khai", exact: true }).check();
+  await page.getByRole("button", { name: "Lưu sản phẩm", exact: true }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "Để công khai sản phẩm" })).toHaveText("Để công khai sản phẩm, cần bổ sung: thông số kỹ thuật.");
+  expect(api.writes).toEqual([]);
+});
+
+test("A public product with valid specifications reports only its missing price", async ({ page }) => {
+  const api = await mockEditor(page, { price: 0, oldPrice: undefined, listPrice: 0, b2cDiscount: 0, b2bDiscount: 0, published: false });
+  await page.goto(`${base}/admin/products/${product.id}/edit`);
+  await page.getByRole("radio", { name: "Công khai", exact: true }).check();
+  await page.getByRole("button", { name: "Lưu sản phẩm", exact: true }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "Để công khai sản phẩm" })).toHaveText("Để công khai sản phẩm, cần bổ sung: giá bán lớn hơn 0.");
+  expect(api.writes).toEqual([]);
+});
+
 test("Invalid basic fields reveal their tab when saving from the content tab", async ({ page }) => {
   const api = await mockEditor(page);
   await page.goto(`${base}/admin/products/${product.id}/edit`);
