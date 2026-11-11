@@ -16,8 +16,21 @@ const variants = [
 
 test("Changing one attribute retains compatible choices and selects an existing SKU", () => {
   expect(chooseVariant(variants, variants[0], 0, "800mm")?.id).toBe("800-silver");
-  expect(chooseVariant(variants, variants[1], 1, "Đen")?.id).toBe("600-black");
+  expect(chooseVariant(variants, variants[0], 1, "Đen")?.id).toBe("600-black");
+  expect(chooseVariant(variants, variants[1], 1, "Đen")).toBeUndefined();
+  expect(chooseVariant(variants, variants[2], 0, "800mm")?.id).toBe("800-silver");
   expect(chooseVariant(variants, variants[0], 0, "900mm")).toBeUndefined();
+});
+
+test("Later dimensions keep every preceding choice and can adjust later values", () => {
+  const options = [
+    { ...variants[0], id: "600-left-black", variantAttributes: [{ name: "Kích thước", value: "600mm" }, { name: "Hướng", value: "Trái" }, { name: "Màu sắc", value: "Đen" }] },
+    { ...variants[0], id: "600-right-silver", variantAttributes: [{ name: "Kích thước", value: "600mm" }, { name: "Hướng", value: "Phải" }, { name: "Màu sắc", value: "Bạc" }] },
+    { ...variants[1], id: "800-right-black", variantAttributes: [{ name: "Kích thước", value: "800mm" }, { name: "Hướng", value: "Phải" }, { name: "Màu sắc", value: "Đen" }] },
+  ];
+  expect(chooseVariant(options, options[0], 1, "Phải")?.id).toBe("600-right-silver");
+  expect(chooseVariant(options, options[1], 2, "Đen")).toBeUndefined();
+  expect(chooseVariant(options, options[1], 0, "800mm")?.id).toBe("800-right-black");
 });
 
 test("Flexible dimension names map to catalog size and color facets", () => {

@@ -36,6 +36,24 @@ test("Multi-attribute selection renders independent dimensions without a combine
   assert.ok(html.includes('>Đen</a>'));
 });
 
+test("An unavailable color stays visible as a disabled option without a link to another length", () => {
+  const html = renderToStaticMarkup(createElement(ProductVariantSelector, { product: variants[1], variants }));
+  const colorOptions = html.match(/<fieldset>[\s\S]*?<\/fieldset>/g)![1];
+  assert.match(colorOptions, /<button[^>]*disabled=""[^>]*opacity-50[^>]*>Đen<\/button>/);
+  assert.ok(!colorOptions.includes('href="/products/600-black"'));
+  assert.ok(colorOptions.includes('href="/products/800-silver"'));
+  assert.ok(html.includes('href="/products/600-silver"'));
+});
+
+test("Adding a matching SKU enables its color automatically and normalizes case and spacing", () => {
+  const matching = { ...variants[1], id: "800-black", slug: "800-black", variantAttributes: [{ name: "Kích thước khoang tủ (T)", value: " 800mm " }, { name: "Màu sắc", value: " đen " }] };
+  const options = [...variants, matching];
+  const html = renderToStaticMarkup(createElement(ProductVariantSelector, { product: variants[1], variants: options }));
+  assert.ok(html.includes('href="/products/800-black"'));
+  assert.ok(!html.includes("disabled"));
+  assert.equal(chooseVariant(options, variants[1], 1, "Đen")?.id, matching.id);
+});
+
 test("Admin offers a custom label and uses SKU fallback in sibling links", () => {
   const html = renderToStaticMarkup(createElement(ProductVariantFields, {
     attributes: variants[0].variantAttributes, onChange: () => {}, label: "Phải", onLabelChange: () => {},

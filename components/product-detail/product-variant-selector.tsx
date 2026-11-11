@@ -23,15 +23,16 @@ export function ProductVariantSelector({ product, variants }: { product: Product
         const options = Array.from(new Map(variants.flatMap(item => {
           const value = item.variantAttributes?.[index]?.value;
           return value ? [[variantKey(value), value] as const] : [];
-        })).values()).flatMap(value => {
+        })).values()).map(value => {
           const target = chooseVariant(variants, product, index, value);
-          return target ? [{ value, target, label: sharedSelection ? value : variantOptionLabel(target, index) }] : [];
+          return { value, target, label: sharedSelection || !target ? value : variantOptionLabel(target, index) };
         }).sort((left, right) => optionCollator.compare(left.label, right.label)
-          || optionCollator.compare(left.target.code, right.target.code)
-          || left.target.id.localeCompare(right.target.id));
+          || optionCollator.compare(left.target?.code || "", right.target?.code || "")
+          || (left.target?.id || "").localeCompare(right.target?.id || ""));
         return <fieldset key={name}>
           <legend className="mb-2 text-sm font-medium text-primary">{name}: <span className="font-normal text-text-secondary">{sharedSelection ? selected : variantOptionLabel(product, index)}</span></legend>
           <div className="flex flex-wrap gap-2">{options.map(({ value, target, label }) => {
+            if (!target) return <button key={value} type="button" disabled title="Không có biến thể phù hợp với các lựa chọn phía trên." className="inline-flex min-h-10 max-w-full cursor-not-allowed items-center justify-center break-words rounded border border-border bg-section px-3 py-2 text-sm text-text-muted opacity-50">{label}</button>;
             const chosen = variantKey(value) === variantKey(selected);
             return <Link key={value} href={`/products/${target.slug}`} title={target.code} prefetch={false} aria-current={chosen ? "page" : undefined} className={`inline-flex min-h-10 max-w-full items-center justify-center break-words rounded border px-3 py-2 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${chosen ? "border-brand bg-brand text-white font-semibold hover:border-brand-hover hover:bg-brand-hover" : "border-border bg-white text-primary hover:border-brand hover:bg-brand hover:text-white"}`}>{label}</Link>;
           })}</div>

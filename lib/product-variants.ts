@@ -22,7 +22,11 @@ export function variantDimension(attributes: Attribute[], kind: "size" | "color"
 }
 
 export function chooseVariant(variants: Product[], current: Product, index: number, value: string) {
-  const options = variants.filter(item => variantKey(item.variantAttributes?.[index]?.value || "") === variantKey(value));
+  // Later dimensions depend on the choices above them. Changing a color must
+  // never silently select another length to reach an otherwise missing SKU.
+  const previous = current.variantAttributes?.slice(0, index) || [];
+  const options = variants.filter(item => variantKey(item.variantAttributes?.[index]?.value || "") === variantKey(value)
+    && previous.every((attribute, position) => variantKey(attribute.value) === variantKey(item.variantAttributes?.[position]?.value || "")));
   const compatible = options.filter(item => item.variantAttributes?.every((attribute, position) => position === index || variantKey(attribute.value) === variantKey(current.variantAttributes?.[position]?.value || "")));
   return compatible.find(item => item.id === current.id) || compatible[0] || options[0];
 }

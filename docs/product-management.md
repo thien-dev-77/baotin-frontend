@@ -116,7 +116,14 @@ attribute values, with instructions to correct the group; all unsaved values
 remain available for editing and retrying.
 The customer detail page renders the options above the purchase panel, and
 switching options navigates to the matching SKU with its own image, price and
-inventory. Multi-attribute selection picks an existing compatible SKU.
+inventory. Multi-attribute selection follows the type order configured in admin:
+later options depend on all selected values above them. Missing combinations
+remain visible as muted, disabled buttons; selecting a color never changes a
+previously selected length. Earlier options remain available and can select a
+valid SKU with different later values when necessary. For example, selecting
+60 mm disables Đồng bóng if only a Niken mờ SKU exists at that length. Adding or
+linking a matching public SKU in admin enables that combination automatically.
+Availability reflects existing public SKU combinations, separately from stock.
 The detail page refreshes the current SKU and all variants in one deduplicated
 selection request. The purchase panel shows price/stock loading and retry states,
 with purchase controls disabled until fresh data is available. An active B2B
